@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}Daftar Registrasi - Babycare{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 class="h4 mb-1">
+            <i class="bi bi-calendar-check"></i> Daftar Registrasi
+          </h3>
+          <p class="text-muted small">Kelola semua registrasi terapi</p>
+        </div>
+        <a href="/registrasi/new/" class="btn btn-primary btn-sm">
+          <i class="bi bi-plus-lg"></i> Registrasi Baru
+        </a>
+      </div>
+
+      <!-- Table Card -->
+      <div class="card bg-white">
+        <div class="card-body">
+          {% if registrasis %}
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Pasien</th>
+                    <th>Jenis Terapi</th>
+                    <th>Terapis</th>
+                    <th>Tanggal</th>
+                    <th>Total Bayar</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for reg in registrasis %}
+                    <tr>
+                      <td>
+                        <strong>{{ reg.pasien.nama_anak }}</strong>
+                      </td>
+                      <td>{{ reg.jenis_terapi.nama_terapi }}</td>
+                      <td>{{ reg.terapis.nama_terapis|default:'-' }}</td>
+                      <td>{{ reg.tanggal_kunjungan|date:"d M Y" }}</td>
+                      <td>{{ reg.total_bayar|rupiah }}</td>
+                      <td>
+                        <a href="{% url 'registrasi_edit' reg.pk %}" class="btn btn-xs btn-light btn-sm" title="Edit Registrasi">
+                          <i class="bi bi-pencil"></i>
+                        </a>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+              <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                  {% if page_obj.has_previous %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page=1">First</a>
+                    </li>
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                    </li>
+                  {% endif %}
+
+                  <li class="page-item active">
+                    <span class="page-link">
+                      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+                  </li>
+
+                  {% if page_obj.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                    </li>
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+                    </li>
+                  {% endif %}
+                </ul>
+              </nav>
+            {% endif %}
+          {% else %}
+            <div class="text-center py-5">
+              <i class="bi bi-inbox" style="font-size: 48px; color: #D1D5DB;"></i>
+              <p class="text-muted mt-3">Belum ada registrasi</p>
+              <a href="/registrasi/new/" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg"></i> Buat Registrasi Baru
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

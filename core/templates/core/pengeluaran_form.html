@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Edit{% else %}Input{% endif %} Pengeluaran - Babycare{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 class="h4 mb-1">
+            <i class="bi bi-wallet2"></i> {% if object %}Edit{% else %}Input{% endif %} Pengeluaran
+          </h3>
+          <p class="text-muted small">{% if object %}Update data{% else %}Catat{% endif %} pengeluaran operasional</p>
+        </div>
+      </div>
+
+      <!-- Form Card -->
+      <div class="card bg-white">
+        <div class="card-body">
+          <form method="post" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger" role="alert">
+                {% for error in form.non_field_errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <div class="row g-3">
+              <!-- Tanggal -->
+              <div class="col-md-6">
+                <label for="{{ form.tanggal.id_for_label }}" class="form-label">
+                  Tanggal <span class="text-danger">*</span>
+                </label>
+                {{ form.tanggal }}
+                {% if form.tanggal.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.tanggal.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Kategori -->
+              <div class="col-md-6">
+                <label for="{{ form.kategori.id_for_label }}" class="form-label">
+                  Kategori <span class="text-danger">*</span>
+                </label>
+                {{ form.kategori }}
+                {% if form.kategori.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.kategori.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Jumlah -->
+              <div class="col-md-6">
+                <label for="{{ form.jumlah.id_for_label }}" class="form-label">
+                  Jumlah <span class="text-danger">*</span>
+                </label>
+                {{ form.jumlah }}
+                {% if form.jumlah.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.jumlah.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Cabang -->
+              <div class="col-md-6">
+                <label for="{{ form.cabang.id_for_label }}" class="form-label">
+                  Cabang
+                </label>
+                {{ form.cabang }}
+                {% if form.cabang.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.cabang.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Keterangan -->
+              <div class="col-12">
+                <label for="{{ form.keterangan.id_for_label }}" class="form-label">
+                  Keterangan
+                </label>
+                {{ form.keterangan }}
+                {% if form.keterangan.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.keterangan.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-end mt-4">
+              <a href="/pengeluaran/" class="btn btn-outline-secondary">
+                <i class="bi bi-x-lg"></i> Batal
+              </a>
+              <button type="button" id="btnPreview" class="btn btn-primary">
+                <i class="bi bi-eye"></i> Preview
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="previewModalLabel" style="color:white;">
+          <i class="bi bi-eye"></i> Preview Pengeluaran
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-borderless">
+          <tbody>
+            <tr>
+              <td class="text-muted" style="width: 40%;">Tanggal</td>
+              <td class="fw-bold" id="previewTanggal">-</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Kategori</td>
+              <td class="fw-bold" id="previewKategori">-</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Jumlah</td>
+              <td class="fw-bold text-danger" style="font-size: 1.2rem;" id="previewJumlah">Rp 0</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Cabang</td>
+              <td class="fw-bold" id="previewCabang">-</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Keterangan</td>
+              <td id="previewKeterangan">-</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="alert alert-warning mb-0">
+          <i class="bi bi-exclamation-triangle"></i> Pastikan data sudah benar sebelum menyimpan pengeluaran.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-lg"></i> Batal
+        </button>
+        <button type="button" id="btnConfirmSave" class="btn btn-danger">
+          <i class="bi bi-check-lg"></i> Ya, Simpan
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+  // Initialize Select2 for kategori
+  $('#id_kategori').select2({
+    placeholder: '-- Pilih Kategori --',
+    allowClear: true,
+    width: '100%'
+  });
+  
+  // Auto format number for currency inputs (Indonesian style with dots)
+  function formatNumber(value) {
+    if (!value) return '';
+    // Remove all non-digit characters
+    let num = value.toString().replace(/\D/g, '');
+    if (!num) return '';
+    // Add thousand separators (dots)
+    return num.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  function unformatNumber(value) {
+    if (!value) return '';
+    // Remove all dots to get raw number
+    return value.toString().replace(/\./g, '');
+  }
+  
+  function formatRupiah(value) {
+    if (!value) return 'Rp 0';
+    return 'Rp ' + formatNumber(value);
+  }
+
+  // Apply to jumlah field
+  const currencyFields = ['id_jumlah'];
+  
+  currencyFields.forEach(function(fieldId) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    
+    // Format on page load if has value
+    if (field.value) {
+      console.log('Formatting field on load:', fieldId, 'Original value:', field.value);
+      // Parse decimal value if exists (e.g., "300000.00" -> "300000")
+      let cleanValue = field.value.toString();
+      // If it contains decimal point, parse it
+      if (cleanValue.includes('.')) {
+        cleanValue = parseFloat(cleanValue).toString();
+      }
+      field.value = formatNumber(cleanValue);
+      console.log('Formatted to:', field.value);
+    }
+    
+    // Format on input
+    field.addEventListener('input', function(e) {
+      let cursorPos = this.selectionStart;
+      let oldValue = this.value;
+      let oldLength = oldValue.length;
+      
+      let unformatted = unformatNumber(this.value);
+      let formatted = formatNumber(unformatted);
+      
+      this.value = formatted;
+      
+      // Adjust cursor position
+      let newLength = this.value.length;
+      let diff = newLength - oldLength;
+      this.setSelectionRange(cursorPos + diff, cursorPos + diff);
+    });
+  });
+  
+  // Handle preview button click
+  $('#btnPreview').on('click', function() {
+    // Validate form first
+    const form = $('form')[0];
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    
+    // Get form values
+    const tanggal = $('#id_tanggal').val();
+    const kategori = $('#id_kategori option:selected').text();
+    const jumlahRaw = unformatNumber($('#id_jumlah').val());
+    const cabangText = $('#id_cabang option:selected').text() || '-';
+    const keterangan = $('#id_keterangan').val() || '-';
+    
+    // Validate kategori selected
+    if (!$('#id_kategori').val()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Kategori Belum Dipilih',
+        text: 'Silakan pilih kategori pengeluaran terlebih dahulu!',
+        confirmButtonColor: '#dc3545'
+      });
+      return;
+    }
+    
+    // Validate jumlah
+    if (!jumlahRaw || jumlahRaw === '0') {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Jumlah Belum Diisi',
+        text: 'Silakan masukkan jumlah pengeluaran terlebih dahulu!',
+        confirmButtonColor: '#dc3545'
+      });
+      return;
+    }
+    
+    // Fill preview modal
+    $('#previewTanggal').text(tanggal || '-');
+    $('#previewKategori').text(kategori);
+    $('#previewJumlah').text(formatRupiah(jumlahRaw));
+    $('#previewCabang').text(cabangText);
+    $('#previewKeterangan').text(keterangan);
+    
+    // Show modal
+    const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+    previewModal.show();
+  });
+  
+  // Handle confirm save in modal
+  $('#btnConfirmSave').on('click', function() {
+    // Unformat currency fields before submit
+    currencyFields.forEach(function(fieldId) {
+      const field = document.getElementById(fieldId);
+      if (field && field.value) {
+        field.value = unformatNumber(field.value);
+      }
+    });
+    
+    // Submit the form
+    $('form').submit();
+  });
+});
+</script>
+{% endblock %}

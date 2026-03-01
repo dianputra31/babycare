@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Babycare{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content">
+      <!-- Header -->
+      <div class="mb-4">
+        <h3 class="h4 mb-1">
+          <i class="bi bi-speedometer2"></i> Dashboard
+        </h3>
+        <p class="text-muted small">Selamat datang kembali, {{ fullname|default:username }}!</p>
+      </div>
+
+      <!-- Stats Cards Row -->
+      <div class="row g-3 mb-4">
+        <!-- Total Pasien -->
+        <div class="col-12 col-sm-6 col-lg-3">
+          <div class="card stat-card bg-white">
+            <div class="stat-card-icon">
+              <i class="bi bi-people"></i>
+            </div>
+            <div class="card-body stat-card-body">
+              <div class="stat-card-label text-muted">Total Pasien</div>
+              <div class="stat-card-value text-primary">—</div>
+              <small class="text-muted">Data sedang diproses</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Registrasi Hari Ini -->
+        <div class="col-12 col-sm-6 col-lg-3">
+          <div class="card stat-card bg-white">
+            <div class="stat-card-icon">
+              <i class="bi bi-calendar"></i>
+            </div>
+            <div class="card-body stat-card-body">
+              <div class="stat-card-label text-muted">Registrasi Hari Ini</div>
+              <div class="stat-card-value text-success">—</div>
+              <small class="text-muted">Data sedang diproses</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pendapatan Bulan Ini -->
+        <div class="col-12 col-sm-6 col-lg-3">
+          <div class="card stat-card bg-white">
+            <div class="stat-card-icon">
+              <i class="bi bi-graph-up"></i>
+            </div>
+            <div class="card-body stat-card-body">
+              <div class="stat-card-label text-muted">Pendapatan Bulan Ini</div>
+              <div class="stat-card-value text-info">Rp —</div>
+              <small class="text-muted">Data sedang diproses</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notifikasi -->
+        <div class="col-12 col-sm-6 col-lg-3">
+          <div class="card stat-card bg-white">
+            <div class="stat-card-icon">
+              <i class="bi bi-bell"></i>
+            </div>
+            <div class="card-body stat-card-body">
+              <div class="stat-card-label text-muted">Notifikasi Belum Dibaca</div>
+              <div class="stat-card-value text-warning">—</div>
+              <small class="text-muted">Data sedang diproses</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="row g-3 mb-4">
+        <div class="col-12">
+          <div class="card bg-white">
+            <div class="card-body">
+              <h6 class="card-title mb-3">
+                <i class="bi bi-lightning"></i> Aksi Cepat
+              </h6>
+              <div class="d-grid gap-2 d-sm-flex">
+                <a href="/registrasi/new/" class="btn btn-primary btn-sm">
+                  <i class="bi bi-plus-lg"></i> Registrasi Baru
+                </a>
+                <a href="/pemasukan/new/" class="btn btn-outline-primary btn-sm">
+                  <i class="bi bi-cash-coin"></i> Input Pemasukan
+                </a>
+                <a href="/registrasi/" class="btn btn-outline-primary btn-sm">
+                  <i class="bi bi-list"></i> Lihat Registrasi
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Alert -->
+      <div class="alert alert-info" role="alert">
+        <i class="bi bi-info-circle"></i>
+        <strong>Info:</strong> Database development masih dalam tahap integrasi. Statistik lengkap akan ditampilkan setelah data production siap.
+      </div>
+
+      <!-- Mobile Menu (xs only) -->
+      <div class="d-md-none mb-4">
+        <div class="card bg-white">
+          <div class="card-body">
+            <h6 class="card-title mb-3">Menu</h6>
+            <a href="/registrasi/" class="btn btn-sm btn-light d-block mb-2 text-start">
+              <i class="bi bi-calendar-check"></i> Registrasi
+            </a>
+            <a href="/registrasi/new/" class="btn btn-sm btn-light d-block mb-2 text-start">
+              <i class="bi bi-plus-circle"></i> Registrasi Baru
+            </a>
+            <a href="/pemasukan/new/" class="btn btn-sm btn-light d-block mb-2 text-start">
+              <i class="bi bi-cash-coin"></i> Input Pemasukan
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

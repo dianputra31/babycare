@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - Babycare{% endblock %}
+
+{% block content %}
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <h2><i class="bi bi-heart-pulse"></i> Babycare</h2>
+      <p>Sistem Manajemen Terapi Bayi</p>
+    </div>
+
+    <div class="login-body">
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger" role="alert">
+          <i class="bi bi-exclamation-circle"></i>
+          {% for error in form.non_field_errors %}
+            <div>{{ error }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label for="id_username" class="form-label">Username</label>
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0">
+              <i class="bi bi-person"></i>
+            </span>
+            <input 
+              type="text" 
+              name="username" 
+              class="form-control border-start-0 {% if form.username.errors %}is-invalid{% endif %}" 
+              id="id_username" 
+              placeholder="Masukkan username"
+              required
+              autofocus
+            >
+            {% if form.username.errors %}
+              <div class="invalid-feedback d-block">
+                {{ form.username.errors.0 }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="id_password" class="form-label">Password</label>
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0">
+              <i class="bi bi-lock"></i>
+            </span>
+            <input 
+              type="password" 
+              name="password" 
+              class="form-control border-start-0 {% if form.password.errors %}is-invalid{% endif %}" 
+              id="id_password"
+              placeholder="Masukkan password"
+              required
+            >
+            {% if form.password.errors %}
+              <div class="invalid-feedback d-block">
+                {{ form.password.errors.0 }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 mt-4">
+          <i class="bi bi-box-arrow-in-right"></i> Login
+        </button>
+      </form>
+
+      <hr class="my-4">
+      <p class="text-center text-muted small mb-0">
+        Demo: admin / admin123
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

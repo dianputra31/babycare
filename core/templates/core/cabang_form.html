@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}Cabang Baru - Babycare{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 class="h4 mb-1">
+            <i class="bi bi-building-add"></i> Cabang Baru
+          </h3>
+          <p class="text-muted small">Tambahkan data cabang</p>
+        </div>
+      </div>
+
+      <!-- Form Card -->
+      <div class="card bg-white">
+        <div class="card-body">
+          <form method="post" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger" role="alert">
+                {% for error in form.non_field_errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <div class="row g-3">
+              <!-- Nama Cabang -->
+              <div class="col-md-6">
+                <label for="{{ form.nama_cabang.id_for_label }}" class="form-label">
+                  Nama Cabang <span class="text-danger">*</span>
+                </label>
+                {{ form.nama_cabang }}
+                {% if form.nama_cabang.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.nama_cabang.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-end mt-4">
+              <a href="/cabang/" class="btn btn-outline-secondary">
+                <i class="bi bi-x-lg"></i> Batal
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Simpan
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

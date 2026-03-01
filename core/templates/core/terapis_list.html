@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}Daftar Terapis - Babycare{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 class="h4 mb-1">
+            <i class="bi bi-person-badge"></i> Daftar Terapis
+          </h3>
+          <p class="text-muted small">Kelola data terapis</p>
+        </div>
+        <a href="/terapis/new/" class="btn btn-primary">
+          <i class="bi bi-plus-lg"></i> Terapis Baru
+        </a>
+      </div>
+
+      {% if terapis_list %}
+      <!-- Table -->
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Nama</th>
+                <th>Pengguna</th>
+                <th>Cabang</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for terapis in terapis_list %}
+              <tr>
+                <td>{{ terapis.nama_terapis }}</td>
+                <td>{{ terapis.no_hp|default:"—" }}</td>
+                <td>{{ terapis.cabang.nama_cabang|default:"—" }}</td>
+                <td>
+                  <a href="#" class="btn btn-sm btn-outline-primary">Edit</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      {% if is_paginated %}
+      <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+          {% if page_obj.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?page=1">First</a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+            </li>
+          {% endif %}
+
+          {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+              <li class="page-item active">
+                <span class="page-link">{{ num }}</span>
+              </li>
+            {% else %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+              </li>
+            {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+
+      {% else %}
+      <!-- Empty State -->
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <i class="bi bi-inbox" style="font-size: 48px; color: #D1D5DB; margin-bottom: 16px;"></i>
+          <h5 class="text-muted">Belum ada terapis</h5>
+          <p class="text-muted small mb-3">Mulai dengan membuat data terapis baru</p>
+          <a href="/terapis/new/" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Terapis Baru
+          </a>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

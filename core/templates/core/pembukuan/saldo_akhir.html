@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Saldo Akhir{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content">
+      <div class="p-4">
+      <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <h2 class="mb-0"><i class="bi bi-calculator"></i> Saldo Akhir / Neraca Keuangan</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Balance Summary -->
+  <div class="row mb-4">
+    <!-- Total Pendapatan -->
+    <div class="col-md-4 mb-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h6 class="text-muted mb-3">Total Pendapatan</h6>
+              <h3 class="mb-0" style="color: #28a745;">
+                {{ total_pendapatan_formatted }}
+              </h3>
+            </div>
+            <i class="bi bi-cash-coin" style="font-size: 2rem; color: #28a745; opacity: 0.3;"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total Pengeluaran -->
+    <div class="col-md-4 mb-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h6 class="text-muted mb-3">Total Pengeluaran</h6>
+              <h3 class="mb-0" style="color: #dc3545;">
+                {{ total_pengeluaran_formatted }}
+              </h3>
+            </div>
+            <i class="bi bi-credit-card" style="font-size: 2rem; color: #dc3545; opacity: 0.3;"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Saldo Akhir -->
+    <div class="col-md-4 mb-3">
+      <div class="card border-0 shadow-sm" style="border-top: 4px solid {% if saldo_akhir >= 0 %}#28a745{% else %}#dc3545{% endif %} !important;">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h6 class="text-muted mb-3">Saldo Akhir</h6>
+              <h3 class="mb-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                {{ saldo_akhir_formatted }}
+              </h3>
+            </div>
+            <i class="bi bi-calculator" style="font-size: 2rem; color: #667eea; opacity: 0.3;"></i>
+          </div>
+          <small class="text-muted mt-2 d-block">
+            Status: 
+            <span class="badge 
+              {% if status == 'surplus' %}bg-success
+              {% elif status == 'defisit' %}bg-danger
+              {% else %}bg-warning
+              {% endif %}">
+              {% if status == 'surplus' %}
+                SURPLUS
+              {% elif status == 'defisit' %}
+                DEFISIT
+              {% else %}
+                SEIMBANG
+              {% endif %}
+            </span>
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Breakdown -->
+  <div class="row">
+    <div class="col-lg-8 mb-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+          <h6 class="mb-0">Rincian Neraca Keuangan</h6>
+        </div>
+        <div class="card-body">
+          <table class="table mb-0">
+            <tbody>
+              <tr>
+                <td>
+                  <h6 class="mb-0">Total Pendapatan</h6>
+                  <small class="text-muted">Semua pemasukan dari berbagai sumber</small>
+                </td>
+                <td class="text-end">
+                  <h5 class="mb-0" style="color: #28a745;">
+                    {{ total_pendapatan_formatted }}
+                  </h5>
+                </td>
+              </tr>
+              <tr style="border-top: 1px solid #dee2e6;">
+                <td>
+                  <h6 class="mb-0">Total Pengeluaran</h6>
+                  <small class="text-muted">Semua pengeluaran operasional</small>
+                </td>
+                <td class="text-end">
+                  <h5 class="mb-0" style="color: #dc3545;">
+                    - {{ total_pengeluaran_formatted }}
+                  </h5>
+                </td>
+              </tr>
+              <tr class="table-light" style="font-weight: 600; border-top: 2px solid #dee2e6; border-bottom: 2px solid #dee2e6;">
+                <td>
+                  <h6 class="mb-0">Saldo Akhir</h6>
+                  <small class="text-muted">
+                    {% if status == 'surplus' %}
+                      Kelebihan pendapatan
+                    {% elif status == 'defisit' %}
+                      Kekurangan pendapatan
+                    {% else %}
+                      Seimbang
+                    {% endif %}
+                  </small>
+                </td>
+                <td class="text-end">
+                  <h5 class="mb-0" style="{% if saldo_akhir >= 0 %}color: #28a745;{% else %}color: #dc3545;{% endif %}">
+                    {{ saldo_akhir_formatted }}
+                  </h5>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Card -->
+    <div class="col-lg-4 mb-4">
+      <div class="card border-0 shadow-sm {% if status == 'surplus' %}bg-success-light{% elif status == 'defisit' %}bg-danger-light{% else %}bg-warning-light{% endif %}">
+        <div class="card-body text-center">
+          {% if status == 'surplus' %}
+            <i class="bi bi-check-circle" style="font-size: 3rem; color: #28a745;"></i>
+            <h5 class="mt-3 mb-2">Kondisi SURPLUS</h5>
+            <p class="text-muted mb-0">Pendapatan lebih besar dari pengeluaran. Kinerja keuangan sangat baik!</p>
+          {% elif status == 'defisit' %}
+            <i class="bi bi-exclamation-circle" style="font-size: 3rem; color: #dc3545;"></i>
+            <h5 class="mt-3 mb-2">Kondisi DEFISIT</h5>
+            <p class="text-muted mb-0">Pengeluaran lebih besar dari pendapatan. Perlu optimasi biaya operasional.</p>
+          {% else %}
+            <i class="bi bi-pause-circle" style="font-size: 3rem; color: #ffc107;"></i>
+            <h5 class="mt-3 mb-2">Kondisi SEIMBANG</h5>
+            <p class="text-muted mb-0">Pendapatan dan pengeluaran sama. Mantau perkembangan lebih lanjut.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart/Visual Representation -->
+  <div class="row mt-4">
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+          <h6 class="mb-0">Perbandingan Pendapatan vs Pengeluaran</h6>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-md-6">
+              <h6 class="text-muted">Pendapatan</h6>
+              <div style="
+                width: 150px;
+                height: 150px;
+                border-radius: 50%;
+                background: conic-gradient(#28a745 0deg 360deg);
+                margin: 20px auto;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0 0 8px rgba(40, 167, 69, 0.1);
+              ">
+                <div style="
+                  width: 130px;
+                  height: 130px;
+                  border-radius: 50%;
+                  background: white;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  flex-direction: column;
+                ">
+                  <small class="text-muted">Total</small>
+                  <h6 style="color: #28a745; margin: 0;">
+                    Rp {{ total_pendapatan|stringformat:"d"|floatformat:0 }}
+                  </h6>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <h6 class="text-muted">Pengeluaran</h6>
+              <div style="
+                width: 150px;
+                height: 150px;
+                border-radius: 50%;
+                background: conic-gradient(#dc3545 0deg 360deg);
+                margin: 20px auto;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 0 0 8px rgba(220, 53, 69, 0.1);
+              ">
+                <div style="
+                  width: 130px;
+                  height: 130px;
+                  border-radius: 50%;
+                  background: white;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  flex-direction: column;
+                ">
+                  <small class="text-muted">Total</small>
+                  <h6 style="color: #dc3545; margin: 0;">
+                    Rp {{ total_pengeluaran|stringformat:"d"|floatformat:0 }}
+                  </h6>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.bg-success-light {
+  background-color: rgba(40, 167, 69, 0.1) !important;
+}
+.bg-danger-light {
+  background-color: rgba(220, 53, 69, 0.1) !important;
+}
+.bg-warning-light {
+  background-color: rgba(255, 193, 7, 0.1) !important;
+}
+</style>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

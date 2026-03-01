@@ -1,0 +1,419 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}Laporan Pemasukan - Babycare{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 class="h4 mb-1">
+            <i class="bi bi-cash-stack"></i> Laporan Pemasukan
+          </h3>
+          <p class="text-muted small">Daftar semua pemasukan dana</p>
+        </div>
+        <a href="/pemasukan/new/" class="btn btn-primary btn-sm">
+          <i class="bi bi-plus-lg"></i> Input Pemasukan
+        </a>
+      </div>
+
+      <!-- Table Card -->
+      <div class="card bg-white">
+        <div class="card-body">
+          {% if pemasukans %}
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Tanggal</th>
+                    <th>Registrasi</th>
+                    <th>Jumlah</th>
+                    <th>Metode</th>
+                    <th>Cabang</th>
+                    <th>Keterangan</th>
+                    <th class="text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for item in pemasukans %}
+                    <tr>
+                      <td>{{ item.tanggal|date:"d M Y" }}</td>
+                      <td>
+                        {% if item.registrasi %}
+                          <div class="small">{{ item.registrasi.pasien.nama_anak }}</div>
+                          <div class="text-muted" style="font-size: 0.75rem;">{{ item.registrasi.jenis_terapi.nama_terapi }}</div>
+                        {% else %}
+                          -
+                        {% endif %}
+                      </td>
+                      <td>
+                        <strong class="text-success">{{ item.jumlah|rupiah }}</strong>
+                      </td>
+                      <td>
+                        <span class="badge bg-info">{{ item.metode_pembayaran|default:'-' }}</span>
+                      </td>
+                      <td>{{ item.cabang.nama_cabang|default:'-' }}</td>
+                      <td>{{ item.keterangan|default:'-'|truncatewords:5 }}</td>
+                      <td class="text-center">
+                        <div class="btn-group btn-group-sm" role="group">
+                          <button type="button" class="btn btn-outline-primary" onclick="viewDetail({{ item.id }})" title="Lihat Detail">
+                            <i class="bi bi-eye"></i>
+                          </button>
+                          <button type="button" class="btn btn-outline-secondary" onclick="printNota({{ item.id }})" title="Print Nota">
+                            <i class="bi bi-printer"></i>
+                          </button>
+                          <a href="{% url 'pemasukan_edit' item.pk %}" class="btn btn-outline-success" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                  <tr class="table-primary">
+                    <td colspan="2"><strong>Total Pemasukan</strong></td>
+                    <td colspan="5">
+                      <strong class="text-success">
+                        {{ total_pemasukan|rupiah }}
+                      </strong>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+              <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                  {% if page_obj.has_previous %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page=1">First</a>
+                    </li>
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                    </li>
+                  {% endif %}
+
+                  <li class="page-item active">
+                    <span class="page-link">
+                      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+                  </li>
+
+                  {% if page_obj.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                    </li>
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+                    </li>
+                  {% endif %}
+                </ul>
+              </nav>
+            {% endif %}
+          {% else %}
+            <div class="text-center py-5">
+              <i class="bi bi-inbox" style="font-size: 48px; color: #D1D5DB;"></i>
+              <p class="text-muted mt-3">Belum ada data pemasukan</p>
+              <a href="/pemasukan/new/" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg"></i> Input Pemasukan Pertama
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detail -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="detailModalLabel">
+          <i class="bi bi-info-circle"></i> Detail Pemasukan
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-borderless">
+          <tbody>
+            <tr>
+              <td class="text-muted" style="width: 40%;">Tanggal</td>
+              <td class="fw-bold" id="detailTanggal">-</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Pasien</td>
+              <td class="fw-bold" id="detailPasien">-</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Jenis Terapi</td>
+              <td id="detailTerapi">-</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Terapis</td>
+              <td id="detailTerapis">-</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Jumlah Tagihan</td>
+              <td class="fw-bold text-success" style="font-size: 1.3rem;" id="detailJumlah">Rp 0</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Jumlah Bayar</td>
+              <td class="fw-bold" style="font-size: 1.1rem;" id="detailJumlahBayar">Rp 0</td>
+            </tr>
+            <tr id="detailRowKembalian" style="display: none;">
+              <td class="text-muted">Kembalian</td>
+              <td class="fw-bold text-info" style="font-size: 1.1rem;" id="detailKembalian">Rp 0</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Metode Pembayaran</td>
+              <td><span class="badge bg-info" id="detailMetode">-</span></td>
+            </tr>
+            <tr>
+              <td class="text-muted">Cabang</td>
+              <td id="detailCabang">-</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Keterangan</td>
+              <td id="detailKeterangan">-</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Dibuat Oleh</td>
+              <td id="detailCreatedBy">-</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Waktu Input</td>
+              <td id="detailCreatedAt">-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Print Nota -->
+<div class="modal fade" id="printModal" tabindex="-1" aria-labelledby="printModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="printModalLabel">
+          <i class="bi bi-receipt"></i> Nota Pembayaran
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="printArea">
+        <div class="text-center mb-3 pb-3 border-bottom">
+          <h4 class="mb-1"><strong>BABYCARE</strong></h4>
+          <p class="mb-0 small">Klinik Terapi Anak</p>
+          <p class="mb-0 small text-muted">Jl. Contoh No. 123, Kota</p>
+          <p class="mb-0 small text-muted">Telp: 021-12345678</p>
+        </div>
+        
+        <div class="mb-3">
+          <div class="row">
+            <div class="col-6 small">
+              <div>No. Nota: <strong id="printNoNota">-</strong></div>
+              <div>Tanggal: <strong id="printTanggal">-</strong></div>
+            </div>
+            <div class="col-6 small text-end">
+              <div>Kasir: <strong id="printKasir">-</strong></div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mb-3 pb-3 border-bottom">
+          <div class="small">
+            <div><strong>Pasien:</strong> <span id="printPasien">-</span></div>
+            <div><strong>Terapi:</strong> <span id="printTerapi">-</span></div>
+            <div><strong>Terapis:</strong> <span id="printTerapis">-</span></div>
+          </div>
+        </div>
+        
+        <div class="mb-3 pb-3 border-bottom">
+          <table class="table table-sm table-borderless mb-0">
+            <tbody>
+              <tr>
+                <td>Jumlah Tagihan</td>
+                <td class="text-end"><strong id="printJumlah">Rp 0</strong></td>
+              </tr>
+              <tr>
+                <td>Jumlah Bayar</td>
+                <td class="text-end"><strong id="printJumlahBayar">Rp 0</strong></td>
+              </tr>
+              <tr id="printRowKembalian" style="display: none;">
+                <td><strong>Kembalian</strong></td>
+                <td class="text-end"><strong class="text-info" id="printKembalian">Rp 0</strong></td>
+              </tr>
+              <tr>
+                <td>Metode</td>
+                <td class="text-end"><span id="printMetode">-</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="mb-3">
+          <div class="row">
+            <div class="col-6">
+              <strong>TOTAL TAGIHAN</strong>
+            </div>
+            <div class="col-6 text-end">
+              <strong style="font-size: 1.2rem;" id="printTotal">Rp 0</strong>
+            </div>
+          </div>
+        </div>
+        
+        <div class="text-center small text-muted mt-4 pt-3 border-top">
+          <p class="mb-1">Terima kasih atas kepercayaan Anda</p>
+          <p class="mb-0">Semoga lekas sembuh</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-primary" onclick="window.print()">
+          <i class="bi bi-printer"></i> Print
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Store pemasukan data for quick access
+const pemasukansData = {
+  {% for item in pemasukans %}
+  {{ item.id }}: {
+    id: {{ item.id }},
+    tanggal: '{{ item.tanggal|date:"d M Y" }}',
+    pasien: {% if item.registrasi %}'{{ item.registrasi.pasien.nama_anak }}'{% else %}'-'{% endif %},
+    terapi: {% if item.registrasi %}'{{ item.registrasi.jenis_terapi.nama_terapi }}'{% else %}'-'{% endif %},
+    terapis: {% if item.registrasi and item.registrasi.terapis %}'{{ item.registrasi.terapis.nama_terapis }}'{% else %}'-'{% endif %},
+    jumlah: {{ item.jumlah }},
+    jumlahFormatted: '{{ item.jumlah|rupiah }}',
+    jumlahBayar: {{ item.jumlah_bayar|default:0 }},
+    jumlahBayarFormatted: '{{ item.jumlah_bayar|rupiah|default:"Rp 0" }}',
+    metode: '{{ item.metode_pembayaran|default:"-" }}',
+    cabang: '{{ item.cabang.nama_cabang|default:"-" }}',
+    keterangan: '{{ item.keterangan|default:"-"|escapejs }}',
+    createdBy: {% if item.created_by %}'{{ item.created_by.full_name|default:item.created_by.username }}'{% else %}'-'{% endif %},
+    createdAt: '{{ item.created_at|date:"d M Y H:i" }}'
+  },
+  {% endfor %}
+};
+
+function formatRupiah(value) {
+  if (!value) return 'Rp 0';
+  const num = value.toString().replace(/\D/g, '');
+  const formatted = num.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return 'Rp ' + formatted;
+}
+
+function viewDetail(pemasukanId) {
+  const data = pemasukansData[pemasukanId];
+  if (!data) {
+    alert('Data tidak ditemukan');
+    return;
+  }
+  
+  // Fill modal with data
+  document.getElementById('detailTanggal').textContent = data.tanggal;
+  document.getElementById('detailPasien').textContent = data.pasien;
+  document.getElementById('detailTerapi').textContent = data.terapi;
+  document.getElementById('detailTerapis').textContent = data.terapis;
+  document.getElementById('detailJumlah').textContent = data.jumlahFormatted;
+  document.getElementById('detailJumlahBayar').textContent = data.jumlahBayarFormatted;
+  
+  // Show kembalian row if exists
+  const kembalian = data.jumlahBayar - data.jumlah;
+  if (kembalian > 0) {
+    document.getElementById('detailKembalian').textContent = formatRupiah(kembalian);
+    document.getElementById('detailRowKembalian').style.display = '';
+  } else {
+    document.getElementById('detailRowKembalian').style.display = 'none';
+  }
+  
+  document.getElementById('detailMetode').textContent = data.metode;
+  document.getElementById('detailCabang').textContent = data.cabang;
+  document.getElementById('detailKeterangan').textContent = data.keterangan;
+  document.getElementById('detailCreatedBy').textContent = data.createdBy;
+  document.getElementById('detailCreatedAt').textContent = data.createdAt;
+  
+  // Show modal
+  const detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
+  detailModal.show();
+}
+
+function printNota(pemasukanId) {
+  const data = pemasukansData[pemasukanId];
+  if (!data) {
+    alert('Data tidak ditemukan');
+    return;
+  }
+  
+  // Fill print modal with data
+  document.getElementById('printNoNota').textContent = 'PM-' + String(data.id).padStart(6, '0');
+  document.getElementById('printTanggal').textContent = data.tanggal;
+  document.getElementById('printKasir').textContent = data.createdBy;
+  document.getElementById('printPasien').textContent = data.pasien;
+  document.getElementById('printTerapi').textContent = data.terapi;
+  document.getElementById('printTerapis').textContent = data.terapis;
+  document.getElementById('printJumlah').textContent = data.jumlahFormatted;
+  document.getElementById('printJumlahBayar').textContent = data.jumlahBayarFormatted;
+  
+  // Show kembalian row if exists
+  const kembalian = data.jumlahBayar - data.jumlah;
+  if (kembalian > 0) {
+    document.getElementById('printKembalian').textContent = formatRupiah(kembalian);
+    document.getElementById('printRowKembalian').style.display = '';
+  } else {
+    document.getElementById('printRowKembalian').style.display = 'none';
+  }
+  
+  document.getElementById('printMetode').textContent = data.metode;
+  document.getElementById('printTotal').textContent = data.jumlahFormatted;
+  
+  // Show modal
+  const printModal = new bootstrap.Modal(document.getElementById('printModal'));
+  printModal.show();
+}
+
+// Print styling
+const style = document.createElement('style');
+style.textContent = `
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+    #printArea, #printArea * {
+      visibility: visible;
+    }
+    #printArea {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+    }
+    .modal-footer {
+      display: none !important;
+    }
+  }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

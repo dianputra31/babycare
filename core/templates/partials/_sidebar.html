@@ -1,0 +1,149 @@
+<!-- Mobile Sidebar (Offcanvas) -->
+<div class="offcanvas offcanvas-start d-md-none" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel" style="background: linear-gradient(180deg, #1F2937 0%, #374151 100%);">
+  <div class="offcanvas-header border-bottom border-secondary">
+    <h5 class="offcanvas-title text-white" id="mobileSidebarLabel">
+      <i class="bi bi-heart-pulse"></i> Menu
+    </h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body p-3">
+    <nav class="nav flex-column">
+      <a class="nav-link {% if request.path == '/dashboard/' %}active{% endif %}" href="/dashboard/">
+        <i class="bi bi-speedometer2"></i> Dashboard
+      </a>
+      <a class="nav-link {% if '/notifikasi/' in request.path %}active{% endif %}" href="/notifikasi/">
+        <i class="bi bi-bell"></i> Notifikasi
+        {% if unread_notifikasi_count > 0 %}
+        <span class="badge bg-danger rounded-pill">{{ unread_notifikasi_count }}</span>
+        {% endif %}
+      </a>
+      <a class="nav-link {% if '/registrasi/' in request.path %}active{% endif %}" href="/registrasi/">
+        <i class="bi bi-calendar-check"></i> Registrasi
+      </a>
+      <hr class="border-secondary my-3">
+      <h6 class="text-white text-uppercase mb-3 small">Laporan Keuangan</h6>
+      <a class="nav-link {% if '/pemasukan/' in request.path %}active{% endif %}" href="/pemasukan/">
+        <i class="bi bi-cash-stack"></i> Pemasukan
+      </a>
+      <a class="nav-link {% if '/pengeluaran/' in request.path %}active{% endif %}" href="/pengeluaran/">
+        <i class="bi bi-wallet2"></i> Pengeluaran
+      </a>
+      <hr class="border-secondary my-3">
+      <h6 class="text-white text-uppercase mb-3 small">Rekap & Statistik</h6>
+      <a class="nav-link {% if '/rekap-tindakan/' in request.path %}active{% endif %}" href="/rekap-tindakan/">
+        <i class="bi bi-graph-up"></i> Rekap Tindakan
+      </a>
+      <hr class="border-secondary my-3">
+      <h6 class="text-white text-uppercase mb-3 small">Pembukuan</h6>
+      <a class="nav-link {% if '/pembukuan/total-pendapatan/' in request.path %}active{% endif %}" href="/pembukuan/total-pendapatan/">
+        <i class="bi bi-cash-coin"></i> Total Pendapatan
+      </a>
+      <a class="nav-link {% if '/pembukuan/total-pengeluaran/' in request.path %}active{% endif %}" href="/pembukuan/total-pengeluaran/">
+        <i class="bi bi-credit-card"></i> Total Pengeluaran
+      </a>
+      <a class="nav-link {% if '/pembukuan/rekap-pasien-terapis/' in request.path %}active{% endif %}" href="/pembukuan/rekap-pasien-terapis/">
+        <i class="bi bi-people"></i> Rekap Pasien/Terapis
+      </a>
+      <a class="nav-link {% if '/pembukuan/rekap-transport-terapis/' in request.path %}active{% endif %}" href="/pembukuan/rekap-transport-terapis/">
+        <i class="bi bi-car-front"></i> Rekap Transport
+      </a>
+      <a class="nav-link {% if '/pembukuan/saldo-akhir/' in request.path %}active{% endif %}" href="/pembukuan/saldo-akhir/">
+        <i class="bi bi-calculator"></i> Saldo Akhir
+      </a>
+      <hr class="border-secondary my-3">
+      <h6 class="text-white text-uppercase mb-3 small">Master Data</h6>
+      <a class="nav-link {% if '/cabang/' in request.path %}active{% endif %}" href="/cabang/">
+        <i class="bi bi-building"></i> Cabang
+      </a>
+      <a class="nav-link {% if '/pasien/' in request.path %}active{% endif %}" href="/pasien/">
+        <i class="bi bi-person"></i> Pasien
+      </a>
+      <a class="nav-link {% if '/terapis/' in request.path %}active{% endif %}" href="/terapis/">
+        <i class="bi bi-person-badge"></i> Terapis
+      </a>
+      <a class="nav-link {% if '/jenis-terapi/' in request.path %}active{% endif %}" href="/jenis-terapi/">
+        <i class="bi bi-bookmark"></i> Jenis Terapi
+      </a>
+      <a class="nav-link {% if '/user/' in request.path %}active{% endif %}" href="/user/">
+        <i class="bi bi-people"></i> User
+      </a>
+      <hr class="border-secondary my-3">
+      <h6 class="text-white text-uppercase mb-3 small">Pengaturan</h6>
+      <a class="nav-link {% if '/pengaturan/' in request.path %}active{% endif %}" href="/pengaturan/">
+        <i class="bi bi-gear"></i> Pengaturan
+      </a>
+    </nav>
+  </div>
+</div>
+
+<!-- Desktop Sidebar -->
+<div class="col-md-3 col-lg-2 d-none d-md-block sidebar">
+  <div class="p-4">
+    <h6 class="text-white text-uppercase mb-4 small">Menu</h6>
+    <nav class="nav flex-column">
+      <a class="nav-link {% if request.path == '/dashboard/' %}active{% endif %}" href="/dashboard/">
+        <i class="bi bi-speedometer2"></i> Dashboard
+      </a>
+      <a class="nav-link {% if '/notifikasi/' in request.path %}active{% endif %}" href="/notifikasi/">
+        <i class="bi bi-bell"></i> Notifikasi
+        {% if unread_notifikasi_count > 0 %}
+        <span class="badge bg-danger rounded-pill">{{ unread_notifikasi_count }}</span>
+        {% endif %}
+      </a>
+      <a class="nav-link {% if '/registrasi/' in request.path %}active{% endif %}" href="/registrasi/">
+        <i class="bi bi-calendar-check"></i> Registrasi
+      </a>
+      <hr class="border-secondary my-3">
+      <h6 class="text-white text-uppercase mb-3 small">Laporan Keuangan</h6>
+      <a class="nav-link {% if '/pemasukan/' in request.path %}active{% endif %}" href="/pemasukan/">
+        <i class="bi bi-cash-stack"></i> Pemasukan
+      </a>
+      <a class="nav-link {% if '/pengeluaran/' in request.path %}active{% endif %}" href="/pengeluaran/">
+        <i class="bi bi-wallet2"></i> Pengeluaran
+      </a>
+      <hr class="border-secondary my-3">
+      <h6 class="text-white text-uppercase mb-3 small">Rekap & Statistik</h6>
+      <a class="nav-link {% if '/rekap-tindakan/' in request.path %}active{% endif %}" href="/rekap-tindakan/">
+        <i class="bi bi-graph-up"></i> Rekap Tindakan
+      </a>
+      <hr class="border-secondary my-3">
+      <h6 class="text-white text-uppercase mb-3 small">Pembukuan</h6>
+      <a class="nav-link {% if '/pembukuan/total-pendapatan/' in request.path %}active{% endif %}" href="/pembukuan/total-pendapatan/">
+        <i class="bi bi-cash-coin"></i> Total Pendapatan
+      </a>
+      <a class="nav-link {% if '/pembukuan/total-pengeluaran/' in request.path %}active{% endif %}" href="/pembukuan/total-pengeluaran/">
+        <i class="bi bi-credit-card"></i> Total Pengeluaran
+      </a>
+      <a class="nav-link {% if '/pembukuan/rekap-pasien-terapis/' in request.path %}active{% endif %}" href="/pembukuan/rekap-pasien-terapis/">
+        <i class="bi bi-people"></i> Rekap Pasien/Terapis
+      </a>
+      <a class="nav-link {% if '/pembukuan/rekap-transport-terapis/' in request.path %}active{% endif %}" href="/pembukuan/rekap-transport-terapis/">
+        <i class="bi bi-car-front"></i> Rekap Transport
+      </a>
+      <a class="nav-link {% if '/pembukuan/saldo-akhir/' in request.path %}active{% endif %}" href="/pembukuan/saldo-akhir/">
+        <i class="bi bi-calculator"></i> Saldo Akhir
+      </a>
+      <hr class="border-secondary my-3">
+      <h6 class="text-white text-uppercase mb-3 small">Master Data</h6>
+      <a class="nav-link {% if '/cabang/' in request.path %}active{% endif %}" href="/cabang/">
+        <i class="bi bi-building"></i> Cabang
+      </a>
+      <a class="nav-link {% if '/pasien/' in request.path %}active{% endif %}" href="/pasien/">
+        <i class="bi bi-person"></i> Pasien
+      </a>
+      <a class="nav-link {% if '/terapis/' in request.path %}active{% endif %}" href="/terapis/">
+        <i class="bi bi-person-badge"></i> Terapis
+      </a>
+      <a class="nav-link {% if '/jenis-terapi/' in request.path %}active{% endif %}" href="/jenis-terapi/">
+        <i class="bi bi-bookmark"></i> Jenis Terapi
+      </a>
+      <a class="nav-link {% if '/user/' in request.path %}active{% endif %}" href="/user/">
+        <i class="bi bi-people"></i> User
+      </a>
+      <hr class="border-secondary my-3">
+      <h6 class="text-white text-uppercase mb-3 small">Pengaturan</h6>
+      <a class="nav-link {% if '/pengaturan/' in request.path %}active{% endif %}" href="/pengaturan/">
+        <i class="bi bi-gear"></i> Pengaturan
+      </a>    </nav>
+  </div>
+</div>

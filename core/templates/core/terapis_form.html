@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block title %}Terapis Baru - Babycare{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 class="h4 mb-1">
+            <i class="bi bi-person-plus"></i> Terapis Baru
+          </h3>
+          <p class="text-muted small">Tambahkan data terapis</p>
+        </div>
+      </div>
+
+      <!-- Form Card -->
+      <div class="card bg-white">
+        <div class="card-body">
+          <form method="post" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger" role="alert">
+                {% for error in form.non_field_errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <div class="row g-3">
+              <!-- Nama Terapis -->
+              <div class="col-md-6">
+                <label for="{{ form.nama_terapis.id_for_label }}" class="form-label">
+                  Nama Terapis <span class="text-danger">*</span>
+                </label>
+                {{ form.nama_terapis }}
+                {% if form.nama_terapis.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.nama_terapis.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- No HP -->
+              <div class="col-md-6">
+                <label for="{{ form.no_hp.id_for_label }}" class="form-label">
+                  No. HP
+                </label>
+                {{ form.no_hp }}
+                {% if form.no_hp.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.no_hp.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Alamat -->
+              <div class="col-12">
+                <label for="{{ form.alamat.id_for_label }}" class="form-label">
+                  Alamat
+                </label>
+                {{ form.alamat }}
+                {% if form.alamat.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.alamat.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Cabang -->
+              <div class="col-md-6">
+                <label for="{{ form.cabang.id_for_label }}" class="form-label">
+                  Cabang
+                </label>
+                {{ form.cabang }}
+                {% if form.cabang.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.cabang.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Biaya Transport Default -->
+              <div class="col-md-6">
+                <label for="{{ form.biaya_transport_default.id_for_label }}" class="form-label">
+                  Biaya Transport Default
+                </label>
+                {{ form.biaya_transport_default }}
+                {% if form.biaya_transport_default.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.biaya_transport_default.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Status Aktif -->
+              <div class="col-12">
+                <div class="form-check">
+                  {{ form.is_active }}
+                  <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                    Terapis Aktif
+                  </label>
+                  {% if form.is_active.errors %}
+                    <div class="invalid-feedback d-block">
+                      {{ form.is_active.errors.0 }}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-end mt-4">
+              <a href="/terapis/" class="btn btn-outline-secondary">
+                <i class="bi bi-x-lg"></i> Batal
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Simpan
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+  // Auto format number for currency inputs (Indonesian style with dots)
+  function formatNumber(value) {
+    if (!value) return '';
+    // Remove all non-digit characters
+    let num = value.toString().replace(/\D/g, '');
+    if (!num) return '';
+    // Add thousand separators (dots)
+    return num.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  function unformatNumber(value) {
+    if (!value) return '';
+    // Remove all dots to get raw number
+    return value.toString().replace(/\./g, '');
+  }
+
+  // Apply to biaya_transport_default field
+  const currencyFields = ['id_biaya_transport_default'];
+  
+  currencyFields.forEach(function(fieldId) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    
+    // Format on page load if has value
+    if (field.value) {
+      field.value = formatNumber(field.value);
+    }
+    
+    // Format on input
+    field.addEventListener('input', function(e) {
+      let cursorPos = this.selectionStart;
+      let oldValue = this.value;
+      let oldLength = oldValue.length;
+      
+      let unformatted = unformatNumber(this.value);
+      let formatted = formatNumber(unformatted);
+      
+      this.value = formatted;
+      
+      // Adjust cursor position
+      let newLength = this.value.length;
+      let diff = newLength - oldLength;
+      this.setSelectionRange(cursorPos + diff, cursorPos + diff);
+    });
+  });
+  
+  // Unformat before submit to send raw number
+  const form = document.querySelector('form');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      currencyFields.forEach(function(fieldId) {
+        const field = document.getElementById(fieldId);
+        if (field && field.value) {
+          field.value = unformatNumber(field.value);
+        }
+      });
+    });
+  }
+});
+</script>
+{% endblock %}

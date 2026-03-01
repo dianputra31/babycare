@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}Laporan Pengeluaran - Babycare{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 class="h4 mb-1">
+            <i class="bi bi-wallet2"></i> Laporan Pengeluaran
+          </h3>
+          <p class="text-muted small">Daftar semua pengeluaran operasional</p>
+        </div>
+        <a href="/pengeluaran/new/" class="btn btn-primary btn-sm">
+          <i class="bi bi-plus-lg"></i> Input Pengeluaran
+        </a>
+      </div>
+
+      <!-- Table Card -->
+      <div class="card bg-white">
+        <div class="card-body">
+          {% if pengeluarans %}
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width:50px;">No</th>
+                    <th>Tanggal</th>
+                    <th>Kategori</th>
+                    <th>Jumlah</th>
+                    <th>Cabang</th>
+                    <th>Keterangan</th>
+                    <th style="width:110px; white-space: nowrap;" class="text-end">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for item in pengeluarans %}
+                    <tr>
+                      <td class="text-center">{{ forloop.counter }}</td>
+                      <td>{{ item.tanggal|date:"d M Y" }}</td>
+                      <td>
+                        <span class="badge bg-secondary">{{ item.kategori|default:'-' }}</span>
+                      </td>
+                      <td>
+                        <strong class="text-danger">{{ item.jumlah|rupiah }}</strong>
+                      </td>
+                      <td>{{ item.cabang.nama_cabang|default:'-' }}</td>
+                      <td>{{ item.keterangan|default:'-'|truncatewords:5 }}</td>
+                      <td class="text-end" style="white-space: nowrap;">
+                        <button class="btn btn-sm btn-outline-primary me-1 btnView" data-id="{{ item.id }}" data-tanggal="{{ item.tanggal|date:'d M Y' }}" data-kategori="{{ item.kategori }}" data-jumlah="{{ item.jumlah|rupiah }}" data-cabang="{{ item.cabang.nama_cabang }}" data-keterangan="{{ item.keterangan|default:'-' }}">
+                          <i class="bi bi-eye"></i>
+                        </button>
+                        <a href="/pengeluaran/{{ item.id }}/edit/" class="btn btn-sm btn-outline-success">
+                          <i class="bi bi-pencil"></i>
+                        </a>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                  <tr class="table-danger">
+                    <td colspan="3"><strong>Total Pengeluaran</strong></td>
+                    <td colspan="4">
+                      <strong class="text-danger">
+                        {{ total_pengeluaran|rupiah }}
+                      </strong>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+              <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                  {% if page_obj.has_previous %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page=1">First</a>
+                    </li>
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                    </li>
+                  {% endif %}
+
+                  <li class="page-item active">
+                    <span class="page-link">
+                      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+                  </li>
+
+                  {% if page_obj.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                    </li>
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+                    </li>
+                  {% endif %}
+                </ul>
+              </nav>
+            {% endif %}
+          {% else %}
+            <div class="text-center py-5">
+              <i class="bi bi-inbox" style="font-size: 48px; color: #D1D5DB;"></i>
+              <p class="text-muted mt-3">Belum ada data pengeluaran</p>
+              <a href="/pengeluaran/new/" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg"></i> Input Pengeluaran Pertama
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detail Pengeluaran -->
+<div class="modal fade" id="modalDetail" tabindex="-1" aria-labelledby="modalDetailLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="modalDetailLabel">
+          <i class="bi bi-wallet2"></i> Detail Pengeluaran
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-borderless">
+          <tr>
+            <td style="width:120px;"><strong>Tanggal</strong></td>
+            <td id="detailTanggal">-</td>
+          </tr>
+          <tr>
+            <td><strong>Kategori</strong></td>
+            <td id="detailKategori">-</td>
+          </tr>
+          <tr>
+            <td><strong>Jumlah</strong></td>
+            <td><span class="text-danger fw-bold" id="detailJumlah">-</span></td>
+          </tr>
+          <tr>
+            <td><strong>Cabang</strong></td>
+            <td id="detailCabang">-</td>
+          </tr>
+          <tr>
+            <td><strong>Keterangan</strong></td>
+            <td id="detailKeterangan">-</td>
+          </tr>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function() {
+    // Handle View button click
+    $('.btnView').on('click', function() {
+      var tanggal = $(this).data('tanggal');
+      var kategori = $(this).data('kategori');
+      var jumlah = $(this).data('jumlah');
+      var cabang = $(this).data('cabang');
+      var keterangan = $(this).data('keterangan');
+      
+      // Fill modal
+      $('#detailTanggal').text(tanggal);
+      $('#detailKategori').html('<span class="badge bg-secondary">' + kategori + '</span>');
+      $('#detailJumlah').text(jumlah);
+      $('#detailCabang').text(cabang);
+      $('#detailKeterangan').text(keterangan);
+      
+      // Show modal
+      $('#modalDetail').modal('show');
+    });
+  });
+</script>
+{% endblock %}

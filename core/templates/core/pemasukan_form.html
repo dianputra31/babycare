@@ -1,0 +1,515 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Edit{% else %}Input{% endif %} Pemasukan - Babycare{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 class="h4 mb-1">
+            <i class="bi bi-cash-coin"></i> {% if object %}Edit{% else %}Input{% endif %} Pemasukan
+          </h3>
+          <p class="text-muted small">{% if object %}Update data{% else %}Catat{% endif %} penerimaan pembayaran</p>
+        </div>
+      </div>
+
+      <!-- Form Card -->
+      <div class="card bg-white">
+        <div class="card-body">
+          <form method="post" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger" role="alert">
+                {% for error in form.non_field_errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <div class="row g-3">
+              <!-- Tanggal -->
+              <div class="col-md-6">
+                <label for="{{ form.tanggal.id_for_label }}" class="form-label">
+                  Tanggal
+                </label>
+                {{ form.tanggal }}
+                {% if form.tanggal.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.tanggal.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Registrasi -->
+              <div class="col-md-6">
+                <label for="{{ form.registrasi.id_for_label }}" class="form-label">
+                  Registrasi
+                </label>
+                {{ form.registrasi }}
+                {% if form.registrasi.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.registrasi.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Jumlah -->
+              <div class="col-md-6">
+                <label for="{{ form.jumlah.id_for_label }}" class="form-label">
+                  Jumlah Tagihan<span class="text-danger">*</span>
+                </label>
+                {{ form.jumlah }}
+                {% if form.jumlah.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.jumlah.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Metode Pembayaran -->
+              <div class="col-md-6">
+                <label for="{{ form.metode_pembayaran.id_for_label }}" class="form-label">
+                  Metode Pembayaran
+                </label>
+                {{ form.metode_pembayaran }}
+                {% if form.metode_pembayaran.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.metode_pembayaran.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Cabang -->
+              <div class="col-md-6">
+                <label for="{{ form.cabang.id_for_label }}" class="form-label">
+                  Cabang
+                </label>
+                {{ form.cabang }}
+                {% if form.cabang.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.cabang.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Keterangan -->
+              <div class="col-12">
+                <label for="{{ form.keterangan.id_for_label }}" class="form-label">
+                  Keterangan
+                </label>
+                {{ form.keterangan }}
+                {% if form.keterangan.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.keterangan.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+              
+              <!-- Jumlah Bayar (Hidden - will be filled from modal) -->
+              <div class="d-none">
+                {{ form.jumlah_bayar }}
+              </div>
+
+              <!-- Payment Summary Box -->
+              <div class="col-12" id="paymentSummaryContainer" style="display: none;">
+                <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                  <div class="card-body">
+                    <h5 class="card-title mb-3" style="font-weight: 600; font-size: 1rem;">
+                      <i class="bi bi-info-circle"></i> Ringkasan Pembayaran
+                    </h5>
+                    <div class="row g-3">
+                      <div class="col-md-4">
+                        <div class="d-flex flex-column">
+                          <small class="opacity-75" style="font-size: 0.75rem;">Total Tagihan</small>
+                          <div class="fw-bold" style="font-size: 1.1rem;" id="summaryTotalBayar">Rp 0</div>
+                        </div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="d-flex flex-column">
+                          <small class="opacity-75" style="font-size: 0.75rem;">Sudah Dibayar</small>
+                          <div class="fw-bold" style="font-size: 1.1rem;" id="summaryTotalPaid">Rp 0</div>
+                        </div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="d-flex flex-column">
+                          <small class="opacity-75" style="font-size: 0.75rem;">Sisa Tagihan</small>
+                          <div class="fw-bold" style="font-size: 1.5rem;" id="summarySisa">Rp 0</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="mt-3 pt-3 border-top border-white border-opacity-25" id="summaryDetails" style="font-size: 0.85rem;">
+                      <div><strong id="summaryPasien"></strong></div>
+                      <div class="opacity-75" id="summaryTerapi"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-end mt-4">
+              <a href="/dashboard/" class="btn btn-outline-secondary">
+                <i class="bi bi-x-lg"></i> Batal
+              </a>
+              <button type="button" id="btnPreview" class="btn btn-primary">
+                <i class="bi bi-eye"></i> Pembayaran
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="previewModalLabel"  style="color:white;">
+          <i class="bi bi-eye"></i> Pembayaran
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-borderless">
+          <tbody>
+            <tr>
+              <td class="text-muted" style="width: 40%;">Tanggal</td>
+              <td class="fw-bold" id="previewTanggal">-</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Registrasi</td>
+              <td class="fw-bold" id="previewRegistrasi">-</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Jumlah Tagihan</td>
+              <td class="fw-bold text-success" style="font-size: 1.2rem;" id="previewJumlah">Rp 0</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Jumlah Bayar <span class="text-danger">*</span></td>
+              <td>
+                <input type="text" id="inputJumlahBayar" class="form-control" placeholder="Masukkan jumlah bayar..." required>
+                <small class="text-muted d-block mt-1">Harus sama atau lebih dari jumlah tagihan</small>
+              </td>
+            </tr>
+            <tr id="rowKembalian" style="display: none;">
+              <td class="text-muted">Kembalian</td>
+              <td class="fw-bold text-info" style="font-size: 1.1rem;" id="previewKembalian">Rp 0</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Metode Pembayaran</td>
+              <td class="fw-bold" id="previewMetode">-</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Cabang</td>
+              <td class="fw-bold" id="previewCabang">-</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Keterangan</td>
+              <td id="previewKeterangan">-</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="alert alert-info mb-0">
+          <i class="bi bi-info-circle"></i> Pastikan data sudah benar sebelum menyimpan.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-lg"></i> Batal
+        </button>
+        <button type="button" id="btnConfirmSave" class="btn btn-primary">
+          <i class="bi bi-check-lg"></i> Ya, Simpan
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+  let registrasiData = null;
+  
+  // Auto format number for currency inputs (Indonesian style with dots)
+  function formatNumber(value) {
+    if (!value) return '';
+    // Remove all non-digit characters
+    let num = value.toString().replace(/\D/g, '');
+    if (!num) return '';
+    // Add thousand separators (dots)
+    return num.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  function unformatNumber(value) {
+    if (!value) return '';
+    // Remove all dots to get raw number
+    return value.toString().replace(/\./g, '');
+  }
+
+  function formatRupiah(value) {
+    if (!value) return 'Rp 0';
+    return 'Rp ' + formatNumber(value);
+  }
+
+  // Apply to jumlah field
+  const currencyFields = ['id_jumlah'];
+  
+  currencyFields.forEach(function(fieldId) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    
+    // Format on page load if has value
+    if (field.value) {
+      field.value = formatNumber(field.value);
+    }
+    
+    // Format on input
+    field.addEventListener('input', function(e) {
+      let cursorPos = this.selectionStart;
+      let oldValue = this.value;
+      let oldLength = oldValue.length;
+      
+      let unformatted = unformatNumber(this.value);
+      let formatted = formatNumber(unformatted);
+      
+      this.value = formatted;
+      
+      // Adjust cursor position
+      let newLength = this.value.length;
+      let diff = newLength - oldLength;
+      this.setSelectionRange(cursorPos + diff, cursorPos + diff);
+    });
+  });
+  
+  // Handle registrasi selection change
+  $('#id_registrasi').on('change', function() {
+    const registrasiId = $(this).val();
+    
+    console.log('Registrasi changed:', registrasiId);
+    
+    if (!registrasiId) {
+      // Hide summary if no registrasi selected
+      $('#paymentSummaryContainer').hide();
+      registrasiData = null;
+      return;
+    }
+    
+    // Get current jumlah value (unformatted to check if truly has value)
+    const currentJumlahValue = $('#id_jumlah').val();
+    const currentJumlahRaw = unformatNumber(currentJumlahValue);
+    
+    console.log('Current jumlah value:', currentJumlahValue, 'Raw:', currentJumlahRaw);
+    
+    // Fetch registrasi details via AJAX
+    $.ajax({
+      url: `/ajax/registrasi/${registrasiId}/detail/`,
+      method: 'GET',
+      success: function(response) {
+        console.log('AJAX success:', response);
+        
+        if (response.success) {
+          registrasiData = response.registrasi;
+          
+          // Auto-fill jumlah with remaining amount (sisa) only if field is empty
+          if (!currentJumlahRaw || currentJumlahRaw === '0' || currentJumlahRaw === '') {
+            console.log('Auto-filling jumlah with sisa:', registrasiData.sisa);
+            const sisaValue = Math.round(registrasiData.sisa);
+            $('#id_jumlah').val(formatNumber(sisaValue)).trigger('input');
+          } else {
+            console.log('NOT auto-filling - field already has value:', currentJumlahRaw);
+          }
+          
+          // Update summary box
+          $('#summaryTotalBayar').text(formatRupiah(registrasiData.total_bayar));
+          $('#summaryTotalPaid').text(formatRupiah(registrasiData.total_paid));
+          $('#summarySisa').text(formatRupiah(registrasiData.sisa));
+          $('#summaryPasien').text(registrasiData.pasien);
+          $('#summaryTerapi').text(`${registrasiData.jenis_terapi} • ${registrasiData.tanggal_kunjungan}`);
+          
+          console.log('Showing summary box...');
+          // Show summary box
+          $('#paymentSummaryContainer').fadeIn();
+        } else {
+          console.error('Response success is false:', response);
+        }
+      },
+      error: function(xhr) {
+        console.error('AJAX error:', xhr);
+        Swal.fire({
+          icon: 'error',
+          title: 'Gagal',
+          text: 'Tidak dapat mengambil detail registrasi. Silakan coba lagi.',
+          confirmButtonColor: '#667eea'
+        });
+      }
+    });
+  });
+  
+  // Handle preview button click
+  $('#btnPreview').on('click', function() {
+    // Validate form
+    const form = $('form')[0];
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    
+    // Get form values
+    const tanggal = $('#id_tanggal').val();
+    const registrasiText = $('#id_registrasi option:selected').text();
+    const jumlahRaw = unformatNumber($('#id_jumlah').val());
+    const metode = $('#id_metode_pembayaran').val() || '-';
+    const cabangText = $('#id_cabang option:selected').text() || '-';
+    const keterangan = $('#id_keterangan').val() || '-';
+    
+    // Fill preview modal
+    $('#previewTanggal').text(tanggal || '-');
+    $('#previewRegistrasi').text(registrasiText || '-');
+    $('#previewJumlah').text(formatRupiah(jumlahRaw));
+    $('#previewMetode').text(metode);
+    $('#previewCabang').text(cabangText);
+    $('#previewKeterangan').text(keterangan);
+    
+    // Store raw tagihan value
+    $('#inputJumlahBayar').data('raw-value', jumlahRaw);
+    
+    // Check if in edit mode and has existing jumlah_bayar value
+    const isEditMode = {% if object %}true{% else %}false{% endif %};
+    const existingJumlahBayar = $('#id_jumlah_bayar').val();
+    
+    if (isEditMode && existingJumlahBayar) {
+      // Pre-fill with existing value and format it
+      $('#inputJumlahBayar').val(formatNumber(existingJumlahBayar)).trigger('input');
+    } else {
+      // Reset for new entry
+      $('#inputJumlahBayar').val('');
+      $('#rowKembalian').hide();
+      $('#previewKembalian').text('Rp 0');
+    }
+    
+    // Show modal
+    const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+    previewModal.show();
+  });
+  
+  // Format jumlah bayar input
+  $('#inputJumlahBayar').on('input', function() {
+    let cursorPos = this.selectionStart;
+    let oldValue = this.value;
+    let oldLength = oldValue.length;
+    
+    let unformatted = unformatNumber(this.value);
+    let formatted = formatNumber(unformatted);
+    
+    this.value = formatted;
+    
+    // Adjust cursor position
+    let newLength = this.value.length;
+    let diff = newLength - oldLength;
+    this.setSelectionRange(cursorPos + diff, cursorPos + diff);
+    
+    // Calculate kembalian
+    const jumlahTagihan = parseInt($('#inputJumlahBayar').data('raw-value') || 0);
+    const jumlahBayar = parseInt(unformatted || 0);
+    
+    if (jumlahBayar > jumlahTagihan) {
+      const kembalian = jumlahBayar - jumlahTagihan;
+      $('#previewKembalian').text(formatRupiah(kembalian));
+      $('#rowKembalian').show();
+    } else {
+      $('#rowKembalian').hide();
+    }
+  });
+  
+  // Handle confirm save in modal
+  $('#btnConfirmSave').on('click', function() {
+    // Validate jumlah bayar
+    const jumlahTagihan = parseInt($('#inputJumlahBayar').data('raw-value') || 0);
+    const jumlahBayarRaw = unformatNumber($('#inputJumlahBayar').val());
+    const jumlahBayar = parseInt(jumlahBayarRaw || 0);
+    
+    if (!jumlahBayar || jumlahBayar <= 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Jumlah Bayar Kosong',
+        text: 'Silakan masukkan jumlah pembayaran terlebih dahulu!',
+        confirmButtonColor: '#667eea',
+        didClose: () => {
+          $('#inputJumlahBayar').focus();
+        }
+      });
+      return;
+    }
+    
+    if (jumlahBayar < jumlahTagihan) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Jumlah Tidak Cukup',
+        html: `Jumlah bayar <strong>${formatRupiah(jumlahBayar)}</strong> kurang dari tagihan <strong>${formatRupiah(jumlahTagihan)}</strong>!`,
+        confirmButtonColor: '#667eea',
+        didClose: () => {
+          $('#inputJumlahBayar').focus();
+        }
+      });
+      return;
+    }
+    
+    // Set jumlah_bayar value to hidden field
+    $('#id_jumlah_bayar').val(jumlahBayarRaw);
+    
+    // Unformat currency fields before submit
+    currencyFields.forEach(function(fieldId) {
+      const field = document.getElementById(fieldId);
+      if (field && field.value) {
+        field.value = unformatNumber(field.value);
+      }
+    });
+    
+    // Submit the form
+    $('form').submit();
+  });
+  
+  // For edit mode: trigger registrasi change to load summary after all handlers are registered
+  {% if object %}
+  setTimeout(function() {
+    console.log('=== EDIT MODE INITIALIZATION ===');
+    const jumlahField = document.getElementById('id_jumlah');
+    const registrasiField = $('#id_registrasi');
+    
+    console.log('Jumlah field value:', jumlahField ? jumlahField.value : 'NOT FOUND');
+    console.log('Registrasi field value:', registrasiField.val());
+    
+    // Just check if registrasi has value, don't check jumlah field
+    // The jumlah field might not be populated yet at this timing
+    if (registrasiField.val()) {
+      // Format jumlah field if it has value
+      if (jumlahField && jumlahField.value) {
+        jumlahField.value = formatNumber(jumlahField.value);
+        console.log('Formatted jumlah to:', jumlahField.value);
+      }
+      
+      // Trigger registrasi change to load summary
+      // The change handler will check if jumlah field has value and won't overwrite it
+      console.log('Triggering registrasi change...');
+      registrasiField.trigger('change');
+    } else {
+      console.log('NOT triggering - no registrasi selected');
+    }
+  }, 250);
+  {% endif %}
+});
+</script>
+{% endblock %}

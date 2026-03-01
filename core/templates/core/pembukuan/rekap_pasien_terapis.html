@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Rekap Pasien/Terapis{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content">
+      <div class="p-4">
+      <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <h2 class="mb-0"><i class="bi bi-people"></i> Rekap Pasien per Terapis</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <h6 class="text-muted mb-3">Total Terapis</h6>
+          <h3 class="mb-0">{{ total_terapis }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <h6 class="text-muted mb-3">Total Registrasi</h6>
+          <h3 class="mb-0">
+            {% widthratio total_registrasi 1 1 %}
+          </h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabel Rekap -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom">
+      <h6 class="mb-0">Daftar Terapis & Jumlah Pasien</h6>
+    </div>
+    <div class="card-body">
+      {% if terapis_list %}
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>No</th>
+              <th>Nama Terapis</th>
+              <th>Spesialisasi</th>
+              <th class="text-center">Jumlah Pasien</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for terapis in terapis_list %}
+            <tr>
+              <td><strong>{{ forloop.counter }}</strong></td>
+              <td>{{ terapis.nama }}</td>
+              <td>
+                {% if terapis.spesialisasi %}
+                  {{ terapis.spesialisasi }}
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                <span class="badge bg-primary">{{ terapis.jumlah_pasien }}</span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="alert alert-info mb-0">
+        <i class="bi bi-info-circle"></i> Belum ada data terapis
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Summary per Terapis -->
+  {% if terapis_list %}
+  <div class="row mt-4">
+    <div class="col-12">
+      <h5 class="mb-3">Visualisasi Data</h5>
+      <div class="row">
+        {% for terapis in terapis_list %}
+        <div class="col-md-6 col-lg-4 mb-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h6 class="card-title text-truncate">{{ terapis.nama }}</h6>
+              <p class="card-text text-muted small mb-3">
+                {% if terapis.spesialisasi %}
+                  {{ terapis.spesialisasi }}
+                {% else %}
+                  Umum
+                {% endif %}
+              </p>
+              <div class="progress mb-2" style="height: 8px;">
+                <div class="progress-bar bg-primary" role="progressbar" style="width: {% widthratio terapis.jumlah_pasien total_registrasi 100 %}%;" aria-valuenow="{{ terapis.jumlah_pasien }}" aria-valuemin="0" aria-valuemax="{{ total_registrasi }}"></div>
+              </div>
+              <p class="mb-0">
+                <strong>{{ terapis.jumlah_pasien }}</strong> pasien
+                <small class="text-muted">({% widthratio terapis.jumlah_pasien total_registrasi 100 %}%)</small>
+              </p>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+.table-hover tbody tr:hover {
+  background-color: rgba(102, 126, 234, 0.05);
+  cursor: pointer;
+}
+</style>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

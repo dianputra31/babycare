@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}Terapi Baru - Babycare{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 class="h4 mb-1">
+            <i class="bi bi-plus-square"></i> Jenis Terapi Baru
+          </h3>
+          <p class="text-muted small">Tambahkan jenis terapi baru</p>
+        </div>
+      </div>
+
+      <!-- Form Card -->
+      <div class="card bg-white">
+        <div class="card-body">
+          <form method="post" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger" role="alert">
+                {% for error in form.non_field_errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <div class="row g-3">
+              <!-- Nama -->
+              <div class="col-md-12">
+                <label for="{{ form.nama_terapi.id_for_label }}" class="form-label">
+                  Nama Terapi <span class="text-danger">*</span>
+                </label>
+                {{ form.nama_terapi }}
+                {% if form.nama_terapi.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.nama_terapi.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Min Age -->
+              <div class="col-md-4">
+                <label for="{{ form.kategori_usia_min.id_for_label }}" class="form-label">
+                  Min. Umur (bulan)
+                </label>
+                {{ form.kategori_usia_min }}
+                {% if form.kategori_usia_min.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.kategori_usia_min.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Max Age -->
+              <div class="col-md-4">
+                <label for="{{ form.kategori_usia_max.id_for_label }}" class="form-label">
+                  Max. Umur (bulan)
+                </label>
+                {{ form.kategori_usia_max }}
+                {% if form.kategori_usia_max.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.kategori_usia_max.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Price -->
+              <div class="col-md-4">
+                <label for="{{ form.harga.id_for_label }}" class="form-label">
+                  Harga (Rp)
+                </label>
+                {{ form.harga }}
+                {% if form.harga.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.price.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-end mt-4">
+              <a href="/jenis-terapi/" class="btn btn-outline-secondary">
+                <i class="bi bi-x-lg"></i> Batal
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Simpan
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Rekap Transport Terapis{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content">
+      <div class="p-4">
+      <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <h2 class="mb-0"><i class="bi bi-car-front"></i> Rekap Biaya Transport Terapis</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total Card -->
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <h6 class="text-muted mb-3">Total Biaya Transport</h6>
+          <h3 class="mb-0" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            {{ grand_total_formatted }}
+          </h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <h6 class="text-muted mb-3">Jumlah Terapis</h6>
+          <h3 class="mb-0">{{ terapis_transport|length }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabel Rekap Transport -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom">
+      <h6 class="mb-0">Rincian Biaya Transport Per Terapis</h6>
+    </div>
+    <div class="card-body">
+      {% if terapis_transport %}
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>No</th>
+              <th>Nama Terapis</th>
+              <th class="text-center">Jumlah Registrasi</th>
+              <th class="text-end">Biaya Transport/Registrasi</th>
+              <th class="text-end">Total Transport</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in terapis_transport %}
+            <tr>
+              <td><strong>{{ forloop.counter }}</strong></td>
+              <td>{{ item.terapis.nama }}</td>
+              <td class="text-center">
+                <span class="badge bg-info">{{ item.jumlah_registrasi }}</span>
+              </td>
+              <td class="text-end">Rp {{ item.terapis.biaya_transport|stringformat:"d"|floatformat:0 }}</td>
+              <td class="text-end">
+                <span class="badge bg-warning">{{ item.total_transport_formatted }}</span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="table-light">
+            <tr>
+              <td colspan="4" class="text-end"><strong>Grand Total:</strong></td>
+              <td class="text-end">
+                <span class="badge bg-success" style="font-size: 14px;">{{ grand_total_formatted }}</span>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      {% else %}
+      <div class="alert alert-info mb-0">
+        <i class="bi bi-info-circle"></i> Belum ada data transport
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Perbandingan Visual -->
+  {% if terapis_transport %}
+  <div class="row mt-4">
+    <div class="col-12">
+      <h5 class="mb-3">Distribusi Biaya Transport</h5>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          {% for item in terapis_transport %}
+          <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="mb-0">{{ item.terapis.nama }}</h6>
+              <small class="text-muted">{{ item.total_transport|stringformat:"d"|floatformat:0 }} / {{ grand_total|stringformat:"d"|floatformat:0 }} ({% widthratio item.total_transport grand_total 100 %}%)</small>
+            </div>
+            <div class="progress" style="height: 20px;">
+              <div class="progress-bar bg-warning" role="progressbar" style="width: {% widthratio item.total_transport grand_total 100 %}%;" aria-valuenow="{{ item.total_transport }}" aria-valuemin="0" aria-valuemax="{{ grand_total }}">
+                {% if item.total_transport > 0 %}
+                <small class="d-flex align-items-center justify-content-center w-100 h-100" style="color: #000; font-weight: 500;">
+                  {% widthratio item.total_transport grand_total 100 %}%
+                </small>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+.table-hover tbody tr:hover {
+  background-color: rgba(250, 112, 154, 0.05);
+  cursor: pointer;
+}
+</style>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
