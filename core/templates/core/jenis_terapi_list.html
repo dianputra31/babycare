@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block title %}Daftar Jenis Terapi - Babycare{% endblock %}
 
@@ -31,23 +32,65 @@
           <table class="table table-hover mb-0">
             <thead>
               <tr>
-                <th>Nama</th>
-                <th>Min. Umur</th>
-                <th>Max. Umur</th>
+                <th>Nama Terapi</th>
+                <th>Umur (Bulan)</th>
                 <th>Harga</th>
-                <th>Aksi</th>
+                <th class="text-end">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {% for terapi in jenis_terapi_list %}
               <tr>
-                <td>{{ terapi.nama_terapi }}</td>
-                <td>{{ terapi.kategori_usia_min|default:"—" }} bulan</td>
-                <td>{{ terapi.kategori_usia_max|default:"—" }} bulan</td>
-                <td>Rp {{ terapi.harga|floatformat:0|default:"—" }}</td>
                 <td>
-                  <a href="#" class="btn btn-sm btn-outline-primary">Edit</a>
+                  <div>
+                    <h6 class="mb-0">{{ terapi.nama_terapi }}</h6>
+                    <small class="text-muted">ID: {{ terapi.id }}</small>
+                  </div>
                 </td>
+                <td>
+                  <small>
+                    {% if terapi.kategori_usia_min or terapi.kategori_usia_max %}
+                      {{ terapi.kategori_usia_min|default:"0" }} - {{ terapi.kategori_usia_max|default:"∞" }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </small>
+                </td>
+                <td>
+                  <small><strong>{{ terapi.harga|rupiah }}</strong></small>
+                </td>
+                <td class="text-end">
+                  <a href="{% url 'jenis_terapi_edit' terapi.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ terapi.id }}" title="Hapus">
+                    <i class="bi bi-trash"></i>
+                  </button>
+
+                  <!-- Delete Modal -->
+                  <div class="modal fade" id="deleteModal{{ terapi.id }}" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                      <div class="modal-content">
+                        <div class="modal-header border-danger bg-light">
+                          <h5 class="modal-title text-danger">
+                            <i class="bi bi-exclamation-triangle"></i> Hapus Jenis Terapi
+                          </h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                          <p>Apakah Anda yakin ingin menghapus jenis terapi <strong>{{ terapi.nama_terapi }}</strong>?</p>
+                          <p class="text-muted small">Tindakan ini tidak dapat dibatalkan.</p>
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                          <form method="post" action="{% url 'jenis_terapi_delete' terapi.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">Hapus</button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
               </tr>
               {% endfor %}
             </tbody>

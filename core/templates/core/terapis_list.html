@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block title %}Daftar Terapis - Babycare{% endblock %}
 
@@ -31,20 +32,71 @@
           <table class="table table-hover mb-0">
             <thead>
               <tr>
-                <th>Nama</th>
-                <th>Pengguna</th>
+                <th>Nama Terapis</th>
+                <th>No. HP</th>
                 <th>Cabang</th>
-                <th>Aksi</th>
+                <th>Biaya Transport</th>
+                <th>Status</th>
+                <th class="text-end">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {% for terapis in terapis_list %}
               <tr>
-                <td>{{ terapis.nama_terapis }}</td>
-                <td>{{ terapis.no_hp|default:"—" }}</td>
-                <td>{{ terapis.cabang.nama_cabang|default:"—" }}</td>
                 <td>
-                  <a href="#" class="btn btn-sm btn-outline-primary">Edit</a>
+                  <div>
+                    <h6 class="mb-0">{{ terapis.nama_terapis }}</h6>
+                    <small class="text-muted">ID: {{ terapis.id }}</small>
+                  </div>
+                </td>
+                <td>
+                  <small>{{ terapis.no_hp|default:"—" }}</small>
+                </td>
+                <td>
+                  <small>{{ terapis.cabang.nama_cabang|default:"—" }}</small>
+                </td>
+                <td>
+                  <small>{{ terapis.biaya_transport_default|rupiah }}</small>
+                </td>
+                <td>
+                  {% if terapis.is_active %}
+                    <span class="badge bg-success">Aktif</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Nonaktif</span>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  <a href="{% url 'terapis_edit' terapis.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ terapis.id }}" title="Hapus">
+                    <i class="bi bi-trash"></i>
+                  </button>
+
+                  <!-- Delete Modal -->
+                  <div class="modal fade" id="deleteModal{{ terapis.id }}" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                      <div class="modal-content">
+                        <div class="modal-header border-danger bg-light">
+                          <h5 class="modal-title text-danger">
+                            <i class="bi bi-exclamation-triangle"></i> Hapus Terapis
+                          </h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                          <p>Apakah Anda yakin ingin menghapus terapis <strong>{{ terapis.nama_terapis }}</strong>?</p>
+                          <p class="text-muted small">Tindakan ini tidak dapat dibatalkan.</p>
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                          <form method="post" action="{% url 'terapis_delete' terapis.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">Hapus</button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </td>
               </tr>
               {% endfor %}

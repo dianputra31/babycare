@@ -145,3 +145,13 @@
 </div>
 
 {% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+  // Set max date to today for Tanggal Lahir
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('id_tanggal_lahir').setAttribute('max', today);
+});
+</script>
+{% endblock %}

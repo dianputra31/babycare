@@ -10,7 +10,7 @@
     {% include 'partials/_sidebar.html' %}
 
     <!-- Main Content -->
-    <div class="col-md-9 col-lg-10 main-content">
+    <div class="col-md-9 col-lg-10 main-content p-4">
       <!-- Header -->
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -19,76 +19,98 @@
           </h3>
           <p class="text-muted small">Kelola data pasien</p>
         </div>
-        <a href="/pasien/new/" class="btn btn-primary">
+        <a href="/pasien/new/" class="btn btn-primary btn-sm">
           <i class="bi bi-plus-lg"></i> Pasien Baru
         </a>
       </div>
 
       {% if pasiens %}
-      <!-- Table -->
-      <div class="card">
-        <div class="table-responsive">
-          <table class="table table-hover mb-0">
-            <thead>
-              <tr>
-                <th>Nama</th>
-                <th>Tanggal Lahir</th>
-                <th>Cabang</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for pasien in pasiens %}
-              <tr>
-                <td>{{ pasien.nama_anak }}</td>
-                <td>{{ pasien.tanggal_lahir|date:"d M Y" }}</td>
-                <td>{{ pasien.cabang.nama_cabang|default:"—" }}</td>
-                <td>
-                  <a href="#" class="btn btn-sm btn-outline-primary">Edit</a>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+      <!-- Table Card -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0" style="font-size: 0.85rem;">
+              <thead style="background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%); border-bottom: 2px solid #667eea;">
+                <tr>
+                  <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none;">👤 Nama Anak</th>
+                  <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none;">👨‍👩 Nama Orang Tua</th>
+                  <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none;">📅 Tanggal Lahir</th>
+                  <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none;">📱 No. Ponsel</th>
+                  <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none;">🏠 Alamat</th>
+                  <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none;">🏢 Cabang</th>
+                  <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none; width: 80px;">✏️ Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for pasien in pasiens %}
+                <tr style="border-bottom: 1px solid #f0f0f0; transition: all 0.2s ease;">
+                  <td style="padding: 0.75rem; color: #2c3e50;">
+                    <strong style="font-size: 0.95rem;">{{ pasien.nama_anak }}</strong>
+                    <br>
+                    <small class="text-muted">
+                      {% if pasien.jenis_kelamin == 'P' %}Perempuan{% elif pasien.jenis_kelamin == 'L' %}Laki-Laki{% else %}—{% endif %}
+                    </small>
+                  </td>
+                  <td style="padding: 0.75rem; color: #555;">
+                    <small>{{ pasien.nama_orang_tua|default:"—" }}</small>
+                  </td>
+                  <td style="padding: 0.75rem; color: #667eea;">
+                    <small style="font-weight: 500;">{{ pasien.tanggal_lahir|date:"d M Y" }}</small>
+                  </td>
+                  <td style="padding: 0.75rem; color: #555;">
+                    <small>{{ pasien.no_wa|default:"—" }}</small>
+                  </td>
+                  <td style="padding: 0.75rem; color: #555;">
+                    <small style="max-width: 200px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ pasien.alamat|default:'' }}">
+                      {{ pasien.alamat|default:"—" }}
+                    </small>
+                  </td>
+                  <td style="padding: 0.75rem; color: #555;">
+                    <small>{{ pasien.cabang.nama_cabang|default:"—" }}</small>
+                  </td>
+                  <td style="padding: 0.75rem;">
+                    <a href="{% url 'pasien_edit' pasien.pk %}" class="btn btn-outline-primary" title="Edit Pasien" style="padding: 0.2rem 0.4rem; font-size: 0.7rem; white-space: nowrap; line-height: 1.2; border-radius: 4px;">
+                      <i class="bi bi-pencil-fill"></i>
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          {% if is_paginated %}
+          <nav aria-label="Page navigation" class="p-3">
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+              {% if page_obj.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1">First</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                </li>
+              {% endif %}
+
+              <li class="page-item active">
+                <span class="page-link" style="font-size: 0.85rem;">
+                  Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+              </li>
+
+              {% if page_obj.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+                </li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
         </div>
       </div>
-
-      <!-- Pagination -->
-      {% if is_paginated %}
-      <nav aria-label="Page navigation" class="mt-4">
-        <ul class="pagination justify-content-center">
-          {% if page_obj.has_previous %}
-            <li class="page-item">
-              <a class="page-link" href="?page=1">First</a>
-            </li>
-            <li class="page-item">
-              <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
-            </li>
-          {% endif %}
-
-          {% for num in page_obj.paginator.page_range %}
-            {% if page_obj.number == num %}
-              <li class="page-item active">
-                <span class="page-link">{{ num }}</span>
-              </li>
-            {% else %}
-              <li class="page-item">
-                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-              </li>
-            {% endif %}
-          {% endfor %}
-
-          {% if page_obj.has_next %}
-            <li class="page-item">
-              <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
-            </li>
-            <li class="page-item">
-              <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
-            </li>
-          {% endif %}
-        </ul>
-      </nav>
-      {% endif %}
 
       {% else %}
       <!-- Empty State -->

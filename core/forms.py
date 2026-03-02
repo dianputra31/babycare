@@ -1,6 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import UserCreationForm
+from decimal import Decimal
 from .models import Registrasi, Pemasukan, Pengeluaran, AppSettings, User
 from .services.registration_service import validate_age_for_terapi
 
@@ -8,14 +9,15 @@ from .services.registration_service import validate_age_for_terapi
 class RegistrasiForm(forms.ModelForm):
     class Meta:
         model = Registrasi
-        fields = ['pasien', 'jenis_terapi', 'terapis', 'tanggal_kunjungan', 'harga', 'biaya_transport', 'cabang', 'status', 'catatan']
+        fields = ['pasien', 'jenis_terapi', 'terapis', 'tanggal_kunjungan', 'harga', 'biaya_transport', 'is_transport', 'cabang', 'status', 'catatan']
         widgets = {
             'pasien': forms.Select(attrs={'class': 'form-select'}),
             'jenis_terapi': forms.Select(attrs={'class': 'form-select'}),
             'terapis': forms.Select(attrs={'class': 'form-select'}),
             'tanggal_kunjungan': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'harga': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '0'}),
-            'biaya_transport': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '0'}),
+            'biaya_transport': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '0', 'readonly': 'readonly'}),
+            'is_transport': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'cabang': forms.Select(attrs={'class': 'form-select'}),
             'status': forms.Select(attrs={'class': 'form-select'}, choices=[
                 ('', '-- Pilih Status --'),
@@ -41,6 +43,10 @@ class RegistrasiForm(forms.ModelForm):
 
     def save(self, commit=True):
         instance = super().save(commit=False)
+        # If is_transport is False, set biaya_transport to 0
+        if not instance.is_transport:
+            instance.biaya_transport = Decimal('0.00')
+        
         instance.total_bayar = (instance.harga or 0) + (instance.biaya_transport or 0)
         if commit:
             instance.save()
@@ -50,7 +56,7 @@ class RegistrasiForm(forms.ModelForm):
 class PemasukanForm(forms.ModelForm):
     class Meta:
         model = Pemasukan
-        fields = ['tanggal', 'registrasi', 'jumlah', 'jumlah_bayar', 'metode_pembayaran', 'keterangan', 'cabang']
+        fields = ['tanggal', 'registrasi', 'jumlah', 'jumlah_bayar', 'metode_pembayaran', 'keterangan']
         widgets = {
             'tanggal': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'registrasi': forms.Select(attrs={'class': 'form-select'}),
@@ -65,8 +71,16 @@ class PemasukanForm(forms.ModelForm):
                 ('KREDIT', 'Kredit'),
             ]),
             'keterangan': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Keterangan...'}),
-            'cabang': forms.Select(attrs={'class': 'form-select'}),
         }
+
+    def save(self, commit=True):
+        """Auto-populate cabang from the selected registrasi"""
+        instance = super().save(commit=False)
+        if instance.registrasi:
+            instance.cabang = instance.registrasi.cabang
+        if commit:
+            instance.save()
+        return instance
 
     # permission checks happen on the view level (requires request)
 
@@ -114,10 +128,15 @@ class PengeluaranForm(forms.ModelForm):
 
 
 class AppSettingsForm(forms.ModelForm):
-    """Form for app settings (font size and logo)."""
+    """Form for app settings (font size, logo, and notification settings)."""
     class Meta:
         model = AppSettings
-        fields = ['font_size', 'logo']
+        fields = [
+            'font_size', 'logo',
+            'enable_birthday_notif', 'birthday_notif_days_before',
+            'enable_inactive_notif', 'inactive_threshold_days',
+            'enable_followup_notif'
+        ]
         widgets = {
             'font_size': forms.NumberInput(attrs={
                 'class': 'form-range',
@@ -131,14 +150,42 @@ class AppSettingsForm(forms.ModelForm):
                 'class': 'form-control',
                 'accept': 'image/*'
             }),
+            'enable_birthday_notif': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'birthday_notif_days_before': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'type': 'number',
+                'min': '0',
+                'max': '7'
+            }),
+            'enable_inactive_notif': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'inactive_threshold_days': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'type': 'number',
+                'min': '7'
+            }),
+            'enable_followup_notif': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
         }
         labels = {
             'font_size': 'Ukuran Font',
-            'logo': 'Logo Aplikasi'
+            'logo': 'Logo Aplikasi',
+            'enable_birthday_notif': 'Aktifkan Notifikasi Ulang Tahun',
+            'birthday_notif_days_before': 'Hari sebelum ulang tahun (H-1, H-2, dst)',
+            'enable_inactive_notif': 'Aktifkan Notifikasi Pasien Tidak Aktif',
+            'inactive_threshold_days': 'Jumlah hari untuk menandai pasien tidak aktif',
+            'enable_followup_notif': 'Aktifkan Notifikasi Follow-up',
         }
         help_texts = {
             'font_size': 'Pilih ukuran font antara 10px hingga 24px',
-            'logo': 'Upload logo untuk ditampilkan di header (format: JPG, PNG, max 2MB)'
+            'logo': 'Upload logo untuk ditampilkan di header (format: JPG, PNG, max 2MB)',
+            'birthday_notif_days_before': 'Berapa hari sebelum ulang tahun untuk mengirim notifikasi (0=hari H, 1=H-1, 2=H-2, dst)',
+            'inactive_threshold_days': 'Pasien yang tidak registrasi dalam N hari akan mendapat notifikasi',
+            'enable_followup_notif': 'Buat notifikasi reminder untuk follow-up pasien setelah registrasi'
         }
 
 

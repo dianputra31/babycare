@@ -116,15 +116,30 @@
                 {% endif %}
               </div>
 
-              <!-- Biaya Transport -->
+              <!-- Biaya Transport + Include Transport Checkbox -->
               <div class="col-md-6">
                 <label for="{{ form.biaya_transport.id_for_label }}" class="form-label">
                   Biaya Transport
                 </label>
-                {{ form.biaya_transport }}
+                <div class="input-group">
+                  {{ form.biaya_transport }}
+                  <span class="input-group-text" style="background-color: #f8f9fa; border-left: 0;">
+                    <div class="form-check mb-0">
+                      {{ form.is_transport }}
+                      <label class="form-check-label ms-2" for="{{ form.is_transport.id_for_label }}" style="cursor: pointer; font-size: 0.9rem; margin-bottom: 0;">
+                        Include Transport?
+                      </label>
+                    </div>
+                  </span>
+                </div>
                 {% if form.biaya_transport.errors %}
                   <div class="invalid-feedback d-block">
                     {{ form.biaya_transport.errors.0 }}
+                  </div>
+                {% endif %}
+                {% if form.is_transport.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.is_transport.errors.0 }}
                   </div>
                 {% endif %}
               </div>
@@ -345,7 +360,7 @@
             </div>
             <div class="col-md-6">
               <label class="form-label">Tanggal Lahir <span class="text-danger">*</span></label>
-              <input type="date" name="tanggal_lahir" class="form-control" required>
+              <input type="date" name="tanggal_lahir" class="form-control" required max="{% now 'Y-m-d' %}">
             </div>
             <div class="col-md-6">
               <label class="form-label">Jenis Kelamin <span class="text-danger">*</span></label>
@@ -625,11 +640,54 @@ $(document).ready(function() {
     }
   });
 
+  // Handle is_transport checkbox change
+  const isTransportCheckbox = document.getElementById('id_is_transport');
+  if (isTransportCheckbox) {
+    // Initial check: if is_transport is unchecked, ensure transport is 0
+    if (!isTransportCheckbox.checked) {
+      const transportField = document.getElementById('id_biaya_transport');
+      if (transportField.value) {
+        transportField.value = '0';
+      }
+    }
+    
+    isTransportCheckbox.addEventListener('change', function() {
+      const transportField = document.getElementById('id_biaya_transport');
+      const terapisSelect = document.getElementById('id_terapis');
+      
+      if (!this.checked) {
+        // Uncheck: set transport to 0
+        transportField.value = '0';
+        calculateTotal();
+      } else {
+        // Check: restore transport from terapis if selected
+        if (terapisSelect.value) {
+          const terapisId = terapisSelect.value;
+          fetch(`/ajax/terapis/${terapisId}/transport/`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                transportField.value = formatNumber(data.biaya_transport);
+                calculateTotal();
+              }
+            })
+            .catch(error => console.error('Error fetching transport:', error));
+        } else {
+          transportField.value = '';
+          calculateTotal();
+        }
+      }
+    });
+  }
+
   // Auto-fill biaya transport when terapis changes (Support Select2)
   $('#id_terapis').on('change select2:select', function() {
     const terapisId = $(this).val();
+    const isTransportCheckbox = document.getElementById('id_is_transport');
+    
     console.log('Terapis changed to ID:', terapisId);
-    if (terapisId) {
+    if (terapisId && isTransportCheckbox && isTransportCheckbox.checked) {
+      // Only fetch transport if is_transport is checked
       console.log('Fetching transport for terapis:', terapisId);
       fetch(`/ajax/terapis/${terapisId}/transport/`)
         .then(response => {
@@ -650,6 +708,10 @@ $(document).ready(function() {
         .catch(error => {
           console.error('Error fetching transport:', error);
         });
+    } else if (!isTransportCheckbox || !isTransportCheckbox.checked) {
+      // If is_transport is unchecked, don't update transport
+      console.log('is_transport is unchecked, skipping transport fetch');
+      calculateTotal();
     } else {
       // Clear transport if no terapis selected
       document.getElementById('id_biaya_transport').value = '';

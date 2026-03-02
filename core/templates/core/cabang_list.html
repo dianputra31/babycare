@@ -32,15 +32,54 @@
             <thead>
               <tr>
                 <th>Nama Cabang</th>
-                <th>Aksi</th>
+                <th>Alamat</th>
+                <th class="text-end">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {% for cabang in cabang_list %}
               <tr>
-                <td>{{ cabang.nama_cabang }}</td>
                 <td>
-                  <a href="#" class="btn btn-sm btn-outline-primary">Edit</a>
+                  <div>
+                    <h6 class="mb-0">{{ cabang.nama_cabang }}</h6>
+                    <small class="text-muted">ID: {{ cabang.id }}</small>
+                  </div>
+                </td>
+                <td>
+                  <small>{{ cabang.alamat|default:"—" }}</small>
+                </td>
+                <td class="text-end">
+                  <a href="{% url 'cabang_edit' cabang.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ cabang.id }}" title="Hapus">
+                    <i class="bi bi-trash"></i>
+                  </button>
+
+                  <!-- Delete Modal -->
+                  <div class="modal fade" id="deleteModal{{ cabang.id }}" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                      <div class="modal-content">
+                        <div class="modal-header border-danger bg-light">
+                          <h5 class="modal-title text-danger">
+                            <i class="bi bi-exclamation-triangle"></i> Hapus Cabang
+                          </h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                          <p>Apakah Anda yakin ingin menghapus cabang <strong>{{ cabang.nama_cabang }}</strong>?</p>
+                          <p class="text-muted small">Tindakan ini tidak dapat dibatalkan.</p>
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                          <form method="post" action="{% url 'cabang_delete' cabang.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">Hapus</button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </td>
               </tr>
               {% endfor %}

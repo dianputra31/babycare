@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load custom_filters %}
 
 {% block title %}Rekap Transport Terapis{% endblock %}
 
@@ -65,13 +66,18 @@
             {% for item in terapis_transport %}
             <tr>
               <td><strong>{{ forloop.counter }}</strong></td>
-              <td>{{ item.terapis.nama }}</td>
+              <td>
+                <div>
+                  <h6 class="mb-1">{{ item.terapis.nama_terapis }}</h6>
+                  <small class="text-muted">{{ item.terapis.no_hp }}</small>
+                </div>
+              </td>
               <td class="text-center">
                 <span class="badge bg-info">{{ item.jumlah_registrasi }}</span>
               </td>
-              <td class="text-end">Rp {{ item.terapis.biaya_transport|stringformat:"d"|floatformat:0 }}</td>
+              <td class="text-end">{{ item.terapis.biaya_transport|rupiah }}</td>
               <td class="text-end">
-                <span class="badge bg-warning">{{ item.total_transport_formatted }}</span>
+                <span class="badge bg-warning">{{ item.total_transport|rupiah }}</span>
               </td>
             </tr>
             {% endfor %}
@@ -98,26 +104,12 @@
   {% if terapis_transport %}
   <div class="row mt-4">
     <div class="col-12">
-      <h5 class="mb-3">Distribusi Biaya Transport</h5>
       <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+          <h6 class="mb-0">Distribusi Biaya Transport</h6>
+        </div>
         <div class="card-body">
-          {% for item in terapis_transport %}
-          <div class="mb-4">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <h6 class="mb-0">{{ item.terapis.nama }}</h6>
-              <small class="text-muted">{{ item.total_transport|stringformat:"d"|floatformat:0 }} / {{ grand_total|stringformat:"d"|floatformat:0 }} ({% widthratio item.total_transport grand_total 100 %}%)</small>
-            </div>
-            <div class="progress" style="height: 20px;">
-              <div class="progress-bar bg-warning" role="progressbar" style="width: {% widthratio item.total_transport grand_total 100 %}%;" aria-valuenow="{{ item.total_transport }}" aria-valuemin="0" aria-valuemax="{{ grand_total }}">
-                {% if item.total_transport > 0 %}
-                <small class="d-flex align-items-center justify-content-center w-100 h-100" style="color: #000; font-weight: 500;">
-                  {% widthratio item.total_transport grand_total 100 %}%
-                </small>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-          {% endfor %}
+          <canvas id="transportDistributionChart" height="300"></canvas>
         </div>
       </div>
     </div>
@@ -125,12 +117,64 @@
   {% endif %}
 </div>
 
+
 <style>
 .table-hover tbody tr:hover {
   background-color: rgba(250, 112, 154, 0.05);
   cursor: pointer;
 }
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const chartCtx = document.getElementById('transportDistributionChart');
+  if (chartCtx) {
+    new Chart(chartCtx, {
+      type: 'bar',
+      data: {
+        labels: {{ terapis_names_json|safe }},
+        datasets: [{
+          label: 'Biaya Transport (Rp)',
+          data: {{ transport_amounts_json|safe }},
+          backgroundColor: {{ chart_colors_json|safe }},
+          borderColor: {{ chart_colors_json|safe }},
+          borderWidth: 1,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        indexAxis: 'x',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false,
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const value = context.parsed.y;
+                return 'Rp ' + value.toLocaleString('id-ID');
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return 'Rp ' + (value / 1000000).toFixed(1) + 'M';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+});
+</script>
       </div>
     </div>
   </div>

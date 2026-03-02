@@ -1,5 +1,5 @@
 # e:/projects/python/django/teguh/babycare/core/views.py
-from django.views.generic import TemplateView, ListView, CreateView, UpdateView, View, FormView
+from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DeleteView, View, FormView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.forms import AuthenticationForm
@@ -77,10 +77,103 @@ class DashboardView(LoginRequiredMixin, View):
     
     def get(self, request):
         from django.shortcuts import render
+        from django.utils import timezone
+        from datetime import datetime, timedelta
+        from django.db.models import Sum, Count, Q
+        import json
+        
+        today = timezone.now().date()
+        current_month_start = today.replace(day=1)
+        
+        # Calculate statistics
+        total_pasien = Pasien.objects.count()
+        registrasi_hari_ini = Registrasi.objects.filter(tanggal_kunjungan=today).count()
+        pendapatan_bulan_ini = Pemasukan.objects.filter(
+            tanggal__year=today.year,
+            tanggal__month=today.month
+        ).aggregate(total=Sum('jumlah'))['total'] or 0
+        notifikasi_belum_dibaca = Notifikasi.objects.filter(sudah_dibaca=False).count()
+        
+        # Chart Data 1: Registrasi per bulan (last 12 months)
+        registrasi_per_bulan = []
+        labels_bulan = []
+        for i in range(11, -1, -1):
+            month_date = today - timedelta(days=30*i)
+            month_start = month_date.replace(day=1)
+            if i > 0:
+                month_end = (month_date.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+            else:
+                month_end = today
+            
+            count = Registrasi.objects.filter(
+                tanggal_kunjungan__gte=month_start,
+                tanggal_kunjungan__lte=month_end
+            ).count()
+            registrasi_per_bulan.append(count)
+            labels_bulan.append(month_date.strftime('%b'))
+        
+        # Chart Data 2: Top Terapis (by number of sessions)
+        top_terapis = Registrasi.objects.values('terapis__nama_terapis').annotate(
+            count=Count('id')
+        ).order_by('-count')[:8]
+        terapis_names = [t['terapis__nama_terapis'] or 'Unknown' for t in top_terapis]
+        terapis_counts = [t['count'] for t in top_terapis]
+        
+        # Chart Data 3: Jenis Terapi (by frequency)
+        jenis_terapi_data = Registrasi.objects.values('jenis_terapi__nama_terapi').annotate(
+            count=Count('id')
+        ).order_by('-count')[:8]
+        terapi_names = [t['jenis_terapi__nama_terapi'] for t in jenis_terapi_data]
+        terapi_counts = [t['count'] for t in jenis_terapi_data]
+        
+        # Chart Data 4: Pemasukan vs Pengeluaran (current month)
+        pemasukan_bulan = Pemasukan.objects.filter(
+            tanggal__year=today.year,
+            tanggal__month=today.month
+        ).aggregate(total=Sum('jumlah'))['total'] or 0
+        
+        pengeluaran_bulan = Pengeluaran.objects.filter(
+            tanggal__year=today.year,
+            tanggal__month=today.month
+        ).aggregate(total=Sum('jumlah'))['total'] or 0
+        
+        # Chart Data 5: Pasien per cabang
+        pasien_per_cabang = Pasien.objects.values('cabang__nama_cabang').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        cabang_names = [p['cabang__nama_cabang'] or 'Tanpa Cabang' for p in pasien_per_cabang]
+        cabang_counts = [p['count'] for p in pasien_per_cabang]
+        
+        # Chart Data 6: Daily registrations trend (last 30 days)
+        daily_registrasi = []
+        labels_hari = []
+        for i in range(29, -1, -1):
+            day = today - timedelta(days=i)
+            count = Registrasi.objects.filter(tanggal_kunjungan=day).count()
+            daily_registrasi.append(count)
+            labels_hari.append(day.strftime('%d'))
+        
         context = {
             'username': request.user.username,
             'fullname': getattr(request.user, 'full_name', 'N/A'),
             'is_authenticated': request.user.is_authenticated,
+            'total_pasien': total_pasien,
+            'registrasi_hari_ini': registrasi_hari_ini,
+            'pendapatan_bulan_ini': pendapatan_bulan_ini,
+            'notifikasi_belum_dibaca': notifikasi_belum_dibaca,
+            # Chart data
+            'registrasi_per_bulan': json.dumps(registrasi_per_bulan),
+            'labels_bulan': json.dumps(labels_bulan),
+            'terapis_names': json.dumps(terapis_names),
+            'terapis_counts': json.dumps(terapis_counts),
+            'terapi_names': json.dumps(terapi_names),
+            'terapi_counts': json.dumps(terapi_counts),
+            'pemasukan_bulan': float(pemasukan_bulan),
+            'pengeluaran_bulan': float(pengeluaran_bulan),
+            'cabang_names': json.dumps(cabang_names),
+            'cabang_counts': json.dumps(cabang_counts),
+            'daily_registrasi': json.dumps(daily_registrasi),
+            'labels_hari': json.dumps(labels_hari),
         }
         return render(request, 'core/dashboard.html', context)
 
@@ -88,17 +181,95 @@ class RegistrasiListView(LoginRequiredMixin, ListView):
     model = Registrasi
     template_name = 'core/registrasi_list.html'
     context_object_name = 'registrasis'
-    paginate_by = 25
+    paginate_by = 50
 
     def get_queryset(self):
-        qs = super().get_queryset().order_by('-tanggal_kunjungan')
+        qs = super().get_queryset().select_related(
+            'pasien', 'jenis_terapi', 'terapis', 'cabang'
+        ).order_by('-tanggal_kunjungan')
+        
+        # Add annotation for outstanding balance
+        from django.db.models import Sum, F, DecimalField, Case, When
+        from decimal import Decimal
+        qs = qs.annotate(
+            total_paid=Sum('pemasukan__jumlah', output_field=DecimalField())
+        )
+        # Calculate remaining balance as total_bayar - total_paid (default 0 if null)
+        qs = qs.annotate(
+            sisa_tagihan=Case(
+                When(total_paid__isnull=True, then=F('total_bayar')),
+                default=F('total_bayar') - F('total_paid'),
+                output_field=DecimalField()
+            )
+        )
+        
         user_roles = getattr(self.request, 'user_roles', set())
         if 'terapis' in user_roles:
             qs = qs.filter(terapis__user=self.request.user)
         else:
             if getattr(self.request, 'cabang_id', None) is not None:
                 qs = qs.filter(cabang_id=self.request.cabang_id)
+        
+        # Apply filters from GET parameters
+        # Filter by date range
+        tanggal_dari = self.request.GET.get('tanggal_dari')
+        tanggal_sampai = self.request.GET.get('tanggal_sampai')
+        
+        if tanggal_dari:
+            try:
+                from datetime import datetime
+                tanggal_dari_date = datetime.strptime(tanggal_dari, '%Y-%m-%d').date()
+                qs = qs.filter(tanggal_kunjungan__gte=tanggal_dari_date)
+            except:
+                pass
+        
+        if tanggal_sampai:
+            try:
+                from datetime import datetime
+                tanggal_sampai_date = datetime.strptime(tanggal_sampai, '%Y-%m-%d').date()
+                qs = qs.filter(tanggal_kunjungan__lte=tanggal_sampai_date)
+            except:
+                pass
+        
+        # Filter by pasien (nama_anak)
+        pasien_query = self.request.GET.get('pasien_query')
+        if pasien_query:
+            qs = qs.filter(pasien__nama_anak__icontains=pasien_query)
+        
+        # Filter by jenis_terapi
+        jenis_terapi_id = self.request.GET.get('jenis_terapi_id')
+        if jenis_terapi_id:
+            qs = qs.filter(jenis_terapi_id=jenis_terapi_id)
+        
+        # Filter by terapis
+        terapis_id = self.request.GET.get('terapis_id')
+        if terapis_id:
+            qs = qs.filter(terapis_id=terapis_id)
+        
+        # Filter by kode_registrasi
+        kode_registrasi = self.request.GET.get('kode_registrasi')
+        if kode_registrasi:
+            qs = qs.filter(kode_registrasi__icontains=kode_registrasi)
+        
         return qs
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Get filter values
+        context['tanggal_dari'] = self.request.GET.get('tanggal_dari', '')
+        context['tanggal_sampai'] = self.request.GET.get('tanggal_sampai', '')
+        context['pasien_query'] = self.request.GET.get('pasien_query', '')
+        context['jenis_terapi_id'] = self.request.GET.get('jenis_terapi_id', '')
+        context['terapis_id'] = self.request.GET.get('terapis_id', '')
+        context['kode_registrasi'] = self.request.GET.get('kode_registrasi', '')
+        
+        # Get filter options
+        from core.models import JenisTerapi, Terapis
+        context['jenis_terapi_list'] = JenisTerapi.objects.all()
+        context['terapis_list'] = Terapis.objects.all()
+        
+        return context
 
 class RegistrasiCreateView(LoginRequiredMixin, CreateView):
     model = Registrasi
@@ -114,6 +285,40 @@ class RegistrasiCreateView(LoginRequiredMixin, CreateView):
         return initial
 
     def form_valid(self, form):
+        """Generate kode_registrasi before saving"""
+        from datetime import date
+        
+        # Auto-generate kode_registrasi if not provided
+        if not form.instance.kode_registrasi:
+            today = date.today()
+            cabang_id = form.instance.cabang_id
+            
+            # Format: P + CABANG_ID(2digit) + MMYY + sequential number (3 digits)
+            # Example: P010326001 (P=prefix, 01=cabang_id, 03=March, 26=2026, 001=first record)
+            # If no cabang: P000326001
+            cabang_code = f'{cabang_id:02d}' if cabang_id else '00'
+            month_year = today.strftime('%m%y')
+            prefix = f'P{cabang_code}{month_year}'
+            
+            # Get the highest sequence number for this cabang/month/year
+            last_registrasi = Registrasi.objects.filter(
+                kode_registrasi__startswith=prefix,
+                cabang_id=cabang_id
+            ).order_by('-kode_registrasi', '-id').first()
+            
+            if last_registrasi and last_registrasi.kode_registrasi:
+                try:
+                    # Extract the sequence number from the last kode
+                    last_seq = int(last_registrasi.kode_registrasi[-3:])
+                    next_seq = last_seq + 1
+                except (ValueError, IndexError):
+                    next_seq = 1
+            else:
+                next_seq = 1
+            
+            # Generate the new kode
+            form.instance.kode_registrasi = f'{prefix}{next_seq:03d}'
+        
         messages.success(self.request, 'Data registrasi berhasil disimpan!')
         return super().form_valid(form)
     
@@ -172,6 +377,13 @@ class PemasukanCreateView(LoginRequiredMixin, CreateView):
     form_class = PemasukanForm
     template_name = 'core/pemasukan_form.html'
     success_url = reverse_lazy('pemasukan_list')
+
+    def get_success_url(self):
+        """Check if there's a 'next' parameter and use it, otherwise use default."""
+        next_url = self.request.POST.get('next') or self.request.GET.get('next')
+        if next_url:
+            return next_url
+        return self.success_url
 
     def get_initial(self):
         """Set default values for form fields."""
@@ -510,6 +722,40 @@ class PasienCreateView(LoginRequiredMixin, CreateView):
         messages.error(self.request, 'Terjadi kesalahan. Periksa kembali data yang diinput.')
         return super().form_invalid(form)
 
+class PasienEditView(LoginRequiredMixin, UpdateView):
+    """Edit existing pasien."""
+    model = Pasien
+    fields = ['nama_anak', 'tanggal_lahir', 'jenis_kelamin', 'nama_orang_tua', 'alamat', 'no_wa', 'cabang']
+    template_name = 'core/pasien_form.html'
+    context_object_name = 'object'
+    pk_url_kwarg = 'pk'
+    
+    def get_success_url(self):
+        return reverse_lazy('pasien_list')
+    
+    def get_form(self, form_class=None):
+        from django import forms
+        form = super().get_form(form_class)
+        form.fields['nama_anak'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Nama anak'})
+        form.fields['tanggal_lahir'].widget = forms.DateInput(attrs={'class': 'form-control', 'type': 'date'})
+        form.fields['jenis_kelamin'].widget = forms.Select(
+            choices=[('', '-- Pilih --'), ('L', 'Laki-laki'), ('P', 'Perempuan')],
+            attrs={'class': 'form-select'}
+        )
+        form.fields['nama_orang_tua'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Nama orang tua'})
+        form.fields['alamat'].widget = forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Alamat lengkap'})
+        form.fields['no_wa'].widget.attrs.update({'class': 'form-control', 'placeholder': '08xx-xxxx-xxxx'})
+        form.fields['cabang'].widget.attrs.update({'class': 'form-select'})
+        return form
+    
+    def form_valid(self, form):
+        messages.success(self.request, f'Data pasien {form.instance.nama_anak} berhasil diperbarui!')
+        return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, 'Terjadi kesalahan. Periksa kembali data yang diinput.')
+        return super().form_invalid(form)
+
 class TerapisListView(LoginRequiredMixin, ListView):
     """List all terapis."""
     model = Terapis
@@ -551,6 +797,43 @@ class TerapisCreateView(LoginRequiredMixin, CreateView):
         messages.error(self.request, 'Terjadi kesalahan. Periksa kembali data yang diinput.')
         return super().form_invalid(form)
 
+class TerapisUpdateView(LoginRequiredMixin, UpdateView):
+    """Update terapis."""
+    model = Terapis
+    fields = ['nama_terapis', 'no_hp', 'alamat', 'cabang', 'biaya_transport_default', 'is_active']
+    template_name = 'core/terapis_form.html'
+    success_url = reverse_lazy('terapis_list')
+    
+    def get_form(self, form_class=None):
+        from django import forms
+        form = super().get_form(form_class)
+        form.fields['nama_terapis'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Nama terapis'})
+        form.fields['no_hp'].widget.attrs.update({'class': 'form-control', 'placeholder': '08xx-xxxx-xxxx'})
+        form.fields['alamat'].widget = forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Alamat lengkap'})
+        form.fields['cabang'].widget.attrs.update({'class': 'form-select'})
+        form.fields['biaya_transport_default'].widget.attrs.update({'class': 'form-control', 'placeholder': '0'})
+        form.fields['is_active'].widget.attrs.update({'class': 'form-check-input'})
+        return form
+    
+    def form_valid(self, form):
+        messages.success(self.request, f'Data terapis {form.instance.nama_terapis} berhasil diperbarui!')
+        return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, 'Terjadi kesalahan. Periksa kembali data yang diinput.')
+        return super().form_invalid(form)
+
+class TerapisDeleteView(LoginRequiredMixin, DeleteView):
+    """Delete terapis."""
+    model = Terapis
+    success_url = reverse_lazy('terapis_list')
+    
+    def delete(self, request, *args, **kwargs):
+        obj = self.get_object()
+        nama = obj.nama_terapis
+        messages.success(request, f'Data terapis {nama} berhasil dihapus!')
+        return super().delete(request, *args, **kwargs)
+
 class JenisTerapiListView(LoginRequiredMixin, ListView):
     """List all jenis terapi."""
     model = JenisTerapi
@@ -581,6 +864,40 @@ class JenisTerapiCreateView(LoginRequiredMixin, CreateView):
         messages.error(self.request, 'Terjadi kesalahan. Periksa kembali data yang diinput.')
         return super().form_invalid(form)
 
+class JenisTerapiUpdateView(LoginRequiredMixin, UpdateView):
+    """Update jenis terapi."""
+    model = JenisTerapi
+    fields = ['nama_terapi', 'kategori_usia_min', 'kategori_usia_max', 'harga']
+    template_name = 'core/jenis_terapi_form.html'
+    success_url = reverse_lazy('jenis_terapi_list')
+    
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.fields['nama_terapi'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Nama jenis terapi'})
+        form.fields['kategori_usia_min'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Min. umur (bulan)'})
+        form.fields['kategori_usia_max'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Max. umur (bulan)'})
+        form.fields['harga'].widget.attrs.update({'class': 'form-control', 'placeholder': '0'})
+        return form
+    
+    def form_valid(self, form):
+        messages.success(self.request, f'Jenis terapi {form.instance.nama_terapi} berhasil diperbarui!')
+        return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, 'Terjadi kesalahan. Periksa kembali data yang diinput.')
+        return super().form_invalid(form)
+
+class JenisTerapiDeleteView(LoginRequiredMixin, DeleteView):
+    """Delete jenis terapi."""
+    model = JenisTerapi
+    success_url = reverse_lazy('jenis_terapi_list')
+    
+    def delete(self, request, *args, **kwargs):
+        obj = self.get_object()
+        nama = obj.nama_terapi
+        messages.success(request, f'Jenis terapi {nama} berhasil dihapus!')
+        return super().delete(request, *args, **kwargs)
+
 class CabangListView(LoginRequiredMixin, ListView):
     """List all cabang."""
     model = Cabang
@@ -610,52 +927,68 @@ class CabangCreateView(LoginRequiredMixin, CreateView):
         messages.error(self.request, 'Terjadi kesalahan. Periksa kembali data yang diinput.')
         return super().form_invalid(form)
 
+class CabangUpdateView(LoginRequiredMixin, UpdateView):
+    """Update existing cabang."""
+    model = Cabang
+    fields = ['nama_cabang', 'alamat']
+    template_name = 'core/cabang_form.html'
+    success_url = reverse_lazy('cabang_list')
+    
+    def get_form(self, form_class=None):
+        from django import forms
+        form = super().get_form(form_class)
+        form.fields['nama_cabang'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Nama cabang'})
+        form.fields['alamat'].widget = forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Alamat lengkap'})
+        return form
+    
+    def form_valid(self, form):
+        messages.success(self.request, f'Cabang {form.instance.nama_cabang} berhasil diperbarui!')
+        return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, 'Terjadi kesalahan. Periksa kembali data yang diinput.')
+        return super().form_invalid(form)
+
+class CabangDeleteView(LoginRequiredMixin, DeleteView):
+    """Delete existing cabang."""
+    model = Cabang
+    success_url = reverse_lazy('cabang_list')
+    
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        nama_cabang = self.object.nama_cabang
+        response = super().delete(request, *args, **kwargs)
+        messages.success(self.request, f'Cabang {nama_cabang} berhasil dihapus!')
+        return response
+
 
 class RekapTindakanListView(LoginRequiredMixin, ListView):
+    """Rekap tindakan with filtering"""
     model = Registrasi
     template_name = 'core/rekap_tindakan_list.html'
     context_object_name = 'rekap_list'
     paginate_by = 50
-    
+
     def get_queryset(self):
-        # Base query with relationships
+        today = timezone.now().date()
         qs = Registrasi.objects.select_related(
             'pasien', 'jenis_terapi', 'terapis', 'cabang'
-        ).filter(is_deleted=False).order_by('-tanggal_kunjungan', '-created_at')
+        ).order_by('-tanggal_kunjungan')
         
-        # Apply cabang filter
-        if getattr(self.request, 'cabang_id', None) is not None:
-            qs = qs.filter(cabang_id=self.request.cabang_id)
-        
-        # Get filter period from request
         period = self.request.GET.get('period', 'harian')
-        today = timezone.now().date()
         
         if period == 'harian':
-            # Today only
             qs = qs.filter(tanggal_kunjungan=today)
-        elif period == 'mingguan':
-            # Last 7 days (including today)
+        elif period == 'minggu':
             start_date = today - timedelta(days=6)
             qs = qs.filter(tanggal_kunjungan__gte=start_date, tanggal_kunjungan__lte=today)
-        elif period == 'bulanan':
-            # Current month (from 1st to today)
-            start_date = today.replace(day=1)
-            qs = qs.filter(tanggal_kunjungan__gte=start_date, tanggal_kunjungan__lte=today)
-        elif period == '1bulan':
-            # Last 30 days
-            start_date = today - timedelta(days=29)
-            qs = qs.filter(tanggal_kunjungan__gte=start_date, tanggal_kunjungan__lte=today)
         elif period == '3bulan':
-            # Last 3 months (90 days)
             start_date = today - timedelta(days=89)
             qs = qs.filter(tanggal_kunjungan__gte=start_date, tanggal_kunjungan__lte=today)
         elif period == '6bulan':
-            # Last 6 months (180 days)
             start_date = today - timedelta(days=179)
             qs = qs.filter(tanggal_kunjungan__gte=start_date, tanggal_kunjungan__lte=today)
         elif period == '1tahun':
-            # Last 1 year (365 days)
             start_date = today - timedelta(days=364)
             qs = qs.filter(tanggal_kunjungan__gte=start_date, tanggal_kunjungan__lte=today)
         
@@ -937,7 +1270,7 @@ class AjaxGetRegistrasiDetailView(LoginRequiredMixin, View):
     def get(self, request, registrasi_id):
         try:
             from django.db.models import Sum
-            registrasi = Registrasi.objects.select_related('pasien', 'jenis_terapi', 'terapis').get(pk=registrasi_id)
+            registrasi = Registrasi.objects.select_related('pasien', 'jenis_terapi', 'terapis', 'cabang').get(pk=registrasi_id)
             
             # Calculate total already paid
             total_paid = Pemasukan.objects.filter(registrasi_id=registrasi_id).aggregate(
@@ -956,6 +1289,7 @@ class AjaxGetRegistrasiDetailView(LoginRequiredMixin, View):
                     'jenis_terapi': registrasi.jenis_terapi.nama_terapi,
                     'terapis': registrasi.terapis.nama_terapis if registrasi.terapis else '-',
                     'tanggal_kunjungan': registrasi.tanggal_kunjungan.strftime('%d %b %Y'),
+                    'cabang_name': registrasi.cabang.nama_cabang,
                     'total_bayar': total_bayar,
                     'total_paid': float(total_paid),
                     'sisa': sisa,
@@ -976,19 +1310,202 @@ class TotalPendapatanView(LoginRequiredMixin, TemplateView):
     """Total income report"""
     template_name = 'core/pembukuan/total_pendapatan.html'
     
+    def get(self, request, *args, **kwargs):
+        """Handle both normal view and Excel export"""
+        if request.GET.get('export') == 'excel':
+            return self.export_to_excel(request)
+        return super().get(request, *args, **kwargs)
+    
+    def apply_filters(self, queryset, request):
+        """Apply filters from GET parameters"""
+        from django.db.models import Q
+        from datetime import datetime
+        
+        # Date range filter
+        tanggal_dari = request.GET.get('tanggal_dari')
+        tanggal_sampai = request.GET.get('tanggal_sampai')
+        
+        if tanggal_dari:
+            try:
+                tanggal_dari_date = datetime.strptime(tanggal_dari, '%Y-%m-%d').date()
+                queryset = queryset.filter(tanggal__gte=tanggal_dari_date)
+            except:
+                pass
+        
+        if tanggal_sampai:
+            try:
+                tanggal_sampai_date = datetime.strptime(tanggal_sampai, '%Y-%m-%d').date()
+                queryset = queryset.filter(tanggal__lte=tanggal_sampai_date)
+            except:
+                pass
+        
+        # Cabang filter
+        cabang_id = request.GET.get('cabang_id')
+        if cabang_id:
+            queryset = queryset.filter(cabang_id=cabang_id)
+        
+        # Metode Pembayaran filter
+        metode = request.GET.get('metode_pembayaran')
+        if metode:
+            queryset = queryset.filter(metode_pembayaran=metode)
+        
+        return queryset
+    
+    def export_to_excel(self, request):
+        """Export pemasukan data to Excel file"""
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+        from datetime import datetime
+        
+        # Get data with proper joins and apply filters
+        pemasukan_list = Pemasukan.objects.select_related(
+            'registrasi__pasien',
+            'cabang'
+        ).all().order_by('-tanggal')
+        
+        # Apply filters
+        pemasukan_list = self.apply_filters(pemasukan_list, request)
+        for pemasukan in pemasukan_list:
+            if pemasukan.jumlah_bayar and pemasukan.jumlah and pemasukan.jumlah_bayar > pemasukan.jumlah:
+                pemasukan.kembalian = pemasukan.jumlah_bayar - pemasukan.jumlah
+            else:
+                pemasukan.kembalian = None
+        
+        # Create workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Pemasukan"
+        
+        # Set column widths
+        ws.column_dimensions['A'].width = 15
+        ws.column_dimensions['B'].width = 25
+        ws.column_dimensions['C'].width = 15
+        ws.column_dimensions['D'].width = 20
+        ws.column_dimensions['E'].width = 20
+        ws.column_dimensions['F'].width = 20
+        ws.column_dimensions['G'].width = 20
+        
+        # Style definitions
+        header_fill = PatternFill(start_color="667eea", end_color="667eea", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF", size=12)
+        title_font = Font(bold=True, size=14, color="2c3e50")
+        border = Border(
+            left=Side(style='thin', color='e9ecef'),
+            right=Side(style='thin', color='e9ecef'),
+            top=Side(style='thin', color='e9ecef'),
+            bottom=Side(style='thin', color='e9ecef')
+        )
+        
+        # Title
+        ws['A1'] = "LAPORAN PENDAPATAN"
+        ws['A1'].font = title_font
+        ws.merge_cells('A1:G1')
+        ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+        ws.row_dimensions[1].height = 25
+        
+        # Date
+        ws['A2'] = f"Periode: {datetime.now().strftime('%d %B %Y')}"
+        ws.merge_cells('A2:G2')
+        ws['A2'].alignment = Alignment(horizontal='center')
+        
+        # Headers
+        headers = ['Tanggal', 'Pasien', 'Metode', 'Jumlah Tagihan', 'Jumlah Bayar', 'Kembalian', 'Cabang']
+        for col, header in enumerate(headers, start=1):
+            cell = ws.cell(row=4, column=col)
+            cell.value = header
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.border = border
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+        
+        ws.row_dimensions[4].height = 20
+        
+        # Data rows
+        for row, pemasukan in enumerate(pemasukan_list, start=5):
+            # Get pasien name via join
+            pasien_name = '-'
+            if pemasukan.registrasi and pemasukan.registrasi.pasien:
+                pasien_name = pemasukan.registrasi.pasien.nama_anak
+            
+            ws.cell(row=row, column=1).value = pemasukan.tanggal.strftime('%d/%m/%Y') if pemasukan.tanggal else '-'
+            ws.cell(row=row, column=2).value = pasien_name
+            ws.cell(row=row, column=3).value = pemasukan.metode_pembayaran or '-'
+            ws.cell(row=row, column=4).value = float(pemasukan.jumlah) if pemasukan.jumlah else 0
+            ws.cell(row=row, column=5).value = float(pemasukan.jumlah_bayar) if pemasukan.jumlah_bayar else 0
+            ws.cell(row=row, column=6).value = float(pemasukan.kembalian) if pemasukan.kembalian else 0
+            ws.cell(row=row, column=7).value = pemasukan.cabang.nama_cabang if pemasukan.cabang else '-'
+            
+            # Format currency columns
+            for col in [4, 5, 6]:
+                ws.cell(row=row, column=col).number_format = '#,##0'
+            
+            # Apply border to all cells
+            for col in range(1, 8):
+                ws.cell(row=row, column=col).border = border
+                ws.cell(row=row, column=col).alignment = Alignment(horizontal='left' if col <= 3 else 'right', vertical='center')
+        
+        # Response
+        from django.http import HttpResponse
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="Laporan_Pendapatan_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx"'
+        wb.save(response)
+        return response
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Get all pemasukan
-        pemasukan_list = Pemasukan.objects.all().order_by('-tanggal')
+        # Get all pemasukan with select_related for optimization
+        pemasukan_list = Pemasukan.objects.select_related(
+            'registrasi__pasien',
+            'cabang'
+        ).all().order_by('-tanggal')
+        
+        # Apply filters from GET parameters
+        pemasukan_list = self.apply_filters(pemasukan_list, self.request)
+        
+        # Add computed kembalian field to each pemasukan
+        for pemasukan in pemasukan_list:
+            if pemasukan.jumlah_bayar and pemasukan.jumlah and pemasukan.jumlah_bayar > pemasukan.jumlah:
+                pemasukan.kembalian = pemasukan.jumlah_bayar - pemasukan.jumlah
+                pemasukan.kembalian_formatted = format_rupiah(int(pemasukan.kembalian))
+            else:
+                pemasukan.kembalian = None
+                pemasukan.kembalian_formatted = None
+        
         total = pemasukan_list.aggregate(Sum('jumlah'))['jumlah__sum'] or 0
         count = pemasukan_list.count()
         avg = int(total / count) if count > 0 else 0
+        
+        # Get filter values from request
+        tanggal_dari = self.request.GET.get('tanggal_dari', '')
+        tanggal_sampai = self.request.GET.get('tanggal_sampai', '')
+        cabang_id = self.request.GET.get('cabang_id', '')
+        metode_pembayaran = self.request.GET.get('metode_pembayaran', '')
+        
+        # Get dinamis cabang list
+        from core.models import Cabang
+        cabang_list = Cabang.objects.all()
+        
+        # Metode pembayaran choices
+        metode_choices = [
+            ('TUNAI', 'Tunai'),
+            ('TRANSFER', 'Transfer'),
+            ('QRIS', 'QRIS'),
+            ('DEBIT', 'Debit'),
+            ('KREDIT', 'Kredit'),
+        ]
         
         context['pemasukan_list'] = pemasukan_list
         context['total_pendapatan'] = total
         context['total_pendapatan_formatted'] = format_rupiah(total)
         context['avg_pendapatan'] = avg
         context['avg_pendapatan_formatted'] = format_rupiah(avg)
+        context['cabang_list'] = cabang_list
+        context['metode_choices'] = metode_choices
+        context['tanggal_dari'] = tanggal_dari
+        context['tanggal_sampai'] = tanggal_sampai
+        context['cabang_id'] = cabang_id
+        context['metode_pembayaran'] = metode_pembayaran
         return context
 
 
@@ -996,19 +1513,166 @@ class TotalPengeluaranView(LoginRequiredMixin, TemplateView):
     """Total expense report"""
     template_name = 'core/pembukuan/total_pengeluaran.html'
     
+    def get(self, request, *args, **kwargs):
+        """Handle both normal view and Excel export"""
+        if request.GET.get('export') == 'excel':
+            return self.export_to_excel(request)
+        return super().get(request, *args, **kwargs)
+    
+    def apply_filters(self, queryset, request):
+        """Apply filters from GET parameters"""
+        from django.db.models import Q
+        from datetime import datetime
+        
+        # Date range filter
+        tanggal_dari = request.GET.get('tanggal_dari')
+        tanggal_sampai = request.GET.get('tanggal_sampai')
+        
+        if tanggal_dari:
+            try:
+                tanggal_dari_date = datetime.strptime(tanggal_dari, '%Y-%m-%d').date()
+                queryset = queryset.filter(tanggal__gte=tanggal_dari_date)
+            except:
+                pass
+        
+        if tanggal_sampai:
+            try:
+                tanggal_sampai_date = datetime.strptime(tanggal_sampai, '%Y-%m-%d').date()
+                queryset = queryset.filter(tanggal__lte=tanggal_sampai_date)
+            except:
+                pass
+        
+        # Cabang filter
+        cabang_id = request.GET.get('cabang_id')
+        if cabang_id:
+            queryset = queryset.filter(cabang_id=cabang_id)
+        
+        # Kategori filter
+        kategori = request.GET.get('kategori')
+        if kategori:
+            queryset = queryset.filter(kategori=kategori)
+        
+        return queryset
+    
+    def export_to_excel(self, request):
+        """Export pengeluaran data to Excel file"""
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.utils import get_column_letter
+        from datetime import datetime
+        
+        # Get data with proper joins and apply filters
+        pengeluaran_list = Pengeluaran.objects.select_related('cabang').all().order_by('-tanggal')
+        
+        # Apply filters
+        pengeluaran_list = self.apply_filters(pengeluaran_list, request)
+        
+        # Create workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Pengeluaran"
+        
+        # Set column widths
+        ws.column_dimensions['A'].width = 15
+        ws.column_dimensions['B'].width = 20
+        ws.column_dimensions['C'].width = 30
+        ws.column_dimensions['D'].width = 20
+        ws.column_dimensions['E'].width = 20
+        
+        # Style definitions
+        header_fill = PatternFill(start_color="f5576c", end_color="f5576c", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF", size=12)
+        title_font = Font(bold=True, size=14, color="2c3e50")
+        border = Border(
+            left=Side(style='thin', color='e9ecef'),
+            right=Side(style='thin', color='e9ecef'),
+            top=Side(style='thin', color='e9ecef'),
+            bottom=Side(style='thin', color='e9ecef')
+        )
+        
+        # Title
+        ws['A1'] = "LAPORAN PENGELUARAN"
+        ws['A1'].font = title_font
+        ws.merge_cells('A1:E1')
+        ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+        ws.row_dimensions[1].height = 25
+        
+        # Date
+        ws['A2'] = f"Periode: {datetime.now().strftime('%d %B %Y')}"
+        ws.merge_cells('A2:E2')
+        ws['A2'].alignment = Alignment(horizontal='center')
+        
+        # Headers
+        headers = ['Tanggal', 'Kategori', 'Keterangan', 'Cabang', 'Jumlah']
+        for col, header in enumerate(headers, start=1):
+            cell = ws.cell(row=4, column=col)
+            cell.value = header
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.border = border
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+        
+        ws.row_dimensions[4].height = 20
+        
+        # Data rows
+        for row, pengeluaran in enumerate(pengeluaran_list, start=5):
+            ws.cell(row=row, column=1).value = pengeluaran.tanggal.strftime('%d/%m/%Y') if pengeluaran.tanggal else '-'
+            ws.cell(row=row, column=2).value = pengeluaran.kategori or '-'
+            ws.cell(row=row, column=3).value = pengeluaran.keterangan or ''
+            ws.cell(row=row, column=4).value = pengeluaran.cabang.nama_cabang if pengeluaran.cabang else '-'
+            ws.cell(row=row, column=5).value = float(pengeluaran.jumlah) if pengeluaran.jumlah else 0
+            
+            # Format currency column
+            ws.cell(row=row, column=5).number_format = '#,##0'
+            
+            # Apply border to all cells
+            for col in range(1, 6):
+                ws.cell(row=row, column=col).border = border
+                ws.cell(row=row, column=col).alignment = Alignment(horizontal='left' if col <= 4 else 'right', vertical='center')
+        
+        # Response
+        from django.http import HttpResponse
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="Laporan_Pengeluaran_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx"'
+        wb.save(response)
+        return response
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Get all pengeluaran
-        pengeluaran_list = Pengeluaran.objects.all().order_by('-tanggal')
+        # Get all pengeluaran with select_related for optimization
+        pengeluaran_list = Pengeluaran.objects.select_related('cabang').all().order_by('-tanggal')
+        
+        # Apply filters from GET parameters
+        pengeluaran_list = self.apply_filters(pengeluaran_list, self.request)
+        
         total = pengeluaran_list.aggregate(Sum('jumlah'))['jumlah__sum'] or 0
         count = pengeluaran_list.count()
         avg = int(total / count) if count > 0 else 0
+        
+        # Get filter values from request
+        tanggal_dari = self.request.GET.get('tanggal_dari', '')
+        tanggal_sampai = self.request.GET.get('tanggal_sampai', '')
+        cabang_id = self.request.GET.get('cabang_id', '')
+        kategori_filter = self.request.GET.get('kategori', '')
+        
+        # Get dinamis cabang list
+        from core.models import Cabang
+        cabang_list = Cabang.objects.all()
+        
+        # Get unique kategori from pengeluaran
+        kategori_choices = Pengeluaran.objects.filter(kategori__isnull=False).values_list('kategori', flat=True).distinct().order_by('kategori')
         
         context['pengeluaran_list'] = pengeluaran_list
         context['total_pengeluaran'] = total
         context['total_pengeluaran_formatted'] = format_rupiah(total)
         context['avg_pengeluaran'] = avg
         context['avg_pengeluaran_formatted'] = format_rupiah(avg)
+        context['cabang_list'] = cabang_list
+        context['kategori_choices'] = kategori_choices
+        context['tanggal_dari'] = tanggal_dari
+        context['tanggal_sampai'] = tanggal_sampai
+        context['cabang_id'] = cabang_id
+        context['kategori'] = kategori_filter
         return context
 
 
@@ -1038,6 +1702,7 @@ class RekapTransportTerapisView(LoginRequiredMixin, TemplateView):
     template_name = 'core/pembukuan/rekap_transport_terapis.html'
     
     def get_context_data(self, **kwargs):
+        import json
         context = super().get_context_data(**kwargs)
         
         # Get summary: total biaya_transport per terapis
@@ -1056,9 +1721,25 @@ class RekapTransportTerapisView(LoginRequiredMixin, TemplateView):
         terapis_transport.sort(key=lambda x: x['total_transport'], reverse=True)
         grand_total = sum(item['total_transport'] for item in terapis_transport)
         
+        # Prepare chart data for distribution
+        terapis_names = [item['terapis'].nama_terapis for item in terapis_transport]
+        transport_amounts = [float(item['total_transport']) for item in terapis_transport]
+        
+        # Color palette for chart
+        colors = [
+            '#0d6efd', '#6c757d', '#198754', '#dc3545', '#ffc107',
+            '#0dcaf0', '#6f42c1', '#d63384', '#fd7e14', '#20c997',
+            '#e83e8c', '#17a2b8', '#007bff', '#28a745', '#dc3545',
+        ]
+        # Cycle colors if more terapis than colors
+        chart_colors = [colors[i % len(colors)] for i in range(len(terapis_names))]
+        
         context['terapis_transport'] = terapis_transport
         context['grand_total'] = grand_total
         context['grand_total_formatted'] = format_rupiah(grand_total)
+        context['terapis_names_json'] = json.dumps(terapis_names)
+        context['transport_amounts_json'] = json.dumps(transport_amounts)
+        context['chart_colors_json'] = json.dumps(chart_colors)
         return context
 
 
@@ -1219,3 +1900,30 @@ class UserToggleActiveView(LoginRequiredMixin, View):
         status = 'diaktifkan' if user.is_active else 'dinonaktifkan'
         messages.success(request, f'User {user.username} berhasil {status}!')
         return redirect('user_list')
+
+# ============================================
+# NOTIFICATION GENERATION
+# ============================================
+
+class GenerateNotificationsView(LoginRequiredMixin, View):
+    """Generate notifications on-demand."""
+    login_url = '/login/'
+
+    def post(self, request):
+        from core.services.notification_service import generate_all_notifications
+        from django.http import JsonResponse
+        
+        try:
+            result = generate_all_notifications()
+            messages.success(
+                request,
+                f"✓ Notifikasi berhasil dibuat! Total: {result['total_created']} notifikasi baru"
+            )
+            return JsonResponse({
+                'success': True,
+                'total_created': result['total_created'],
+                'details': {k: v['message'] for k, v in result['details'].items()}
+            })
+        except Exception as e:
+            messages.error(request, f'Error generating notifications: {str(e)}')
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)

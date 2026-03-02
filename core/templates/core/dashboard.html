@@ -1,9 +1,16 @@
 {% extends 'base.html' %}
 
+{% load custom_filters %}
+
 {% block title %}Dashboard - Babycare{% endblock %}
 
 {% block content %}
 {% include 'partials/_navbar.html' %}
+
+<!-- CSRF Token for AJAX -->
+<form id="csrfForm" method="post" style="display:none;">
+  {% csrf_token %}
+</form>
 
 <div class="container-fluid">
   <div class="row g-0 min-vh-100">
@@ -29,8 +36,8 @@
             </div>
             <div class="card-body stat-card-body">
               <div class="stat-card-label text-muted">Total Pasien</div>
-              <div class="stat-card-value text-primary">—</div>
-              <small class="text-muted">Data sedang diproses</small>
+              <div class="stat-card-value text-primary">{{ total_pasien }}</div>
+              <small class="text-muted">pasien terdaftar</small>
             </div>
           </div>
         </div>
@@ -43,8 +50,8 @@
             </div>
             <div class="card-body stat-card-body">
               <div class="stat-card-label text-muted">Registrasi Hari Ini</div>
-              <div class="stat-card-value text-success">—</div>
-              <small class="text-muted">Data sedang diproses</small>
+              <div class="stat-card-value text-success">{{ registrasi_hari_ini }}</div>
+              <small class="text-muted">kunjungan hari ini</small>
             </div>
           </div>
         </div>
@@ -57,8 +64,8 @@
             </div>
             <div class="card-body stat-card-body">
               <div class="stat-card-label text-muted">Pendapatan Bulan Ini</div>
-              <div class="stat-card-value text-info">Rp —</div>
-              <small class="text-muted">Data sedang diproses</small>
+              <div class="stat-card-value text-info">{{ pendapatan_bulan_ini|rupiah }}</div>
+              <small class="text-muted">total bulan ini</small>
             </div>
           </div>
         </div>
@@ -71,8 +78,8 @@
             </div>
             <div class="card-body stat-card-body">
               <div class="stat-card-label text-muted">Notifikasi Belum Dibaca</div>
-              <div class="stat-card-value text-warning">—</div>
-              <small class="text-muted">Data sedang diproses</small>
+              <div class="stat-card-value text-warning">{{ notifikasi_belum_dibaca }}</div>
+              <small class="text-muted">notifikasi baru</small>
             </div>
           </div>
         </div>
@@ -96,6 +103,9 @@
                 <a href="/registrasi/" class="btn btn-outline-primary btn-sm">
                   <i class="bi bi-list"></i> Lihat Registrasi
                 </a>
+                <button type="button" class="btn btn-outline-info btn-sm" id="generateNotifBtn" data-bs-toggle="tooltip" title="Generate notifikasi birthday, inactive pasien, dan reminder lainnya">
+                  <i class="bi bi-bell"></i> Perbarui Notifikasi
+                </button>
               </div>
             </div>
           </div>
@@ -105,7 +115,94 @@
       <!-- Info Alert -->
       <div class="alert alert-info" role="alert">
         <i class="bi bi-info-circle"></i>
-        <strong>Info:</strong> Database development masih dalam tahap integrasi. Statistik lengkap akan ditampilkan setelah data production siap.
+        <strong>Info:</strong> Dashboard charts menampilkan analisis real-time dari data registrasi, terapis, dan keuangan.
+      </div>
+
+      <!-- Charts Section -->
+      <div class="row g-3 mb-4">
+        <!-- Monthly Registrations Chart -->
+        <div class="col-12 col-lg-6">
+          <div class="card bg-white">
+            <div class="card-header border-0">
+              <h6 class="card-title mb-0">
+                <i class="bi bi-graph-up"></i> Registrasi per Bulan (12 Bulan Terakhir)
+              </h6>
+            </div>
+            <div class="card-body">
+              <canvas id="registrasiPerBulanChart" height="300"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Daily Registrations Chart -->
+        <div class="col-12 col-lg-6">
+          <div class="card bg-white">
+            <div class="card-header border-0">
+              <h6 class="card-title mb-0">
+                <i class="bi bi-calendar-event"></i> Registrasi per Hari (30 Hari Terakhir)
+              </h6>
+            </div>
+            <div class="card-body">
+              <canvas id="dailyRegistrasiChart" height="300"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Therapists Chart -->
+        <div class="col-12 col-lg-6">
+          <div class="card bg-white">
+            <div class="card-header border-0">
+              <h6 class="card-title mb-0">
+                <i class="bi bi-person-check"></i> Top 8 Terapis (Jumlah Sesi)
+              </h6>
+            </div>
+            <div class="card-body">
+              <canvas id="topTerapisChart" height="300"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Therapy Types Chart -->
+        <div class="col-12 col-lg-6">
+          <div class="card bg-white">
+            <div class="card-header border-0">
+              <h6 class="card-title mb-0">
+                <i class="bi bi-heart-pulse"></i> Jenis Terapi Paling Populer
+              </h6>
+            </div>
+            <div class="card-body">
+              <canvas id="terapiPopulerChart" height="300"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Income vs Expense Chart -->
+        <div class="col-12 col-lg-6">
+          <div class="card bg-white">
+            <div class="card-header border-0">
+              <h6 class="card-title mb-0">
+                <i class="bi bi-wallet2"></i> Pemasukan vs Pengeluaran (Bulan Ini)
+              </h6>
+            </div>
+            <div class="card-body">
+              <canvas id="incomeExpenseChart" height="300"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Patients per Branch Chart -->
+        <div class="col-12 col-lg-6">
+          <div class="card bg-white">
+            <div class="card-header border-0">
+              <h6 class="card-title mb-0">
+                <i class="bi bi-shop"></i> Pasien per Cabang
+              </h6>
+            </div>
+            <div class="card-body">
+              <canvas id="pasienPerCabangChart" height="300"></canvas>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Mobile Menu (xs only) -->
@@ -128,4 +225,284 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const generateBtn = document.getElementById('generateNotifBtn');
+  const csrfForm = document.getElementById('csrfForm');
+  
+  if (generateBtn && csrfForm) {
+    generateBtn.addEventListener('click', function() {
+      generateBtn.disabled = true;
+      generateBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Memproses...';
+      
+      // Get CSRF token from form
+      const csrfToken = csrfForm.querySelector('[name="csrfmiddlewaretoken"]').value;
+      
+      fetch('{% url "generate_notifications" %}', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrfToken,
+          'Content-Type': 'application/json',
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Show success message with details
+          let detailsMsg = '';
+          for (const [type, msg] of Object.entries(data.details)) {
+            detailsMsg += `\n• ${msg}`;
+          }
+          
+          Swal.fire({
+            icon: 'success',
+            title: 'Notifikasi Berhasil Dibuat!',
+            html: `<p style="text-align: left;">Total: <strong>${data.total_created}</strong> notifikasi baru</p><pre style="text-align: left; font-size: 0.85rem;">${detailsMsg}</pre>`,
+            confirmButtonText: 'OK'
+          }).then(() => {
+            // Reload page to see updated notification count
+            location.reload();
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: data.error || 'Gagal membuat notifikasi',
+            confirmButtonText: 'OK'
+          });
+          generateBtn.disabled = false;
+          generateBtn.innerHTML = '<i class="bi bi-bell"></i> Perbarui Notifikasi';
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error!',
+          text: 'Terjadi kesalahan: ' + error.message,
+          confirmButtonText: 'OK'
+        });
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = '<i class="bi bi-bell"></i> Perbarui Notifikasi';
+      });
+    });
+  }
+
+  // Chart.js configurations
+  const primaryColor = '#0d6efd';
+  const successColor = '#198754';
+  const dangerColor = '#dc3545';
+  const warningColor = '#ffc107';
+  const infoColor = '#0dcaf0';
+  const lightColor = '#f8f9fa';
+
+  // 1. Monthly Registrations Chart
+  const registrasiPerBulanCtx = document.getElementById('registrasiPerBulanChart');
+  if (registrasiPerBulanCtx) {
+    new Chart(registrasiPerBulanCtx, {
+      type: 'line',
+      data: {
+        labels: {{ labels_bulan|safe }},
+        datasets: [{
+          label: 'Registrasi',
+          data: {{ registrasi_per_bulan|safe }},
+          borderColor: primaryColor,
+          backgroundColor: 'rgba(13, 110, 253, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: primaryColor,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1 }
+          }
+        }
+      }
+    });
+  }
+
+  // 2. Daily Registrations Chart
+  const dailyRegistrasiCtx = document.getElementById('dailyRegistrasiChart');
+  if (dailyRegistrasiCtx) {
+    new Chart(dailyRegistrasiCtx, {
+      type: 'bar',
+      data: {
+        labels: {{ labels_hari|safe }},
+        datasets: [{
+          label: 'Registrasi Harian',
+          data: {{ daily_registrasi|safe }},
+          backgroundColor: successColor,
+          borderColor: successColor,
+          borderWidth: 1,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1 }
+          }
+        }
+      }
+    });
+  }
+
+  // 3. Top Therapists Chart
+  const topTerapisCtx = document.getElementById('topTerapisChart');
+  if (topTerapisCtx) {
+    new Chart(topTerapisCtx, {
+      type: 'bar',
+      data: {
+        labels: {{ terapis_names|safe }},
+        datasets: [{
+          label: 'Jumlah Sesi',
+          data: {{ terapis_counts|safe }},
+          backgroundColor: [
+            '#0d6efd',
+            '#6c757d',
+            '#198754',
+            '#dc3545',
+            '#ffc107',
+            '#0dcaf0',
+            '#6f42c1',
+            '#d63384'
+          ],
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: { stepSize: 1 }
+          }
+        }
+      }
+    });
+  }
+
+  // 4. Popular Therapy Types Chart
+  const terapiPopulerCtx = document.getElementById('terapiPopulerChart');
+  if (terapiPopulerCtx) {
+    const colors = ['#0d6efd', '#198754', '#dc3545', '#ffc107', '#0dcaf0', '#6f42c1', '#d63384', '#fd7e14'];
+    new Chart(terapiPopulerCtx, {
+      type: 'doughnut',
+      data: {
+        labels: {{ terapi_names|safe }},
+        datasets: [{
+          data: {{ terapi_counts|safe }},
+          backgroundColor: colors.slice(0, {{ terapi_names|safe|length }}),
+          borderColor: '#fff',
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+          }
+        }
+      }
+    });
+  }
+
+  // 5. Income vs Expense Chart
+  const incomeExpenseCtx = document.getElementById('incomeExpenseChart');
+  if (incomeExpenseCtx) {
+    new Chart(incomeExpenseCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Pemasukan', 'Pengeluaran'],
+        datasets: [{
+          label: 'Jumlah (Rp)',
+          data: [{{ pemasukan_bulan }}, {{ pengeluaran_bulan }}],
+          backgroundColor: [successColor, dangerColor],
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+          }
+        }
+      }
+    });
+  }
+
+  // 6. Patients per Branch Chart
+  const pasienPerCabangCtx = document.getElementById('pasienPerCabangChart');
+  if (pasienPerCabangCtx) {
+    const colors = ['#0d6efd', '#198754', '#dc3545', '#ffc107', '#0dcaf0', '#6f42c1'];
+    new Chart(pasienPerCabangCtx, {
+      type: 'pie',
+      data: {
+        labels: {{ cabang_names|safe }},
+        datasets: [{
+          data: {{ cabang_counts|safe }},
+          backgroundColor: colors.slice(0, {{ cabang_names|safe|length }}),
+          borderColor: '#fff',
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+          }
+        }
+      }
+    });
+  }
+});
+</script>
 {% endblock %}

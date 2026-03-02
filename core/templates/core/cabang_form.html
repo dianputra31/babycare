@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Cabang Baru - Babycare{% endblock %}
+{% block title %}{% if object %}Edit Cabang - Babycare{% else %}Cabang Baru - Babycare{% endif %}{% endblock %}
 
 {% block content %}
 {% include 'partials/_navbar.html' %}
@@ -15,9 +15,10 @@
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h3 class="h4 mb-1">
-            <i class="bi bi-building-add"></i> Cabang Baru
+            <i class="bi {% if object %}bi-pencil{% else %}bi-building-add{% endif %}"></i> 
+            {% if object %}Edit Cabang{% else %}Cabang Baru{% endif %}
           </h3>
-          <p class="text-muted small">Tambahkan data cabang</p>
+          <p class="text-muted small">{% if object %}Ubah data cabang{% else %}Tambahkan data cabang{% endif %}</p>
         </div>
       </div>
 
@@ -48,6 +49,19 @@
                   </div>
                 {% endif %}
               </div>
+
+              <!-- Alamat -->
+              <div class="col-md-6">
+                <label for="{{ form.alamat.id_for_label }}" class="form-label">
+                  Alamat
+                </label>
+                {{ form.alamat }}
+                {% if form.alamat.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.alamat.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
             </div>
 
             <!-- Buttons -->
@@ -56,7 +70,7 @@
                 <i class="bi bi-x-lg"></i> Batal
               </a>
               <button type="submit" class="btn btn-primary">
-                <i class="bi bi-check-lg"></i> Simpan
+                <i class="bi bi-check-lg"></i> {% if object %}Perbarui{% else %}Simpan{% endif %}
               </button>
             </div>
           </form>

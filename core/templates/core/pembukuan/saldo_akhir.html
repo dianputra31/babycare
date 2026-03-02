@@ -178,68 +178,7 @@
           <h6 class="mb-0">Perbandingan Pendapatan vs Pengeluaran</h6>
         </div>
         <div class="card-body">
-          <div class="row text-center">
-            <div class="col-md-6">
-              <h6 class="text-muted">Pendapatan</h6>
-              <div style="
-                width: 150px;
-                height: 150px;
-                border-radius: 50%;
-                background: conic-gradient(#28a745 0deg 360deg);
-                margin: 20px auto;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                box-shadow: 0 0 0 8px rgba(40, 167, 69, 0.1);
-              ">
-                <div style="
-                  width: 130px;
-                  height: 130px;
-                  border-radius: 50%;
-                  background: white;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  flex-direction: column;
-                ">
-                  <small class="text-muted">Total</small>
-                  <h6 style="color: #28a745; margin: 0;">
-                    Rp {{ total_pendapatan|stringformat:"d"|floatformat:0 }}
-                  </h6>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <h6 class="text-muted">Pengeluaran</h6>
-              <div style="
-                width: 150px;
-                height: 150px;
-                border-radius: 50%;
-                background: conic-gradient(#dc3545 0deg 360deg);
-                margin: 20px auto;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                box-shadow: 0 0 0 8px rgba(220, 53, 69, 0.1);
-              ">
-                <div style="
-                  width: 130px;
-                  height: 130px;
-                  border-radius: 50%;
-                  background: white;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  flex-direction: column;
-                ">
-                  <small class="text-muted">Total</small>
-                  <h6 style="color: #dc3545; margin: 0;">
-                    Rp {{ total_pengeluaran|stringformat:"d"|floatformat:0 }}
-                  </h6>
-                </div>
-              </div>
-            </div>
-          </div>
+          <canvas id="incomeExpenseChartSaldo" height="300"></canvas>
         </div>
       </div>
     </div>
@@ -261,4 +200,57 @@
     </div>
   </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Income vs Expense Chart
+  const incomeExpenseCtx = document.getElementById('incomeExpenseChartSaldo');
+  if (incomeExpenseCtx) {
+    new Chart(incomeExpenseCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Pendapatan', 'Pengeluaran'],
+        datasets: [{
+          label: 'Jumlah (Rp)',
+          data: [{{ total_pendapatan }}, {{ total_pengeluaran }}],
+          backgroundColor: ['#198754', '#dc3545'],
+          borderColor: ['#198754', '#dc3545'],
+          borderWidth: 1,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        indexAxis: 'x',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const value = context.parsed.y;
+                return 'Rp ' + value.toLocaleString('id-ID');
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return 'Rp ' + value.toLocaleString('id-ID');
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+});
+</script>
 {% endblock %}

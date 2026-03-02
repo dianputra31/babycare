@@ -11,7 +11,7 @@
     {% include 'partials/_sidebar.html' %}
 
     <!-- Main Content -->
-    <div class="col-md-9 col-lg-10 main-content">
+    <div class="col-md-9 col-lg-10 main-content p-4">
       <!-- Header -->
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -25,36 +25,108 @@
         </a>
       </div>
 
-      <!-- Table Card -->
-      <div class="card bg-white">
+      <!-- Filter Card -->
+      <div class="card border-0 shadow-sm mb-4" style="background-color: #f8f9fb;">
         <div class="card-body">
+          <h6 class="mb-3" style="color: #2c3e50; font-weight: 600;">🔍 Filter Data</h6>
+          <form method="GET" class="row g-3">
+            <div class="col-md-2">
+              <label class="form-label" style="font-weight: 500; font-size: 0.9rem;">Tanggal Mulai</label>
+              <input type="date" class="form-control form-control-sm" name="tanggal_dari" value="{{ tanggal_dari }}">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label" style="font-weight: 500; font-size: 0.9rem;">Tanggal Akhir</label>
+              <input type="date" class="form-control form-control-sm" name="tanggal_sampai" value="{{ tanggal_sampai }}">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label" style="font-weight: 500; font-size: 0.9rem;">Nama Pasien</label>
+              <input type="text" class="form-control form-control-sm" name="pasien_query" value="{{ pasien_query }}" placeholder="Cari nama...">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label" style="font-weight: 500; font-size: 0.9rem;">Jenis Terapi</label>
+              <select class="form-select form-select-sm" name="jenis_terapi_id">
+                <option value="">-- Semua --</option>
+                {% for jenis in jenis_terapi_list %}
+                  <option value="{{ jenis.id }}" {% if jenis.id|stringformat:"s" == jenis_terapi_id %}selected{% endif %}>
+                    {{ jenis.nama_terapi }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label" style="font-weight: 500; font-size: 0.9rem;">Nama Terapis</label>
+              <select class="form-select form-select-sm" name="terapis_id">
+                <option value="">-- Semua --</option>
+                {% for terapis in terapis_list %}
+                  <option value="{{ terapis.id }}" {% if terapis.id|stringformat:"s" == terapis_id %}selected{% endif %}>
+                    {{ terapis.nama_terapis }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label" style="font-weight: 500; font-size: 0.9rem;">Kode Registrasi</label>
+              <input type="text" class="form-control form-control-sm" name="kode_registrasi" value="{{ kode_registrasi }}" placeholder="Cari kode...">
+            </div>
+            <div class="col-12 d-flex gap-2">
+              <button type="submit" class="btn btn-primary btn-sm" style="flex: 0 0 auto;">
+                <i class="bi bi-search"></i> Filter
+              </button>
+              <a href="/registrasi/" class="btn btn-secondary btn-sm">
+                <i class="bi bi-arrow-counterclockwise"></i> Reset
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Table Card -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
           {% if registrasis %}
             <div class="table-responsive">
-              <table class="table">
-                <thead>
+              <table class="table table-hover mb-0" style="font-size: 0.85rem;">
+                <thead style="background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%); border-bottom: 2px solid #667eea;">
                   <tr>
-                    <th>Pasien</th>
-                    <th>Jenis Terapi</th>
-                    <th>Terapis</th>
-                    <th>Tanggal</th>
-                    <th>Total Bayar</th>
-                    <th>Aksi</th>
+                    <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none;">📌 Kode</th>
+                    <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none;">👤 Pasien</th>
+                    <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none;">💆 Jenis Terapi</th>
+                    <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none;">👨‍⚕️ Terapis</th>
+                    <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none;">📅 Tanggal</th>
+                    <th class="text-end" style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none;">💰 Total</th>
+                    <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none; width: 80px;">✏️ Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for reg in registrasis %}
-                    <tr>
-                      <td>
-                        <strong>{{ reg.pasien.nama_anak }}</strong>
+                    <tr style="border-bottom: 1px solid #f0f0f0; transition: all 0.2s ease;">
+                      <td style="padding: 0.75rem; color: #667eea; font-weight: 600;">
+                        <small class="badge" style="background-color: #e8f0ff; color: #667eea; font-weight: 600;">{{ reg.kode_registrasi }}</small>
                       </td>
-                      <td>{{ reg.jenis_terapi.nama_terapi }}</td>
-                      <td>{{ reg.terapis.nama_terapis|default:'-' }}</td>
-                      <td>{{ reg.tanggal_kunjungan|date:"d M Y" }}</td>
-                      <td>{{ reg.total_bayar|rupiah }}</td>
-                      <td>
-                        <a href="{% url 'registrasi_edit' reg.pk %}" class="btn btn-xs btn-light btn-sm" title="Edit Registrasi">
-                          <i class="bi bi-pencil"></i>
+                      <td style="padding: 0.75rem; color: #2c3e50;">
+                        <strong style="font-size: 0.95rem;">{{ reg.pasien.nama_anak }}</strong>
+                      </td>
+                      <td style="padding: 0.75rem; color: #555;">
+                        <small>{{ reg.jenis_terapi.nama_terapi }}</small>
+                      </td>
+                      <td style="padding: 0.75rem; color: #555;">
+                        <small>{{ reg.terapis.nama_terapis|default:'-' }}</small>
+                      </td>
+                      <td style="padding: 0.75rem; color: #667eea;">
+                        <small style="font-weight: 500;">{{ reg.tanggal_kunjungan|date:"d M Y" }}</small>
+                      </td>
+                      <td class="text-end" style="padding: 0.75rem; color: #198754; font-weight: 700;">
+                        <small>{{ reg.total_bayar|rupiah }}</small>
+                      </td>
+                      <td style="padding: 0.75rem; display: flex; gap: 0.25rem; align-items: center;">
+                        <a href="{% url 'registrasi_edit' reg.pk %}" class="btn btn-outline-primary" title="Edit Registrasi" style="padding: 0.2rem 0.4rem; font-size: 0.7rem; white-space: nowrap; line-height: 1.2; border-radius: 4px; flex-shrink: 0;">
+                          <i class="bi bi-pencil-fill"></i>
                         </a>
+                        {% if reg.sisa_tagihan > 0 %}
+                        <button type="button" class="btn btn-outline-success btn-payment" data-registrasi-id="{{ reg.pk }}" title="Pembayaran" style="padding: 0.2rem 0.4rem; font-size: 0.7rem; white-space: nowrap; line-height: 1.2; border-radius: 4px; flex-shrink: 0;">
+                          <i class="bi bi-cash-coin"></i>
+                        </button>
+                        {% endif %}
                       </td>
                     </tr>
                   {% endfor %}
@@ -64,29 +136,29 @@
 
             <!-- Pagination -->
             {% if is_paginated %}
-              <nav aria-label="Page navigation" class="mt-4">
-                <ul class="pagination justify-content-center">
+              <nav aria-label="Page navigation" class="p-3">
+                <ul class="pagination pagination-sm justify-content-center mb-0">
                   {% if page_obj.has_previous %}
                     <li class="page-item">
-                      <a class="page-link" href="?page=1">First</a>
+                      <a class="page-link" href="?page=1{% if tanggal_dari %}&tanggal_dari={{ tanggal_dari }}{% endif %}{% if tanggal_sampai %}&tanggal_sampai={{ tanggal_sampai }}{% endif %}{% if pasien_query %}&pasien_query={{ pasien_query }}{% endif %}{% if jenis_terapi_id %}&jenis_terapi_id={{ jenis_terapi_id }}{% endif %}{% if terapis_id %}&terapis_id={{ terapis_id }}{% endif %}{% if kode_registrasi %}&kode_registrasi={{ kode_registrasi }}{% endif %}">First</a>
                     </li>
                     <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if tanggal_dari %}&tanggal_dari={{ tanggal_dari }}{% endif %}{% if tanggal_sampai %}&tanggal_sampai={{ tanggal_sampai }}{% endif %}{% if pasien_query %}&pasien_query={{ pasien_query }}{% endif %}{% if jenis_terapi_id %}&jenis_terapi_id={{ jenis_terapi_id }}{% endif %}{% if terapis_id %}&terapis_id={{ terapis_id }}{% endif %}{% if kode_registrasi %}&kode_registrasi={{ kode_registrasi }}{% endif %}">Previous</a>
                     </li>
                   {% endif %}
 
                   <li class="page-item active">
-                    <span class="page-link">
+                    <span class="page-link" style="font-size: 0.85rem;">
                       Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
                     </span>
                   </li>
 
                   {% if page_obj.has_next %}
                     <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                      <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if tanggal_dari %}&tanggal_dari={{ tanggal_dari }}{% endif %}{% if tanggal_sampai %}&tanggal_sampai={{ tanggal_sampai }}{% endif %}{% if pasien_query %}&pasien_query={{ pasien_query }}{% endif %}{% if jenis_terapi_id %}&jenis_terapi_id={{ jenis_terapi_id }}{% endif %}{% if terapis_id %}&terapis_id={{ terapis_id }}{% endif %}{% if kode_registrasi %}&kode_registrasi={{ kode_registrasi }}{% endif %}">Next</a>
                     </li>
                     <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+                      <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if tanggal_dari %}&tanggal_dari={{ tanggal_dari }}{% endif %}{% if tanggal_sampai %}&tanggal_sampai={{ tanggal_sampai }}{% endif %}{% if pasien_query %}&pasien_query={{ pasien_query }}{% endif %}{% if jenis_terapi_id %}&jenis_terapi_id={{ jenis_terapi_id }}{% endif %}{% if terapis_id %}&terapis_id={{ terapis_id }}{% endif %}{% if kode_registrasi %}&kode_registrasi={{ kode_registrasi }}{% endif %}">Last</a>
                     </li>
                   {% endif %}
                 </ul>
@@ -106,4 +178,310 @@
     </div>
   </div>
 </div>
+
+<style>
+.table tbody tr:hover {
+  background: linear-gradient(90deg, rgba(102, 126, 234, 0.06) 0%, rgba(102, 126, 234, 0.02) 100%);
+  cursor: pointer;
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table tbody td {
+  vertical-align: middle;
+  border: none !important;
+}
+
+.table thead th {
+  border: none !important;
+}
+
+.card {
+  border-radius: 12px;
+  transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.08) !important;
+}
+
+.pagination-sm .page-link {
+  font-size: 0.85rem;
+  padding: 0.4rem 0.6rem;
+}
+</style>
+
+<!-- Pembayaran Modal -->
+<div class="modal fade" id="pembayaranModal" tabindex="-1" aria-labelledby="pembayaranModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="pembayaranModalLabel">
+          <i class="bi bi-cash-coin"></i> Form Pembayaran
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form method="post" action="/pemasukan/new/" id="pembayaranForm" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="next" value="/registrasi/">
+
+          <div class="row g-3">
+            <!-- Tanggal -->
+            <div class="col-md-6">
+              <label class="form-label">Tanggal</label>
+              <input type="date" class="form-control" id="modalTanggal" name="tanggal" value="{{ today }}" required>
+            </div>
+
+            <!-- Registrasi (Hidden) -->
+            <input type="hidden" id="modalRegistrasi" name="registrasi">
+
+            <!-- Metode Pembayaran -->
+            <div class="col-md-6">
+              <label class="form-label">Metode Pembayaran</label>
+              <select class="form-select" id="modalMetode" name="metode_pembayaran" required>
+                <option value="">-- Pilih Metode --</option>
+                <option value="TUNAI">Tunai</option>
+                <option value="TRANSFER">Transfer</option>
+                <option value="QRIS">QRIS</option>
+                <option value="DEBIT">Debit</option>
+                <option value="KREDIT">Kredit</option>
+              </select>
+            </div>
+
+            <!-- Informasi Registrasi (Readonly) -->
+            <div class="col-12">
+              <div class="alert alert-info p-3" style="border-left: 4px solid #667eea;">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <small class="text-muted d-block">Nama Pasien</small>
+                    <strong id="modalPasien" style="color: #2c3e50;">—</strong>
+                  </div>
+                  <div class="col-md-6">
+                    <small class="text-muted d-block">Jenis Terapi</small>
+                    <strong id="modalTerapi" style="color: #2c3e50;">—</strong>
+                  </div>
+                  <div class="col-md-6">
+                    <small class="text-muted d-block">Total Tagihan</small>
+                    <strong id="modalTotalTagihan" style="color: #198754; font-size: 1.1rem;">Rp 0</strong>
+                  </div>
+                  <div class="col-md-6">
+                    <small class="text-muted d-block">Sudah Dibayar</small>
+                    <strong id="modalTotalBayar" style="color: #555; font-size: 1rem;">Rp 0</strong>
+                  </div>
+                  <div class="col-md-6">
+                    <small class="text-muted d-block">Sisa Tagihan</small>
+                    <strong id="modalSisa" style="color: #dc3545; font-size: 1.2rem;">Rp 0</strong>
+                  </div>
+                  <div class="col-md-6" id="rowKembalian" style="display: none;">
+                    <small class="text-muted d-block">Kembalian</small>
+                    <strong id="modalKembalian" style="color: #0d6efd; font-size: 1.1rem;">Rp 0</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Jumlah Tagihan (Hidden) -->
+            <input type="hidden" id="modalJumlah" name="jumlah">
+
+            <!-- Jumlah Bayar -->
+            <div class="col-12">
+              <label class="form-label">Jumlah Bayar <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="modalJumlahBayar" name="jumlah_bayar" placeholder="Masukkan jumlah bayar..." required>
+              <small class="text-muted">Harus sama atau lebih dari sisa tagihan</small>
+            </div>
+
+            <!-- Keterangan -->
+            <div class="col-12">
+              <label class="form-label">Keterangan</label>
+              <textarea class="form-control" id="modalKeterangan" name="keterangan" rows="2" placeholder="Keterangan pembayaran..."></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-lg"></i> Batal
+        </button>
+        <button type="button" class="btn btn-success" id="btnSimpanPembayaran">
+          <i class="bi bi-check-lg"></i> Simpan Pembayaran
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Wait for jQuery to be defined
+(function() {
+  // Retry loading until jQuery is available
+  let retries = 0;
+  const maxRetries = 50;
+  
+  function tryInit() {
+    if (typeof jQuery !== 'undefined' && typeof $ !== 'undefined') {
+      console.log('jQuery found, initializing payment modal...');
+      initPaymentModal();
+    } else {
+      retries++;
+      if (retries < maxRetries) {
+        console.log('Waiting for jQuery... retry', retries);
+        setTimeout(tryInit, 100);
+      } else {
+        console.error('jQuery failed to load after', maxRetries, 'attempts');
+      }
+    }
+  }
+
+  function initPaymentModal() {
+    let registrasiData = null;
+    
+    // Format currency
+    function formatNumber(value) {
+      if (!value) return '';
+      let num = value.toString().replace(/\D/g, '');
+      if (!num) return '';
+      return num.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+
+    function unformatNumber(value) {
+      if (!value) return '';
+      return value.toString().replace(/\./g, '');
+    }
+
+    function formatRupiah(value) {
+      if (!value) return 'Rp 0';
+      return 'Rp ' + formatNumber(value);
+    }
+
+    // Handle Bayar button click
+    $(document).on('click', '.btn-payment', function(e) {
+      e.preventDefault();
+      console.log('Bayar button clicked!');
+      
+      const registrasiId = $(this).data('registrasi-id');
+      console.log('Registrasi ID:', registrasiId);
+      
+      // Fetch registrasi details
+      $.ajax({
+        url: `/ajax/registrasi/${registrasiId}/detail/`,
+        method: 'GET',
+        success: function(response) {
+          console.log('AJAX success:', response);
+          if (response.success) {
+            registrasiData = response.registrasi;
+            
+            // Fill modal fields
+            $('#modalRegistrasi').val(registrasiId);
+            $('#modalTanggal').val(new Date().toISOString().split('T')[0]);
+            $('#modalMetode').val('');
+            $('#modalJumlahBayar').val('');
+            $('#modalKeterangan').val('');
+            
+            // Fill info
+            $('#modalPasien').text(registrasiData.pasien);
+            $('#modalTerapi').text(registrasiData.jenis_terapi);
+            $('#modalTotalTagihan').text(formatRupiah(registrasiData.total_bayar));
+            $('#modalTotalBayar').text(formatRupiah(registrasiData.total_paid));
+            $('#modalSisa').text(formatRupiah(registrasiData.sisa));
+            
+            // Set jumlah (sisa) to hidden field
+            $('#modalJumlah').val(Math.round(registrasiData.sisa));
+            
+            console.log('Showing modal...');
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('pembayaranModal'));
+            modal.show();
+          }
+        },
+        error: function(xhr, status, error) {
+          console.error('AJAX error:', error, status);
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: 'Tidak dapat mengambil detail registrasi. Error: ' + error,
+            confirmButtonColor: '#667eea'
+          });
+        }
+      });
+    });
+
+    // Format jumlah bayar input
+    $(document).on('input', '#modalJumlahBayar', function() {
+      let cursorPos = this.selectionStart;
+      let oldValue = this.value;
+      let oldLength = oldValue.length;
+      
+      let unformatted = unformatNumber(this.value);
+      let formatted = formatNumber(unformatted);
+      
+      this.value = formatted;
+      
+      let newLength = this.value.length;
+      let diff = newLength - oldLength;
+      this.setSelectionRange(cursorPos + diff, cursorPos + diff);
+      
+      // Calculate kembalian
+      if (registrasiData) {
+        const jumlahTagihan = Math.round(registrasiData.sisa);
+        const jumlahBayar = parseInt(unformatted || 0);
+        
+        if (jumlahBayar > jumlahTagihan) {
+          const kembalian = jumlahBayar - jumlahTagihan;
+          $('#modalKembalian').text(formatRupiah(kembalian));
+          $('#rowKembalian').show();
+        } else {
+          $('#rowKembalian').hide();
+        }
+      }
+    });
+
+    // Handle simpan pembayaran
+    $(document).on('click', '#btnSimpanPembayaran', function() {
+      console.log('Simpan button clicked');
+      const form = document.getElementById('pembayaranForm');
+      
+      // Validate
+      if (!$('#modalTanggal').val()) {
+        Swal.fire({icon: 'warning', title: 'Tanggal kosong', confirmButtonColor: '#667eea'});
+        return;
+      }
+      if (!$('#modalMetode').val()) {
+        Swal.fire({icon: 'warning', title: 'Metode pembayaran belum dipilih', confirmButtonColor: '#667eea'});
+        return;
+      }
+      if (!$('#modalJumlahBayar').val()) {
+        Swal.fire({icon: 'warning', title: 'Jumlah bayar kosong', confirmButtonColor: '#667eea'});
+        return;
+      }
+
+      const jumlahBayarRaw = parseInt(unformatNumber($('#modalJumlahBayar').val()) || 0);
+      const jumlahTagihan = registrasiData ? Math.round(registrasiData.sisa) : 0;
+
+      if (jumlahBayarRaw < jumlahTagihan) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Jumlah Tidak Cukup',
+          html: `Jumlah bayar <strong>${formatRupiah(jumlahBayarRaw)}</strong> kurang dari sisa tagihan <strong>${formatRupiah(jumlahTagihan)}</strong>!`,
+          confirmButtonColor: '#667eea'
+        });
+        return;
+      }
+
+      // Unformat currency before submit
+      $('#modalJumlahBayar').val(jumlahBayarRaw);
+
+      // Submit form
+      console.log('Submitting form...');
+      form.submit();
+    });
+
+    console.log('✓ Payment modal initialized successfully');
+  }
+
+  tryInit();
+})();
+</script>
 {% endblock %}

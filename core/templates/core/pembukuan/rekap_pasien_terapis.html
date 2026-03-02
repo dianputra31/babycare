@@ -45,35 +45,35 @@
 
   <!-- Tabel Rekap -->
   <div class="card border-0 shadow-sm">
-    <div class="card-header bg-white border-bottom">
-      <h6 class="mb-0">Daftar Terapis & Jumlah Pasien</h6>
+    <div class="card-header bg-white border-bottom" style="border-bottom: 2px solid #e9ecef !important;">
+      <h6 class="mb-0" style="color: #2c3e50; font-weight: 600;">👥 Daftar Terapis & Jumlah Pasien</h6>
     </div>
-    <div class="card-body">
+    <div class="card-body p-0">
       {% if terapis_list %}
       <div class="table-responsive">
-        <table class="table table-hover mb-0">
-          <thead class="table-light">
+        <table class="table table-hover mb-0" style="font-size: 0.9rem;">
+          <thead style="background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%); border-bottom: 2px solid #667eea;">
             <tr>
-              <th>No</th>
-              <th>Nama Terapis</th>
-              <th>Spesialisasi</th>
-              <th class="text-center">Jumlah Pasien</th>
+              <th style="padding: 1rem; color: #2c3e50; font-weight: 700; border: none;">No</th>
+              <th style="padding: 1rem; color: #2c3e50; font-weight: 700; border: none;">Nama Terapis</th>
+              <th style="padding: 1rem; color: #2c3e50; font-weight: 700; border: none;">Cabang</th>
+              <th class="text-center" style="padding: 1rem; color: #2c3e50; font-weight: 700; border: none;">Jumlah Pasien</th>
             </tr>
           </thead>
           <tbody>
             {% for terapis in terapis_list %}
-            <tr>
-              <td><strong>{{ forloop.counter }}</strong></td>
-              <td>{{ terapis.nama }}</td>
-              <td>
-                {% if terapis.spesialisasi %}
-                  {{ terapis.spesialisasi }}
+            <tr style="border-bottom: 1px solid #f0f0f0;">
+              <td style="padding: 1rem; color: #2c3e50; font-weight: 600;">{{ forloop.counter }}</td>
+              <td style="padding: 1rem; color: #2c3e50; font-weight: 500;">{{ terapis.nama_terapis }}</td>
+              <td style="padding: 1rem;">
+                {% if terapis.cabang %}
+                  <small style="color: #667eea; font-weight: 500;">{{ terapis.cabang.nama_cabang }}</small>
                 {% else %}
-                  <span class="text-muted">-</span>
+                  <span style="color: #7f8c8d;">-</span>
                 {% endif %}
               </td>
-              <td class="text-center">
-                <span class="badge bg-primary">{{ terapis.jumlah_pasien }}</span>
+              <td class="text-center" style="padding: 1rem;">
+                <span class="badge bg-primary" style="font-weight: 600; font-size: 0.95rem;">{{ terapis.jumlah_pasien }}</span>
               </td>
             </tr>
             {% endfor %}
@@ -88,20 +88,94 @@
     </div>
   </div>
 
+  <!-- Charts Section -->
+  {% if terapis_list %}
+  <div class="row mt-4 mb-4">
+    <div class="col-lg-6 mb-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom" style="border-bottom: 2px solid #e9ecef !important;">
+          <h6 class="mb-0" style="color: #2c3e50; font-weight: 600;">🥧 Distribusi Pasien per Terapis</h6>
+        </div>
+        <div class="card-body" style="position: relative; height: 350px;">
+          <canvas id="pieChart"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-6 mb-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom" style="border-bottom: 2px solid #e9ecef !important;">
+          <h6 class="mb-0" style="color: #2c3e50; font-weight: 600;">📊 Jumlah Pasien per Terapis</h6>
+        </div>
+        <div class="card-body" style="position: relative; height: 350px;">
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Therapists Chart -->
+  <div class="row mb-4">
+    <div class="col-lg-8 mb-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom" style="border-bottom: 2px solid #e9ecef !important;">
+          <h6 class="mb-0" style="color: #2c3e50; font-weight: 600;">⭐ Top Terapis by Pasien Count</h6>
+        </div>
+        <div class="card-body" style="position: relative; height: 300px;">
+          <canvas id="horizontalBarChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 mb-4">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom" style="border-bottom: 2px solid #e9ecef !important;">
+          <h6 class="mb-0" style="color: #2c3e50; font-weight: 600;">📈 Statistik Lainnya</h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label style="color: #667eea; font-weight: 600; font-size: 0.9rem;">Rata-rata Pasien per Terapis</label>
+            <p style="font-size: 1.5rem; font-weight: 700; color: #2c3e50; margin: 0;">
+              {% widthratio total_registrasi total_terapis 1 %}
+            </p>
+          </div>
+          <hr style="border: none; border-top: 1px solid #e9ecef;">
+          <div class="mb-3">
+            <label style="color: #667eea; font-weight: 600; font-size: 0.9rem;">Terapis dengan Pasien Terbanyak</label>
+            <p style="font-size: 1.1rem; font-weight: 600; color: #2c3e50; margin: 0;">
+              {% if terapis_list %}
+                <span>{{ terapis_list.0.nama_terapis }}</span><br>
+                <small style="color: #667eea; font-weight: 500;">{{ terapis_list.0.jumlah_pasien }} pasien</small>
+              {% endif %}
+            </p>
+          </div>
+          <hr style="border: none; border-top: 1px solid #e9ecef;">
+          <div>
+            <label style="color: #667eea; font-weight: 600; font-size: 0.9rem;">Terapis Aktif</label>
+            <p style="font-size: 1.5rem; font-weight: 700; color: #2c3e50; margin: 0;">
+              {{ total_terapis }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Summary per Terapis -->
   {% if terapis_list %}
   <div class="row mt-4">
     <div class="col-12">
-      <h5 class="mb-3">Visualisasi Data</h5>
+      <h5 class="mb-3">Visualisasi Data (Progress per Terapis)</h5>
       <div class="row">
         {% for terapis in terapis_list %}
         <div class="col-md-6 col-lg-4 mb-3">
           <div class="card border-0 shadow-sm">
             <div class="card-body">
-              <h6 class="card-title text-truncate">{{ terapis.nama }}</h6>
+              <h6 class="card-title text-truncate">{{ terapis.nama_terapis }}</h6>
               <p class="card-text text-muted small mb-3">
-                {% if terapis.spesialisasi %}
-                  {{ terapis.spesialisasi }}
+                {% if terapis.cabang %}
+                  {{ terapis.cabang.nama_cabang }}
                 {% else %}
                   Umum
                 {% endif %}
@@ -124,13 +198,227 @@
 </div>
 
 <style>
+.table tbody td {
+  vertical-align: middle;
+  border: none !important;
+}
+
 .table-hover tbody tr:hover {
-  background-color: rgba(102, 126, 234, 0.05);
+  background: linear-gradient(90deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.05) 100%);
   cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.badge {
+  padding: 0.5rem 0.75rem;
+  border-radius: 5px;
+}
+
+h2 {
+  color: #2c3e50;
+  font-weight: 700;
+}
+
+.card {
+  border-radius: 8px;
+  transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1) !important;
 }
 </style>
-      </div>
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script>
+// Wait for Chart.js to load and DOM to be ready
+document.addEventListener('DOMContentLoaded', function() {
+  // Pie Chart - Distribution of patients by therapist
+  {% if terapis_list %}
+  (function() {
+    const terapisNames = [{% for terapis in terapis_list %}'{{ terapis.nama_terapis }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+    const patientCounts = [{% for terapis in terapis_list %}{{ terapis.jumlah_pasien }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    
+    const colors = [
+      '#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe', 
+      '#43e97b', '#38f9d7', '#fa709a', '#fee140', '#ec4176',
+      '#845ef7', '#d0a2f7', '#a29bfe', '#0984e3', '#6c5ce7'
+    ];
+    
+    const ctx = document.getElementById('pieChart');
+    if (ctx && typeof Chart !== 'undefined') {
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: terapisNames,
+          datasets: [{
+            data: patientCounts,
+            backgroundColor: colors.slice(0, terapisNames.length),
+            borderColor: '#fff',
+            borderWidth: 2,
+            borderRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                font: { size: 12, weight: '500' },
+                padding: 15,
+                color: '#2c3e50'
+              }
+            }
+          }
+        }
+      });
+    }
+  })();
+
+  // Bar Chart - Number of patients per therapist
+  (function() {
+    const terapisNames = [{% for terapis in terapis_list %}'{{ terapis.nama_terapis }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+    const patientCounts = [{% for terapis in terapis_list %}{{ terapis.jumlah_pasien }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    
+    const ctx = document.getElementById('barChart');
+    if (ctx && typeof Chart !== 'undefined') {
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: terapisNames,
+          datasets: [{
+            label: 'Jumlah Pasien',
+            data: patientCounts,
+            backgroundColor: 'rgba(102, 126, 234, 0.8)',
+            borderColor: 'rgba(102, 126, 234, 1)',
+            borderWidth: 2,
+            borderRadius: 5,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              labels: {
+                font: { size: 12, weight: '500' },
+                color: '#2c3e50'
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              ticks: {
+                stepSize: 1,
+                color: '#2c3e50'
+              },
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)'
+              }
+            },
+            y: {
+              ticks: {
+                color: '#2c3e50',
+                font: { weight: '500' }
+              },
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      });
+    }
+  })();
+
+  // Horizontal Bar Chart - Top Therapists
+  (function() {
+    const terapisNames = [{% for terapis in terapis_list %}'{{ terapis.nama_terapis }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+    const patientCounts = [{% for terapis in terapis_list %}{{ terapis.jumlah_pasien }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    
+    const ctx = document.getElementById('horizontalBarChart');
+    if (ctx && typeof Chart !== 'undefined') {
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: terapisNames,
+          datasets: [{
+            label: 'Jumlah Pasien',
+            data: patientCounts,
+            backgroundColor: [
+              'rgba(255, 159, 64, 0.8)',
+              'rgba(54, 162, 235, 0.8)',
+              'rgba(255, 99, 132, 0.8)',
+              'rgba(75, 192, 192, 0.8)',
+              'rgba(153, 102, 255, 0.8)',
+              'rgba(255, 206, 86, 0.8)',
+              'rgba(102, 126, 234, 0.8)',
+              'rgba(118, 75, 162, 0.8)'
+            ],
+            borderColor: [
+              'rgba(255, 159, 64, 1)',
+              'rgba(54, 162, 235, 1)',
+              'rgba(255, 99, 132, 1)',
+              'rgba(75, 192, 192, 1)',
+              'rgba(153, 102, 255, 1)',
+              'rgba(255, 206, 86, 1)',
+              'rgba(102, 126, 234, 1)',
+              'rgba(118, 75, 162, 1)'
+            ],
+            borderWidth: 2,
+            borderRadius: 5,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          plugins: {
+            legend: {
+              labels: {
+                font: { size: 12, weight: '500' },
+                color: '#2c3e50'
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              ticks: {
+                stepSize: 1,
+                color: '#2c3e50'
+              },
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)'
+              }
+            },
+            y: {
+              ticks: {
+                color: '#2c3e50',
+                font: { weight: '500', size: 11 }
+              },
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      });
+    }
+  })();
+  {% endif %}
+});
+</script>
 {% endblock %}

@@ -182,6 +182,7 @@ class Registrasi(models.Model):
     created_at = models.DateTimeField(db_column='created_at', auto_now_add=True)
     updated_at = models.DateTimeField(db_column='updated_at', auto_now=True)
     is_deleted = models.BooleanField(db_column='is_deleted', default=False)
+    is_transport = models.BooleanField(db_column='is_transport', default=True)
 
     class Meta:
         db_table = 'registrasi'
@@ -261,6 +262,14 @@ class AppSettings(models.Model):
     id = models.AutoField(primary_key=True)
     font_size = models.IntegerField(default=14, help_text='Font size in pixels (default: 14)')
     logo = models.ImageField(upload_to='logos/', null=True, blank=True, help_text='Upload logo image')
+    
+    # Notification settings
+    birthday_notif_days_before = models.IntegerField(default=1, help_text='Hari sebelum ulang tahun untuk notifikasi (1=H-1, 2=H-2)')
+    inactive_threshold_days = models.IntegerField(default=30, help_text='Hari inaktif untuk notifikasi pasien (default: 30 hari)')
+    enable_birthday_notif = models.BooleanField(default=True, help_text='Aktifkan notifikasi ulang tahun')
+    enable_inactive_notif = models.BooleanField(default=True, help_text='Aktifkan notifikasi pasien tidak aktif')
+    enable_followup_notif = models.BooleanField(default=True, help_text='Aktifkan notifikasi follow-up registrasi')
+    
     updated_at = models.DateTimeField(auto_now=True)
     updated_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='settings_updated')
 

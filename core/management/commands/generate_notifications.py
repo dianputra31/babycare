@@ -2,15 +2,16 @@
 Django management command to automatically generate notifications.
 
 Generates notifications for:
-1. Birthday reminders (when patient's birth date matches today's day/month)
-2. Upcoming therapy (7 days before tanggal_kunjungan)
-3. Tomorrow's therapy (1 day before tanggal_kunjungan)
-4. Today's therapy schedule
-5. 30-day inactive patients
+1. Birthday reminders (configurable H-1, H-2, etc)
+2. Inactive patients (configurable 1, 3, 6, 12 months)
+3. Follow-up for recent registrations
+4. High-potential customers
+5. Appointment reminders
 
 Usage:
     python manage.py generate_notifications
-    python manage.py generate_notifications --dry-run
+    python manage.py generate_notifications --type birthday
+    python manage.py generate_notifications --all
     
 Schedule this command to run daily at midnight using:
 - Windows Task Scheduler
@@ -19,74 +20,96 @@ Schedule this command to run daily at midnight using:
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from datetime import timedelta
-from core.models import Pasien, Registrasi, Notifikasi
+from core.services.notification_service import (
+    generate_all_notifications,
+    create_birthday_notifications,
+    create_inactive_patient_notifications,
+    create_followup_notifications,
+    create_high_potential_notifications,
+    create_scheduled_appointment_reminders,
+)
 
 
 class Command(BaseCommand):
-    help = 'Generate automatic notifications for birthdays, therapy reminders, and inactive patients'
+    help = 'Generate automatic notifications for birthdays, inactive patients, and more'
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--dry-run',
+            '--type',
+            type=str,
+            choices=['birthday', 'inactive', 'followup', 'high_potential', 'appointment_reminder', 'all'],
+            default='all',
+            help='Type of notification to generate',
+        )
+        parser.add_argument(
+            '--all',
             action='store_true',
-            help='Preview notifications without creating them',
+            help='Generate all types of notifications',
         )
 
     def handle(self, *args, **options):
-        dry_run = options['dry_run']
         today = timezone.now().date()
-        
-        # Counters
-        birthday_count = 0
-        today_therapy_count = 0
-        upcoming_therapy_count = 0
-        tomorrow_therapy_count = 0
-        inactive_count = 0
+        notif_type = options['type'] if not options['all'] else 'all'
         
         self.stdout.write(self.style.SUCCESS(f'\n=== Generate Notifications ({today}) ===\n'))
+        
+        try:
+            if notif_type == 'all':
+                result = generate_all_notifications()
+                self.display_results(result)
+            elif notif_type == 'birthday':
+                result = create_birthday_notifications()
+                self.stdout.write(f"Birthday Notifications: {result['message']}")
+            elif notif_type == 'inactive':
+                result = create_inactive_patient_notifications()
+                self.stdout.write(f"Inactive Patient Notifications: {result['message']}")
+            elif notif_type == 'followup':
+                result = create_followup_notifications()
+                self.stdout.write(f"Follow-up Notifications: {result['message']}")
+            elif notif_type == 'high_potential':
+                result = create_high_potential_notifications()
+                self.stdout.write(f"High-Potential Customer Notifications: {result['message']}")
+            elif notif_type == 'appointment_reminder':
+                result = create_scheduled_appointment_reminders()
+                self.stdout.write(f"Appointment Reminder Notifications: {result['message']}")
+            
+            self.stdout.write(self.style.SUCCESS('\n✓ Notification generation completed!\n'))
+            
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f'\n✗ Error generating notifications: {str(e)}\n'))
+            raise
+
+    def display_results(self, result):
+        """Display results in a formatted table"""
+        self.stdout.write(
+            self.style.SUCCESS(f"\nTotal notifications created: {result['total_created']}\n")
+        )
+        
+        for notif_type, data in result['details'].items():
+            self.stdout.write(
+                f"  • {notif_type.upper()}: {data['created']} created - {data['message']}"
+            )
+        
+        self.stdout.write(f"\nTimestamp: {result['timestamp']}\n")
         
         if dry_run:
             self.stdout.write(self.style.WARNING('DRY RUN MODE - No notifications will be created\n'))
         
         # ========================================
-        # 1. BIRTHDAY NOTIFICATIONS
+        # 1. BIRTHDAY, INACTIVE, PENDING PAYMENT NOTIFICATIONS
         # ========================================
-        self.stdout.write('Checking birthday notifications...')
-        
-        pasien_list = Pasien.objects.filter(
-            is_deleted=False,
-            tanggal_lahir__isnull=False
-        )
-        
-        for pasien in pasien_list:
-            # Check if birthday matches today (day and month only)
-            if pasien.tanggal_lahir.day == today.day and pasien.tanggal_lahir.month == today.month:
-                # Calculate age
-                age = today.year - pasien.tanggal_lahir.year
-                
-                # Check if notification already exists
-                exists = Notifikasi.objects.filter(
-                    pasien=pasien,
-                    jenis_notifikasi='Ulang Tahun',
-                    tanggal_notifikasi=today
-                ).exists()
-                
-                if not exists:
-                    pesan = f'🎂 Hari ini ulang tahun {pasien.nama_anak} yang ke-{age}! Jangan lupa ucapkan selamat.'
-                    
-                    if not dry_run:
-                        Notifikasi.objects.create(
-                            pasien=pasien,
-                            jenis_notifikasi='Ulang Tahun',
-                            pesan=pesan,
-                            tanggal_notifikasi=today,
-                            sudah_dibaca=False
-                        )
-                    
-                    birthday_count += 1
-                    self.stdout.write(self.style.SUCCESS(f'  ✓ Birthday: {pasien.nama_anak} ({age} tahun)'))
-        
+        self.stdout.write('Generating birthday, inactive, and pending payment notifications...')
+        if not dry_run:
+            notif_results = NotificationService.generate_all_notifications()
+            birthday_count = notif_results['birthday']['count']
+            inactive_count = notif_results['inactive']['count']
+            pending_payment_count = notif_results['pending_payment']['count']
+            self.stdout.write(self.style.SUCCESS(f"✓ {notif_results['birthday']['message']}"))
+            self.stdout.write(self.style.SUCCESS(f"✓ {notif_results['inactive']['message']}"))
+            self.stdout.write(self.style.SUCCESS(f"✓ {notif_results['pending_payment']['message']}"))
+        else:
+            self.stdout.write(self.style.WARNING('DRY RUN: No notifications created for birthday, inactive, or pending payment'))
+
         # ========================================
         # 2. TODAY'S THERAPY SCHEDULE
         # ========================================
@@ -292,15 +315,16 @@ class Command(BaseCommand):
         # ========================================
         # SUMMARY
         # ========================================
-        total = birthday_count + today_therapy_count + upcoming_therapy_count + tomorrow_therapy_count + inactive_count
+        total = birthday_count + today_therapy_count + upcoming_therapy_count + tomorrow_therapy_count + inactive_count + pending_payment_count
         
         self.stdout.write('\n' + '='*50)
         self.stdout.write(self.style.SUCCESS(f'\n✅ SUMMARY:'))
         self.stdout.write(f'  🎂 Birthday notifications: {birthday_count}')
+        self.stdout.write(f'  ⚠️ Inactive: {inactive_count}')
+        self.stdout.write(f'  💸 Pending payment: {pending_payment_count}')
         self.stdout.write(f'  📋 Today\'s therapy: {today_therapy_count}')
         self.stdout.write(f'  📅 7-day reminders: {upcoming_therapy_count}')
         self.stdout.write(f'  ⏰ Tomorrow therapy: {tomorrow_therapy_count}')
-        self.stdout.write(f'  ⚠️  30-day inactive: {inactive_count}')
         self.stdout.write(f'  📊 TOTAL: {total} notifications')
         
         if dry_run:
@@ -309,3 +333,8 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS('\n✅ Notifications created successfully!'))
         
         self.stdout.write('\n' + '='*50 + '\n')
+
+        # Manual trigger button logic (for web UI):
+        # You can expose a view that calls NotificationService.generate_all_notifications() when user clicks a button
+        # Example: /notifikasi/generate/ (POST request)
+        # See notification_service.py for details

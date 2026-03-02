@@ -88,19 +88,6 @@
                 {% endif %}
               </div>
 
-              <!-- Cabang -->
-              <div class="col-md-6">
-                <label for="{{ form.cabang.id_for_label }}" class="form-label">
-                  Cabang
-                </label>
-                {{ form.cabang }}
-                {% if form.cabang.errors %}
-                  <div class="invalid-feedback d-block">
-                    {{ form.cabang.errors.0 }}
-                  </div>
-                {% endif %}
-              </div>
-
               <!-- Keterangan -->
               <div class="col-12">
                 <label for="{{ form.keterangan.id_for_label }}" class="form-label">
@@ -372,7 +359,7 @@ $(document).ready(function() {
     const registrasiText = $('#id_registrasi option:selected').text();
     const jumlahRaw = unformatNumber($('#id_jumlah').val());
     const metode = $('#id_metode_pembayaran').val() || '-';
-    const cabangText = $('#id_cabang option:selected').text() || '-';
+    const cabangText = registrasiData?.cabang_name || '-';  // Get from registrasi data, not dropdown
     const keterangan = $('#id_keterangan').val() || '-';
     
     // Fill preview modal

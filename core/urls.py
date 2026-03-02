@@ -25,12 +25,19 @@ urlpatterns = [
     # Master Data
     path('cabang/', views.CabangListView.as_view(), name='cabang_list'),
     path('cabang/new/', views.CabangCreateView.as_view(), name='cabang_create'),
+    path('cabang/<int:pk>/edit/', views.CabangUpdateView.as_view(), name='cabang_edit'),
+    path('cabang/<int:pk>/delete/', views.CabangDeleteView.as_view(), name='cabang_delete'),
     path('pasien/', views.PasienListView.as_view(), name='pasien_list'),
     path('pasien/new/', views.PasienCreateView.as_view(), name='pasien_create'),
+    path('pasien/<int:pk>/edit/', views.PasienEditView.as_view(), name='pasien_edit'),
     path('terapis/', views.TerapisListView.as_view(), name='terapis_list'),
     path('terapis/new/', views.TerapisCreateView.as_view(), name='terapis_create'),
+    path('terapis/<int:pk>/edit/', views.TerapisUpdateView.as_view(), name='terapis_edit'),
+    path('terapis/<int:pk>/delete/', views.TerapisDeleteView.as_view(), name='terapis_delete'),
     path('jenis-terapi/', views.JenisTerapiListView.as_view(), name='jenis_terapi_list'),
     path('jenis-terapi/new/', views.JenisTerapiCreateView.as_view(), name='jenis_terapi_create'),
+    path('jenis-terapi/<int:pk>/edit/', views.JenisTerapiUpdateView.as_view(), name='jenis_terapi_edit'),
+    path('jenis-terapi/<int:pk>/delete/', views.JenisTerapiDeleteView.as_view(), name='jenis_terapi_delete'),
     # User Management
     path('user/', views.UserListView.as_view(), name='user_list'),
     path('user/new/', views.UserCreateView.as_view(), name='user_create'),
@@ -51,4 +58,6 @@ urlpatterns = [
     path('pembukuan/saldo-akhir/', views.SaldoAkhirView.as_view(), name='saldo_akhir'),
     # Pengaturan (Settings)
     path('pengaturan/', views.AppSettingsView.as_view(), name='app_settings'),
+    # Notification Generation
+    path('notifikasi/generate/', views.GenerateNotificationsView.as_view(), name='generate_notifications'),
 ]
