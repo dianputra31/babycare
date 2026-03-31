@@ -20,9 +20,66 @@
           </h3>
           <p class="text-muted small">Daftar semua pemasukan dana</p>
         </div>
-        <a href="/pemasukan/new/" class="btn btn-primary btn-sm">
-          <i class="bi bi-plus-lg"></i> Input Pemasukan
-        </a>
+        <div class="d-flex gap-2 flex-wrap justify-content-end">
+          {% with request.GET.urlencode as current_query %}
+          <a href="?{% if current_query %}{{ current_query }}&{% endif %}export=excel" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel"></i> Export Excel
+          </a>
+          <a href="?{% if current_query %}{{ current_query }}&{% endif %}export=pdf" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-file-earmark-pdf"></i> Export PDF
+          </a>
+          {% endwith %}
+          <a href="/pemasukan/new/" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg"></i> Input Pemasukan
+          </a>
+        </div>
+      </div>
+
+      <div class="card bg-white mb-4">
+        <div class="card-body">
+          <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-2">
+              <label class="form-label">Dari Tanggal</label>
+              <input type="date" class="form-control form-control-sm" name="tanggal_dari" value="{{ tanggal_dari }}">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Sampai Tanggal</label>
+              <input type="date" class="form-control form-control-sm" name="tanggal_sampai" value="{{ tanggal_sampai }}">
+            </div>
+            {% if not request.cabang_id %}
+            <div class="col-md-2">
+              <label class="form-label">Cabang</label>
+              <select class="form-select form-select-sm" name="cabang_id">
+                <option value="">Semua Cabang</option>
+                {% for cabang in cabang_list %}
+                <option value="{{ cabang.id }}" {% if cabang_id == cabang.id|stringformat:'s' %}selected{% endif %}>{{ cabang.nama_cabang }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            {% endif %}
+            <div class="col-md-2">
+              <label class="form-label">Metode</label>
+              <select class="form-select form-select-sm" name="metode_pembayaran">
+                <option value="">Semua Metode</option>
+                {% for value, label in metode_choices %}
+                <option value="{{ value }}" {% if metode_pembayaran == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Cari</label>
+              <input type="text" class="form-control form-control-sm" name="keyword" value="{{ keyword }}" placeholder="Pasien, kode registrasi, atau keterangan...">
+            </div>
+            <div class="col-12 d-flex gap-2">
+              <button type="submit" class="btn btn-primary btn-sm">
+                <i class="bi bi-funnel"></i> Filter
+              </button>
+              <a href="/pemasukan/" class="btn btn-secondary btn-sm">
+                <i class="bi bi-arrow-counterclockwise"></i> Reset
+              </a>
+            </div>
+          </form>
+        </div>
       </div>
 
       <!-- Table Card -->
@@ -89,42 +146,19 @@
               </table>
             </div>
 
-            <!-- Pagination -->
-            {% if is_paginated %}
-              <nav aria-label="Page navigation" class="mt-4">
-                <ul class="pagination justify-content-center">
-                  {% if page_obj.has_previous %}
-                    <li class="page-item">
-                      <a class="page-link" href="?page=1">First</a>
-                    </li>
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
-                    </li>
-                  {% endif %}
-
-                  <li class="page-item active">
-                    <span class="page-link">
-                      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                    </span>
-                  </li>
-
-                  {% if page_obj.has_next %}
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
-                    </li>
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
-                    </li>
-                  {% endif %}
-                </ul>
-              </nav>
-            {% endif %}
+            {% render_pagination page_obj %}
           {% else %}
-            <div class="text-center py-5">
-              <i class="bi bi-inbox" style="font-size: 48px; color: #D1D5DB;"></i>
-              <p class="text-muted mt-3">Belum ada data pemasukan</p>
-              <a href="/pemasukan/new/" class="btn btn-primary btn-sm">
-                <i class="bi bi-plus-lg"></i> Input Pemasukan Pertama
+            <div class="empty-state">
+              <div class="empty-state-icon">
+                <i class="bi bi-wallet2"></i>
+              </div>
+              <h3 class="empty-state-title">Belum Ada Data Pemasukan</h3>
+              <p class="empty-state-description">
+                Catat semua pemasukan untuk memantau kesehatan keuangan bisnis Anda.
+              </p>
+              <a href="/pemasukan/new/" class="empty-state-action">
+                <i class="bi bi-cash-coin"></i>
+                <span>Catat Pemasukan Pertama</span>
               </a>
             </div>
           {% endif %}
@@ -156,12 +190,16 @@
               <td class="fw-bold" id="detailPasien">-</td>
             </tr>
             <tr>
-              <td class="text-muted">Jenis Terapi</td>
-              <td id="detailTerapi">-</td>
-            </tr>
-            <tr>
               <td class="text-muted">Terapis</td>
               <td id="detailTerapis">-</td>
+            </tr>
+            <tr>
+              <td class="text-muted" style="vertical-align: top;">Detail Terapi</td>
+              <td>
+                <div id="detailTerapiList" style="font-size: 0.9rem;">
+                  <!-- Will be filled dynamically -->
+                </div>
+              </td>
             </tr>
             <tr>
               <td class="text-muted">Jumlah Tagihan</td>
@@ -216,70 +254,136 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body" id="printArea">
-        <div class="text-center mb-3 pb-3 border-bottom">
-          <h4 class="mb-1"><strong>BABYCARE</strong></h4>
-          <p class="mb-0 small">Klinik Terapi Anak</p>
+        <!-- Header with Logo -->
+        <div class="text-center mb-4 pb-3 border-bottom">
+          {% if app_settings.logo %}
+          <img src="{{ app_settings.logo.url }}" alt="Logo" style="max-width: 120px; max-height: 80px; margin-bottom: 10px;">
+          {% endif %}
+          <h3 class="mb-2 fw-bold" style="color: #1F2937; letter-spacing: 1px;">BABYCARE</h3>
+          <p class="mb-1 small fw-semibold">Klinik Terapi Anak Terpadu</p>
           <p class="mb-0 small text-muted">Jl. Contoh No. 123, Kota</p>
-          <p class="mb-0 small text-muted">Telp: 021-12345678</p>
+          <p class="mb-0 small text-muted">Telp: (021) 12345678 | Email: info@babycare.com</p>
         </div>
         
-        <div class="mb-3">
+        <!-- Invoice Title -->
+        <div class="text-center mb-4">
+          <h5 class="mb-1 fw-bold text-uppercase" style="letter-spacing: 2px;">Nota Pembayaran</h5>
+          <div class="small text-muted">Invoice</div>
+        </div>
+        
+        <!-- Invoice Info -->
+        <div class="mb-4">
           <div class="row">
-            <div class="col-6 small">
-              <div>No. Nota: <strong id="printNoNota">-</strong></div>
-              <div>Tanggal: <strong id="printTanggal">-</strong></div>
+            <div class="col-6">
+              <div class="mb-2">
+                <div class="small text-muted">Nomor Invoice</div>
+                <div class="fw-bold" id="printNoNota">-</div>
+              </div>
+              <div class="mb-2">
+                <div class="small text-muted">Tanggal</div>
+                <div class="fw-semibold" id="printTanggal">-</div>
+              </div>
             </div>
-            <div class="col-6 small text-end">
-              <div>Kasir: <strong id="printKasir">-</strong></div>
+            <div class="col-6 text-end">
+              <div class="mb-2">
+                <div class="small text-muted">Kasir</div>
+                <div class="fw-semibold" id="printKasir">-</div>
+              </div>
+              <div class="mb-2">
+                <div class="small text-muted">Cabang</div>
+                <div class="fw-semibold" id="printCabang">-</div>
+              </div>
             </div>
           </div>
         </div>
         
-        <div class="mb-3 pb-3 border-bottom">
-          <div class="small">
-            <div><strong>Pasien:</strong> <span id="printPasien">-</span></div>
-            <div><strong>Terapi:</strong> <span id="printTerapi">-</span></div>
-            <div><strong>Terapis:</strong> <span id="printTerapis">-</span></div>
+        <!-- Patient Info -->
+        <div class="mb-4 pb-3 border-bottom">
+          <h6 class="mb-3 fw-bold" style="color: #1F2937;">Informasi Pasien</h6>
+          <div class="row">
+            <div class="col-6">
+              <div class="small text-muted">Nama Pasien</div>
+              <div class="fw-semibold" id="printPasien">-</div>
+            </div>
+            <div class="col-6">
+              <div class="small text-muted">Terapis</div>
+              <div class="fw-semibold" id="printTerapis">-</div>
+            </div>
           </div>
         </div>
         
-        <div class="mb-3 pb-3 border-bottom">
+        <!-- Therapy Details -->
+        <div class="mb-4 pb-3 border-bottom">
+          <h6 class="mb-3 fw-bold" style="color: #1F2937;">Detail Terapi</h6>
+          <table class="table table-sm mb-0" id="printTerapiTable" style="border: 1px solid #dee2e6;">
+            <thead style="background-color: #f8f9fa;">
+              <tr>
+                <th class="small fw-bold" style="padding: 8px; border: 1px solid #dee2e6;">No</th>
+                <th class="small fw-bold" style="padding: 8px; border: 1px solid #dee2e6;">Nama Terapi</th>
+                <th class="small fw-bold text-end" style="padding: 8px; border: 1px solid #dee2e6;">Harga</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Will be filled dynamically -->
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Payment Summary -->
+        <div class="mb-4 pb-3 border-bottom">
+          <h6 class="mb-3 fw-bold" style="color: #1F2937;">Rincian Pembayaran</h6>
           <table class="table table-sm table-borderless mb-0">
             <tbody>
               <tr>
-                <td>Jumlah Tagihan</td>
-                <td class="text-end"><strong id="printJumlah">Rp 0</strong></td>
+                <td class="text-muted">Jumlah Tagihan</td>
+                <td class="text-end fw-semibold" id="printJumlah">Rp 0</td>
               </tr>
               <tr>
-                <td>Jumlah Bayar</td>
-                <td class="text-end"><strong id="printJumlahBayar">Rp 0</strong></td>
+                <td class="text-muted">Jumlah Bayar</td>
+                <td class="text-end fw-semibold" id="printJumlahBayar">Rp 0</td>
               </tr>
               <tr id="printRowKembalian" style="display: none;">
-                <td><strong>Kembalian</strong></td>
-                <td class="text-end"><strong class="text-info" id="printKembalian">Rp 0</strong></td>
+                <td class="text-muted">Kembalian</td>
+                <td class="text-end fw-bold text-success" id="printKembalian">Rp 0</td>
               </tr>
               <tr>
-                <td>Metode</td>
-                <td class="text-end"><span id="printMetode">-</span></td>
+                <td class="text-muted">Metode Pembayaran</td>
+                <td class="text-end fw-semibold" id="printMetode">-</td>
+              </tr>
+              <tr class="border-top">
+                <td class="fw-bold" style="font-size: 1.1rem; padding-top: 10px;">TOTAL TAGIHAN</td>
+                <td class="text-end fw-bold" style="font-size: 1.3rem; color: #1F2937; padding-top: 10px;" id="printTotal">Rp 0</td>
               </tr>
             </tbody>
           </table>
         </div>
         
-        <div class="mb-3">
-          <div class="row">
-            <div class="col-6">
-              <strong>TOTAL TAGIHAN</strong>
-            </div>
-            <div class="col-6 text-end">
-              <strong style="font-size: 1.2rem;" id="printTotal">Rp 0</strong>
-            </div>
-          </div>
+        <!-- Payment Status Badge -->
+        <div class="text-center mb-4" id="printStatusBadge">
+          <!-- Status badge will be added here -->
         </div>
         
-        <div class="text-center small text-muted mt-4 pt-3 border-top">
-          <p class="mb-1">Terima kasih atas kepercayaan Anda</p>
-          <p class="mb-0">Semoga lekas sembuh</p>
+        <!-- Footer Notes -->
+        <div class="text-center small mt-5 pt-4 border-top">
+          <p class="mb-2 fw-semibold" style="color: #1F2937;">Terima kasih atas kepercayaan Anda</p>
+          <p class="mb-3 text-muted">Semoga lekas sembuh dan sehat selalu</p>
+          
+          <!-- Terms and Conditions -->
+          <div class="mt-4 pt-3 border-top">
+            <p class="mb-1 fw-bold text-muted" style="font-size: 0.75rem;">Syarat & Ketentuan:</p>
+            <p class="mb-0 text-muted" style="font-size: 0.7rem; line-height: 1.4;">
+              1. Pembayaran yang telah dilakukan tidak dapat dikembalikan<br>
+              2. Simpan nota ini sebagai bukti pembayaran yang sah<br>
+              3. Untuk informasi lebih lanjut hubungi kami di nomor telepon yang tertera
+            </p>
+          </div>
+          
+          <!-- Print Info -->
+          <div class="mt-3 pt-2 border-top">
+            <p class="mb-0 text-muted" style="font-size: 0.65rem;" id="printFooter">
+              Dicetak pada: <span id="printTimestamp"></span>
+            </p>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -302,8 +406,14 @@ const pemasukansData = {
     id: {{ item.id }},
     tanggal: '{{ item.tanggal|date:"d M Y" }}',
     pasien: {% if item.registrasi %}'{{ item.registrasi.pasien.nama_anak }}'{% else %}'-'{% endif %},
-    terapi: {% if item.registrasi %}'{{ item.registrasi.jenis_terapi.nama_terapi }}'{% else %}'-'{% endif %},
     terapis: {% if item.registrasi and item.registrasi.terapis %}'{{ item.registrasi.terapis.nama_terapis }}'{% else %}'-'{% endif %},
+    terapiList: [
+      {% if item.registrasi %}
+        {% for detail in item.registrasi.details.all %}
+          { nama: '{{ detail.nama_terapi|escapejs }}', harga: {{ detail.harga_terapi }}, hargaFormatted: '{{ detail.harga_terapi|floatformat:0|rupiah }}' }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+      {% endif %}
+    ],
     jumlah: {{ item.jumlah }},
     jumlahFormatted: '{{ item.jumlah|rupiah }}',
     jumlahBayar: {{ item.jumlah_bayar|default:0 }},
@@ -334,8 +444,26 @@ function viewDetail(pemasukanId) {
   // Fill modal with data
   document.getElementById('detailTanggal').textContent = data.tanggal;
   document.getElementById('detailPasien').textContent = data.pasien;
-  document.getElementById('detailTerapi').textContent = data.terapi;
   document.getElementById('detailTerapis').textContent = data.terapis;
+  
+  // Build terapi list with prices
+  const terapiListDiv = document.getElementById('detailTerapiList');
+  terapiListDiv.innerHTML = '';
+  
+  if (data.terapiList && data.terapiList.length > 0) {
+    data.terapiList.forEach((terapi, index) => {
+      const item = document.createElement('div');
+      item.className = 'd-flex justify-content-between mb-1';
+      item.innerHTML = `
+        <span>${index + 1}. ${terapi.nama}</span>
+        <strong>${terapi.hargaFormatted}</strong>
+      `;
+      terapiListDiv.appendChild(item);
+    });
+  } else {
+    terapiListDiv.innerHTML = '<span class="text-muted">Tidak ada data terapi</span>';
+  }
+  
   document.getElementById('detailJumlah').textContent = data.jumlahFormatted;
   document.getElementById('detailJumlahBayar').textContent = data.jumlahBayarFormatted;
   
@@ -367,12 +495,31 @@ function printNota(pemasukanId) {
   }
   
   // Fill print modal with data
-  document.getElementById('printNoNota').textContent = 'PM-' + String(data.id).padStart(6, '0');
+  document.getElementById('printNoNota').textContent = 'INV-' + String(data.id).padStart(8, '0');
   document.getElementById('printTanggal').textContent = data.tanggal;
   document.getElementById('printKasir').textContent = data.createdBy;
+  document.getElementById('printCabang').textContent = data.cabang;
   document.getElementById('printPasien').textContent = data.pasien;
-  document.getElementById('printTerapi').textContent = data.terapi;
   document.getElementById('printTerapis').textContent = data.terapis;
+  
+  // Build terapi table with proper structure
+  const terapiTableBody = document.querySelector('#printTerapiTable tbody');
+  terapiTableBody.innerHTML = '';
+  
+  if (data.terapiList && data.terapiList.length > 0) {
+    data.terapiList.forEach((terapi, index) => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td style="padding: 8px; border: 1px solid #dee2e6; width: 40px;" class="text-center">${index + 1}</td>
+        <td style="padding: 8px; border: 1px solid #dee2e6;">${terapi.nama}</td>
+        <td style="padding: 8px; border: 1px solid #dee2e6;" class="text-end">${terapi.hargaFormatted}</td>
+      `;
+      terapiTableBody.appendChild(row);
+    });
+  } else {
+    terapiTableBody.innerHTML = '<tr><td colspan="3" style="padding: 8px; border: 1px solid #dee2e6;" class="text-center text-muted">Tidak ada data terapi</td></tr>';
+  }
+  
   document.getElementById('printJumlah').textContent = data.jumlahFormatted;
   document.getElementById('printJumlahBayar').textContent = data.jumlahBayarFormatted;
   
@@ -388,6 +535,27 @@ function printNota(pemasukanId) {
   document.getElementById('printMetode').textContent = data.metode;
   document.getElementById('printTotal').textContent = data.jumlahFormatted;
   
+  // Add payment status badge
+  const statusBadge = document.getElementById('printStatusBadge');
+  const sisaTagihan = data.jumlah - data.jumlahBayar;
+  if (sisaTagihan <= 0) {
+    statusBadge.innerHTML = '<span class="badge bg-success" style="font-size: 1rem; padding: 10px 20px;">✅ LUNAS</span>';
+  } else {
+    statusBadge.innerHTML = '<span class="badge bg-warning" style="font-size: 1rem; padding: 10px 20px;">⚠️ BELUM LUNAS</span>';
+  }
+  
+  // Add print timestamp
+  const now = new Date();
+  const timestamp = now.toLocaleDateString('id-ID', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  document.getElementById('printTimestamp').textContent = timestamp;
+  
   // Show modal
   const printModal = new bootstrap.Modal(document.getElementById('printModal'));
   printModal.show();
@@ -397,20 +565,118 @@ function printNota(pemasukanId) {
 const style = document.createElement('style');
 style.textContent = `
   @media print {
+    /* Hide everything except print area */
     body * {
       visibility: hidden;
     }
     #printArea, #printArea * {
       visibility: visible;
     }
+    
+    /* Position print area */
     #printArea {
       position: absolute;
       left: 0;
       top: 0;
       width: 100%;
+      padding: 20px;
+      background: white;
     }
-    .modal-footer {
+    
+    /* Hide modal elements */
+    .modal-header, .modal-footer, .btn-close {
       display: none !important;
+    }
+    
+    /* Optimize for print */
+    @page {
+      size: A4;
+      margin: 15mm;
+    }
+    
+    /* Font optimization */
+    #printArea {
+      font-size: 11pt;
+      line-height: 1.4;
+      color: #000;
+    }
+    
+    /* Remove box shadows and enhance borders for print */
+    #printArea .border, 
+    #printArea .border-top,
+    #printArea .border-bottom {
+      border-color: #000 !important;
+    }
+    
+    /* Table styling for print */
+    #printArea table {
+      border-collapse: collapse !important;
+      width: 100%;
+    }
+    
+    #printArea table td,
+    #printArea table th {
+      border: 1px solid #000 !important;
+      padding: 8px !important;
+    }
+    
+    #printArea table thead {
+      background-color: #f0f0f0 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    
+    /* Badge styling for print */
+    #printArea .badge {
+      border: 2px solid #000;
+      padding: 8px 16px !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    
+    /* Ensure colors print correctly */
+    #printArea .bg-success {
+      background-color: #198754 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    
+    #printArea .bg-warning {
+      background-color: #ffc107 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    
+    #printArea .text-success {
+      color: #198754 !important;
+    }
+    
+    /* Logo sizing for print */
+    #printArea img {
+      max-width: 100px !important;
+      max-height: 70px !important;
+    }
+    
+    /* Prevent page breaks in critical sections */
+    #printArea .border-bottom {
+      page-break-inside: avoid;
+    }
+    
+    /* Footer stays at bottom */
+    #printArea .mt-5 {
+      margin-top: 30px !important;
+    }
+  }
+  
+  /* Screen view styling */
+  @media screen {
+    #printArea {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    #printArea img {
+      margin-bottom: 10px;
     }
   }
 `;

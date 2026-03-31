@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Offline - Babycare</title>
+  <meta name="theme-color" content="#1565C0">
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #1565C0;
+      --accent: #00897B;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(21, 101, 192, 0.16), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(0, 137, 123, 0.14), transparent 28%),
+        var(--bg);
+    }
+    .card {
+      width: min(100%, 560px);
+      background: var(--card);
+      border-radius: 24px;
+      padding: 32px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+      text-align: center;
+    }
+    .icon {
+      width: 84px;
+      height: 84px;
+      margin: 0 auto 20px;
+      border-radius: 24px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      font-size: 40px;
+      font-weight: 700;
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: 2rem;
+    }
+    p {
+      margin: 0 0 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 24px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 18px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), #0d47a1);
+      color: white;
+    }
+    .btn-secondary {
+      background: #e2e8f0;
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="icon">B</div>
+    <h1>Mode Offline</h1>
+    <p>Koneksi internet sedang tidak tersedia. Data terbaru tidak bisa dimuat sekarang, tapi aplikasi Babycare tetap siap dibuka lagi saat koneksi kembali normal.</p>
+    <p>Coba sambungkan internet lalu refresh halaman ini.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/dashboard/">Coba Lagi</a>
+      <a class="btn btn-secondary" href="/">Ke Beranda</a>
+    </div>
+  </main>
+</body>
+</html>

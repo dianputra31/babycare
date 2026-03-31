@@ -20,9 +20,14 @@
           </h3>
           <p class="text-muted small">Kelola semua registrasi terapi</p>
         </div>
-        <a href="/registrasi/new/" class="btn btn-primary btn-sm">
-          <i class="bi bi-plus-lg"></i> Registrasi Baru
-        </a>
+        <div class="d-flex gap-2">
+          <a href="{% url 'export_registrasi_excel' %}?{{ request.GET.urlencode }}" class="btn btn-success btn-sm">
+            <i class="bi bi-file-earmark-excel"></i> Export Excel
+          </a>
+          <a href="/registrasi/new/" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg"></i> Registrasi Baru
+          </a>
+        </div>
       </div>
 
       <!-- Filter Card -->
@@ -80,96 +85,240 @@
         </div>
       </div>
 
-      <!-- Table Card -->
-      <div class="card border-0 shadow-sm">
+      <!-- Table Card - ELEGANT MODERN DESIGN -->
+      <div class="card border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
         <div class="card-body p-0">
           {% if registrasis %}
-            <div class="table-responsive">
-              <table class="table table-hover mb-0" style="font-size: 0.85rem;">
-                <thead style="background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%); border-bottom: 2px solid #667eea;">
-                  <tr>
-                    <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none;">📌 Kode</th>
-                    <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none;">👤 Pasien</th>
-                    <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none;">💆 Jenis Terapi</th>
-                    <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none;">👨‍⚕️ Terapis</th>
-                    <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none;">📅 Tanggal</th>
-                    <th class="text-end" style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none;">💰 Total</th>
-                    <th style="padding: 0.75rem; color: #2c3e50; font-weight: 700; border: none; width: 80px;">✏️ Aksi</th>
+            <div>
+              <table class="table mb-0" style="font-size: 0.875rem;">
+                <thead>
+                  <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <th style="padding: 1rem 0.75rem; font-weight: 600; border: none; letter-spacing: 0.3px; color: white;">
+                      <i class="bi bi-hash"></i> Kode
+                    </th>
+                    <th style="padding: 1rem 0.75rem; font-weight: 600; border: none; letter-spacing: 0.3px; color: white;">
+                      <i class="bi bi-person-fill"></i> Pasien
+                    </th>
+                    <th style="padding: 1rem 0.75rem; font-weight: 600; border: none; letter-spacing: 0.3px; min-width: 200px; color: white;">
+                      <i class="bi bi-heart-pulse-fill"></i> Jenis Terapi
+                    </th>
+                    <th style="padding: 1rem 0.75rem; font-weight: 600; border: none; letter-spacing: 0.3px; color: white;">
+                      <i class="bi bi-person-badge-fill"></i> Terapis
+                    </th>
+                    <th style="padding: 1rem 0.75rem; font-weight: 600; border: none; letter-spacing: 0.3px; color: white;">
+                      <i class="bi bi-calendar-event-fill"></i> Tanggal
+                    </th>
+                    <th class="text-end" style="padding: 1rem 0.75rem; font-weight: 600; border: none; letter-spacing: 0.3px; color: white;">
+                      <i class="bi bi-currency-dollar"></i> Total
+                    </th>
+                    <th style="padding: 1rem 0.75rem; font-weight: 600; border: none; letter-spacing: 0.3px; color: white;">
+                      <i class="bi bi-credit-card-fill"></i> Status
+                    </th>
+                    <!-- <th class="text-center" style="padding: 1rem 0.75rem; font-weight: 600; border: none; letter-spacing: 0.3px; width: 110px; color: white;">
+                      <i class="bi bi-whatsapp"></i> Reminder
+                    </th> -->
+                    <th class="text-center" style="padding: 1rem 0.75rem; font-weight: 600; border: none; letter-spacing: 0.3px; width: 100px; color: white;">
+                      <i class="bi bi-gear-fill"></i> Aksi
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {% for reg in registrasis %}
-                    <tr style="border-bottom: 1px solid #f0f0f0; transition: all 0.2s ease;">
-                      <td style="padding: 0.75rem; color: #667eea; font-weight: 600;">
-                        <small class="badge" style="background-color: #e8f0ff; color: #667eea; font-weight: 600;">{{ reg.kode_registrasi }}</small>
+                    <tr style="border-bottom: 1px solid #e9ecef; transition: all 0.3s ease; background: white;">
+                      <td style="padding: 1rem 0.75rem; vertical-align: middle;">
+                        <span class="badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600; font-size: 0.75rem; padding: 0.4rem 0.7rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);">
+                          {{ reg.kode_registrasi }}
+                        </span>
                       </td>
-                      <td style="padding: 0.75rem; color: #2c3e50;">
-                        <strong style="font-size: 0.95rem;">{{ reg.pasien.nama_anak }}</strong>
+                      <td style="padding: 1rem 0.75rem; vertical-align: middle;">
+                        <div style="font-weight: 600; color: #2d3748; font-size: 0.95rem;">{{ reg.pasien.nama_anak }}</div>
+                        <div style="font-size: 0.75rem; color: #718096; margin-top: 2px;">
+                          <i class="bi bi-hospital"></i> {{ reg.cabang.nama_cabang|default:'-' }}
+                        </div>
                       </td>
-                      <td style="padding: 0.75rem; color: #555;">
-                        <small>{{ reg.jenis_terapi.nama_terapi }}</small>
+                      <td style="padding: 1rem 0.75rem; vertical-align: middle;">
+                        <!-- MULTIPLE TERAPI FROM registrasi_detail -->
+                        {% with details=reg.details.all %}
+                          {% if details %}
+                            <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                              {% for detail in details %}
+                                <span class="badge" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; font-size: 0.7rem; padding: 0.35rem 0.6rem; border-radius: 12px; font-weight: 500; box-shadow: 0 1px 3px rgba(72, 187, 120, 0.3);">
+                                  <i class="bi bi-check2-circle"></i> {{ detail.nama_terapi|default:detail.jenis_terapi.nama_terapi }}
+                                </span>
+                              {% endfor %}
+                            </div>
+                            <div style="font-size: 0.7rem; color: #718096; margin-top: 4px;">
+                              <i class="bi bi-layers-fill"></i> {{ details|length }} terapi
+                            </div>
+                          {% else %}
+                            <!-- Fallback ke jenis_terapi lama -->
+                            <span class="badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-size: 0.7rem; padding: 0.35rem 0.6rem; border-radius: 12px; font-weight: 500;">
+                              {{ reg.jenis_terapi.nama_terapi }}
+                            </span>
+                          {% endif %}
+                        {% endwith %}
                       </td>
-                      <td style="padding: 0.75rem; color: #555;">
-                        <small>{{ reg.terapis.nama_terapis|default:'-' }}</small>
+                      <td style="padding: 1rem 0.75rem; vertical-align: middle;">
+                        <div style="color: #4a5568; font-size: 0.875rem; font-weight: 500;">
+                          <i class="bi bi-person-check-fill" style="color: #667eea;"></i> 
+                          {{ reg.terapis.nama_terapis|default:'<span style="color: #cbd5e0;">Belum ditentukan</span>' }}
+                        </div>
                       </td>
-                      <td style="padding: 0.75rem; color: #667eea;">
-                        <small style="font-weight: 500;">{{ reg.tanggal_kunjungan|date:"d M Y" }}</small>
+                      <td style="padding: 1rem 0.75rem; vertical-align: middle;">
+                        <div style="color: #667eea; font-weight: 600; font-size: 0.875rem;">
+                          <i class="bi bi-calendar3"></i> {{ reg.tanggal_kunjungan|date:"d M Y" }}
+                        </div>
+                        <div style="font-size: 0.7rem; color: #718096; margin-top: 2px;">
+                          <i class="bi bi-clock"></i> {{ reg.tanggal_kunjungan|date:"l" }}
+                        </div>
                       </td>
-                      <td class="text-end" style="padding: 0.75rem; color: #198754; font-weight: 700;">
-                        <small>{{ reg.total_bayar|rupiah }}</small>
+                      <td class="text-end" style="padding: 1rem 0.75rem; vertical-align: middle;">
+                        <div style="color: #38a169; font-weight: 700; font-size: 1rem;">
+                          {{ reg.total_bayar|rupiah }}
+                        </div>
                       </td>
-                      <td style="padding: 0.75rem; display: flex; gap: 0.25rem; align-items: center;">
-                        <a href="{% url 'registrasi_edit' reg.pk %}" class="btn btn-outline-primary" title="Edit Registrasi" style="padding: 0.2rem 0.4rem; font-size: 0.7rem; white-space: nowrap; line-height: 1.2; border-radius: 4px; flex-shrink: 0;">
-                          <i class="bi bi-pencil-fill"></i>
-                        </a>
-                        {% if reg.sisa_tagihan > 0 %}
-                        <button type="button" class="btn btn-outline-success btn-payment" data-registrasi-id="{{ reg.pk }}" title="Pembayaran" style="padding: 0.2rem 0.4rem; font-size: 0.7rem; white-space: nowrap; line-height: 1.2; border-radius: 4px; flex-shrink: 0;">
-                          <i class="bi bi-cash-coin"></i>
-                        </button>
+                      <td style="padding: 1rem 0.75rem; vertical-align: middle;">
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                          {% if reg.sisa_tagihan <= 0 %}
+                            <span class="badge" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; font-size: 0.75rem; padding: 0.4rem 0.7rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(72, 187, 120, 0.3);">
+                              <i class="bi bi-check-circle-fill"></i> LUNAS
+                            </span>
+                          {% else %}
+                            <span class="badge" style="background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%); color: white; font-size: 0.75rem; padding: 0.4rem 0.7rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(245, 101, 101, 0.3);">
+                              <i class="bi bi-exclamation-triangle-fill"></i> BELUM LUNAS
+                            </span>
+                            <small style="font-size: 0.7rem; color: #e53e3e; font-weight: 600;">
+                              <i class="bi bi-cash-stack"></i> Sisa: {{ reg.sisa_tagihan|rupiah }}
+                            </small>
+                          {% endif %}
+                          {% if reg.catatan %}
+                            <span class="badge" style="background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%); color: white; font-size: 0.65rem; padding: 0.3rem 0.5rem; border-radius: 6px; cursor: help;" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" title="{{ reg.catatan|truncatewords:50 }}">
+                              <i class="bi bi-journal-text"></i> Catatan
+                            </span>
+                          {% endif %}
+                        </div>
+                      </td>
+                      <!-- <td style="padding: 1rem 0.75rem; vertical-align: middle; text-align: center;">
+                        {% if whatsapp_configured and reg.pasien.no_wa and reg.pasien.has_whatsapp %}
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-send-wa"
+                            data-registrasi-id="{{ reg.pk }}"
+                            data-pasien-name="{{ reg.pasien.nama_anak|escape }}"
+                            title="Kirim reminder WhatsApp"
+                            style="background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); color: white; border: none; padding: 0.45rem 0.75rem; border-radius: 8px; font-size: 0.8rem; box-shadow: 0 2px 4px rgba(37, 211, 102, 0.3);"
+                          >
+                            <i class="bi bi-whatsapp"></i>
+                          </button>
+                          <div style="font-size: 0.7rem; color: #718096; margin-top: 4px;">
+                            {{ reg.pasien.no_wa }}
+                          </div>
+                        {% elif reg.pasien.no_wa and reg.pasien.has_whatsapp %}
+                          <span class="badge" style="background: #fff7ed; color: #c2410c; font-size: 0.68rem; padding: 0.35rem 0.55rem; border-radius: 8px;">
+                            API belum setup
+                          </span>
+                        {% else %}
+                          <span class="badge" style="background: #edf2f7; color: #718096; font-size: 0.68rem; padding: 0.35rem 0.55rem; border-radius: 8px;">
+                            Belum aktif
+                          </span>
                         {% endif %}
+                      </td> -->
+                      <td style="padding: 1rem 0.75rem; vertical-align: middle;">
+                        <div style="display: flex; gap: 6px; justify-content: center;">
+                          <a href="{% url 'registrasi_edit' reg.pk %}" class="btn btn-sm" title="Edit Registrasi" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.4rem 0.7rem; border-radius: 8px; font-size: 0.8rem; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);">
+                            <i class="bi bi-pencil-square"></i>
+                          </a>
+                          {% if reg.sisa_tagihan > 0 %}
+                            <button type="button" class="btn btn-sm btn-payment" data-registrasi-id="{{ reg.pk }}" title="Pembayaran" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; border: none; padding: 0.4rem 0.7rem; border-radius: 8px; font-size: 0.8rem; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(72, 187, 120, 0.3);">
+                              <i class="bi bi-cash-coin"></i>
+                            </button>
+                          {% endif %}
+                        </div>
                       </td>
                     </tr>
                   {% endfor %}
                 </tbody>
               </table>
             </div>
+            
+            <style>
+              /* Hover Effects for Table Rows */
+              tbody tr:hover {
+                background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%) !important;
+                transform: translateX(4px);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+              }
+              
+              /* Button Hover Effects */
+              .btn-sm:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
+              }
+              
+              .btn-payment:hover {
+                box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4) !important;
+              }
 
-            <!-- Pagination -->
-            {% if is_paginated %}
-              <nav aria-label="Page navigation" class="p-3">
-                <ul class="pagination pagination-sm justify-content-center mb-0">
-                  {% if page_obj.has_previous %}
-                    <li class="page-item">
-                      <a class="page-link" href="?page=1{% if tanggal_dari %}&tanggal_dari={{ tanggal_dari }}{% endif %}{% if tanggal_sampai %}&tanggal_sampai={{ tanggal_sampai }}{% endif %}{% if pasien_query %}&pasien_query={{ pasien_query }}{% endif %}{% if jenis_terapi_id %}&jenis_terapi_id={{ jenis_terapi_id }}{% endif %}{% if terapis_id %}&terapis_id={{ terapis_id }}{% endif %}{% if kode_registrasi %}&kode_registrasi={{ kode_registrasi }}{% endif %}">First</a>
-                    </li>
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if tanggal_dari %}&tanggal_dari={{ tanggal_dari }}{% endif %}{% if tanggal_sampai %}&tanggal_sampai={{ tanggal_sampai }}{% endif %}{% if pasien_query %}&pasien_query={{ pasien_query }}{% endif %}{% if jenis_terapi_id %}&jenis_terapi_id={{ jenis_terapi_id }}{% endif %}{% if terapis_id %}&terapis_id={{ terapis_id }}{% endif %}{% if kode_registrasi %}&kode_registrasi={{ kode_registrasi }}{% endif %}">Previous</a>
-                    </li>
-                  {% endif %}
+              .btn-send-wa:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4) !important;
+              }
+            </style>
 
-                  <li class="page-item active">
-                    <span class="page-link" style="font-size: 0.85rem;">
-                      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                    </span>
-                  </li>
+            <script>
+              document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('.btn-send-wa').forEach(function(button) {
+                  button.addEventListener('click', function() {
+                    const registrasiId = this.dataset.registrasiId;
+                    const pasienName = this.dataset.pasienName;
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
+                    const currentButton = this;
 
-                  {% if page_obj.has_next %}
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if tanggal_dari %}&tanggal_dari={{ tanggal_dari }}{% endif %}{% if tanggal_sampai %}&tanggal_sampai={{ tanggal_sampai }}{% endif %}{% if pasien_query %}&pasien_query={{ pasien_query }}{% endif %}{% if jenis_terapi_id %}&jenis_terapi_id={{ jenis_terapi_id }}{% endif %}{% if terapis_id %}&terapis_id={{ terapis_id }}{% endif %}{% if kode_registrasi %}&kode_registrasi={{ kode_registrasi }}{% endif %}">Next</a>
-                    </li>
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if tanggal_dari %}&tanggal_dari={{ tanggal_dari }}{% endif %}{% if tanggal_sampai %}&tanggal_sampai={{ tanggal_sampai }}{% endif %}{% if pasien_query %}&pasien_query={{ pasien_query }}{% endif %}{% if jenis_terapi_id %}&jenis_terapi_id={{ jenis_terapi_id }}{% endif %}{% if terapis_id %}&terapis_id={{ terapis_id }}{% endif %}{% if kode_registrasi %}&kode_registrasi={{ kode_registrasi }}{% endif %}">Last</a>
-                    </li>
-                  {% endif %}
-                </ul>
-              </nav>
-            {% endif %}
+                    currentButton.disabled = true;
+                    currentButton.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+
+                    fetch(`/registrasi/${registrasiId}/send-whatsapp/`, {
+                      method: 'POST',
+                      headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                      }
+                    })
+                      .then(async function(response) {
+                        const data = await response.json();
+                        if (!response.ok) {
+                          throw new Error(data.message || 'Gagal mengirim reminder WhatsApp.');
+                        }
+                        return data;
+                      })
+                      .then(function(data) {
+                        showToast(`WhatsApp reminder untuk ${pasienName} berhasil dikirim.`, 'success');
+                      })
+                      .catch(function(error) {
+                        showToast(error.message, 'error');
+                      })
+                      .finally(function() {
+                        currentButton.disabled = false;
+                        currentButton.innerHTML = '<i class="bi bi-whatsapp"></i>';
+                      });
+                  });
+                });
+              });
+            </script>
+
+            {% render_pagination page_obj %}
           {% else %}
-            <div class="text-center py-5">
-              <i class="bi bi-inbox" style="font-size: 48px; color: #D1D5DB;"></i>
-              <p class="text-muted mt-3">Belum ada registrasi</p>
-              <a href="/registrasi/new/" class="btn btn-primary btn-sm">
-                <i class="bi bi-plus-lg"></i> Buat Registrasi Baru
+            <div class="empty-state">
+              <div class="empty-state-icon">
+                <i class="bi bi-calendar-x"></i>
+              </div>
+              <h3 class="empty-state-title">Belum Ada Registrasi</h3>
+              <p class="empty-state-description">
+                Mulai catat registrasi terapi pasien Anda untuk mengelola jadwal dan pembayaran dengan mudah.
+              </p>
+              <a href="/registrasi/new/" class="empty-state-action">
+                <i class="bi bi-plus-circle-fill"></i>
+                <span>Buat Registrasi Pertama</span>
               </a>
             </div>
           {% endif %}
@@ -314,6 +463,14 @@
 </div>
 
 <script>
+// Initialize Bootstrap tooltips
+document.addEventListener('DOMContentLoaded', function() {
+  var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+  });
+});
+
 // Wait for jQuery to be defined
 (function() {
   // Retry loading until jQuery is available

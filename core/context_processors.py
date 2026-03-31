@@ -1,4 +1,6 @@
 # e:/projects/python/django/teguh/babycare/core/context_processors.py
+from django.conf import settings
+
 from .models import Notifikasi, AppSettings
 
 
@@ -15,26 +17,13 @@ def app_settings(request):
     """
     Context processor to add app settings (font size and logo) to all templates
     """
-    try:
-        from .models import AppSettings
-        settings = AppSettings.get_settings()
-        return {
-            'font_size': settings.font_size,
-            'logo_url': settings.logo.url if settings.logo else None,
-        }
-    except Exception:
-        return {
-            'font_size': 14,
-            'logo_url': None,
-        }
-
-def app_settings(request):
-    """
-    Context processor to add app settings (font size and logo) to all templates
-    """
-    settings = AppSettings.get_settings()
+    app_config = AppSettings.get_settings()
     return {
-        'app_settings': settings,
-        'font_size': settings.font_size,
-        'logo_url': settings.logo.url if settings.logo else None,
+        'app_settings': app_config,
+        'font_size': app_config.font_size,
+        'logo_url': app_config.logo.url if app_config.logo else None,
+        'pwa_app_name': settings.PWA_APP_NAME,
+        'pwa_app_description': settings.PWA_APP_DESCRIPTION,
+        'pwa_theme_color': settings.PWA_THEME_COLOR,
+        'pwa_background_color': settings.PWA_BACKGROUND_COLOR,
     }

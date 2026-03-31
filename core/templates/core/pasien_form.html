@@ -106,12 +106,34 @@
                 <label for="{{ form.no_wa.id_for_label }}" class="form-label">
                   No WhatsApp
                 </label>
-                {{ form.no_wa }}
+                <div class="input-group">
+                  {{ form.no_wa }}
+                  <button type="button" class="btn btn-outline-success" id="btnCekWA" title="Cek nomor di WhatsApp">
+                    <i class="bi bi-whatsapp"></i> Cek WA
+                  </button>
+                </div>
                 {% if form.no_wa.errors %}
                   <div class="invalid-feedback d-block">
                     {{ form.no_wa.errors.0 }}
                   </div>
                 {% endif %}
+                <small class="form-text text-muted">
+                  Format: 08xxx atau 628xxx
+                </small>
+              </div>
+
+              <!-- Has WhatsApp Checkbox -->
+              <div class="col-md-6">
+                <label class="form-label">&nbsp;</label>
+                <div class="form-check mt-2">
+                  {{ form.has_whatsapp }}
+                  <label class="form-check-label" for="{{ form.has_whatsapp.id_for_label }}">
+                    <i class="bi bi-check-circle text-success"></i> Nomor terdaftar di WhatsApp
+                  </label>
+                </div>
+                <small class="form-text text-muted">
+                  Centang setelah verifikasi nomor via tombol "Cek WA"
+                </small>
               </div>
 
               <!-- Cabang -->
@@ -152,6 +174,47 @@ $(document).ready(function() {
   // Set max date to today for Tanggal Lahir
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('id_tanggal_lahir').setAttribute('max', today);
+  
+  // WhatsApp Check Button
+  $('#btnCekWA').on('click', function() {
+    let noWa = $('#id_no_wa').val().trim();
+    
+    if (!noWa) {
+      alert('⚠️ Masukkan nomor WhatsApp terlebih dahulu!');
+      $('#id_no_wa').focus();
+      return;
+    }
+    
+    // Clean and format the number
+    noWa = noWa.replace(/\D/g, ''); // Remove non-digits
+    
+    // Convert 08xxx to 628xxx
+    if (noWa.startsWith('0')) {
+      noWa = '62' + noWa.substring(1);
+    } else if (!noWa.startsWith('62')) {
+      noWa = '62' + noWa;
+    }
+    
+    // Validate length (Indonesian phone numbers: 10-13 digits after 62)
+    if (noWa.length < 12 || noWa.length > 15) {
+      alert('⚠️ Nomor tidak valid! Pastikan format: 08xxx atau 628xxx');
+      $('#id_no_wa').focus();
+      return;
+    }
+    
+    // Open WhatsApp Web/App
+    const waUrl = `https://wa.me/${noWa}`;
+    window.open(waUrl, '_blank');
+    
+    // Show instruction
+    setTimeout(function() {
+      if (confirm('✅ Apakah chat WhatsApp berhasil dibuka?\n\nKlik OK jika nomor terdaftar (centang otomatis)\nKlik Cancel jika nomor tidak terdaftar')) {
+        $('#id_has_whatsapp').prop('checked', true);
+      } else {
+        $('#id_has_whatsapp').prop('checked', false);
+      }
+    }, 1500);
+  });
 });
 </script>
 {% endblock %}

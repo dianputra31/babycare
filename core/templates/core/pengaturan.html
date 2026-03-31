@@ -106,6 +106,76 @@
                   {% endif %}
                 </div>
 
+                <!-- Notification Settings Section -->
+                <div class="mb-4 pb-3 border-bottom">
+                  <h6 class="fw-bold text-primary mb-3">
+                    <i class="bi bi-bell"></i> Pengaturan Notifikasi
+                  </h6>
+                  
+                  <!-- Birthday Notification -->
+                  <div class="card bg-light border-0 mb-3">
+                    <div class="card-body">
+                      <div class="form-check form-switch mb-3">
+                        {{ form.enable_birthday_notif }}
+                        <label class="form-check-label fw-bold" for="{{ form.enable_birthday_notif.id_for_label }}">
+                          <i class="bi bi-cake2"></i> {{ form.enable_birthday_notif.label }}
+                        </label>
+                      </div>
+                      
+                      <div class="row">
+                        <div class="col-md-6">
+                          <label for="{{ form.birthday_notif_days_before.id_for_label }}" class="form-label small">
+                            {{ form.birthday_notif_days_before.label }}
+                          </label>
+                          {{ form.birthday_notif_days_before }}
+                          <small class="form-text text-muted d-block mt-1">
+                            {{ form.birthday_notif_days_before.help_text }}
+                          </small>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Inactive Patient Notification -->
+                  <div class="card bg-light border-0 mb-3">
+                    <div class="card-body">
+                      <div class="form-check form-switch mb-3">
+                        {{ form.enable_inactive_notif }}
+                        <label class="form-check-label fw-bold" for="{{ form.enable_inactive_notif.id_for_label }}">
+                          <i class="bi bi-person-x"></i> {{ form.enable_inactive_notif.label }}
+                        </label>
+                      </div>
+                      
+                      <div class="row">
+                        <div class="col-md-6">
+                          <label for="{{ form.inactive_threshold_days.id_for_label }}" class="form-label small">
+                            {{ form.inactive_threshold_days.label }}
+                          </label>
+                          {{ form.inactive_threshold_days }}
+                          <small class="form-text text-muted d-block mt-1">
+                            {{ form.inactive_threshold_days.help_text }}
+                          </small>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Follow-up Notification -->
+                  <div class="card bg-light border-0 mb-3">
+                    <div class="card-body">
+                      <div class="form-check form-switch">
+                        {{ form.enable_followup_notif }}
+                        <label class="form-check-label fw-bold" for="{{ form.enable_followup_notif.id_for_label }}">
+                          <i class="bi bi-calendar-check"></i> {{ form.enable_followup_notif.label }}
+                        </label>
+                        <small class="form-text text-muted d-block mt-2">
+                          {{ form.enable_followup_notif.help_text }}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Form Errors -->
                 {% if form.non_field_errors %}
                 <div class="alert alert-danger">
@@ -143,9 +213,23 @@
               </p>
               
               <h6 class="fw-bold mt-3">Logo Aplikasi</h6>
-              <p class="small text-muted mb-0">
+              <p class="small text-muted">
                 Logo akan ditampilkan di header aplikasi, di sebelah tulisan "Babycare". 
                 Gunakan gambar dengan latar belakang transparan untuk hasil terbaik.
+              </p>
+
+              <h6 class="fw-bold mt-3">Notifikasi</h6>
+              <p class="small text-muted mb-2">
+                Sistem notifikasi otomatis akan mengirimkan pengingat untuk:
+              </p>
+              <ul class="small text-muted mb-0 ps-3">
+                <li><strong>Ulang Tahun:</strong> Notifikasi H-1, H-2, atau hari yang sama</li>
+                <li><strong>Pasien Tidak Aktif:</strong> Reminder untuk pasien yang lama tidak kontrol</li>
+                <li><strong>Follow-up:</strong> Pengingat untuk tindak lanjut registrasi</li>
+              </ul>
+              <p class="small text-muted mt-2 mb-0">
+                <i class="bi bi-info-circle text-primary"></i> 
+                Jalankan script notifikasi secara manual atau jadwalkan otomatis dengan Task Scheduler.
               </p>
             </div>
           </div>

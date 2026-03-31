@@ -54,24 +54,6 @@
                 {% endif %}
               </div>
 
-              <!-- Jenis Terapi -->
-              <div class="col-md-6">
-                <label for="{{ form.jenis_terapi.id_for_label }}" class="form-label">
-                  Jenis Terapi <span class="text-danger">*</span>
-                </label>
-                <div class="d-flex gap-2">
-                  {{ form.jenis_terapi }}
-                  <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalJenisTerapi" style="white-space: nowrap;">
-                    <i class="bi bi-plus-lg"></i>
-                  </button>
-                </div>
-                {% if form.jenis_terapi.errors %}
-                  <div class="invalid-feedback d-block">
-                    {{ form.jenis_terapi.errors.0 }}
-                  </div>
-                {% endif %}
-              </div>
-
               <!-- Terapis -->
               <div class="col-md-6">
                 <label for="{{ form.terapis.id_for_label }}" class="form-label">
@@ -99,19 +81,6 @@
                 {% if form.tanggal_kunjungan.errors %}
                   <div class="invalid-feedback d-block">
                     {{ form.tanggal_kunjungan.errors.0 }}
-                  </div>
-                {% endif %}
-              </div>
-
-              <!-- Harga -->
-              <div class="col-md-6">
-                <label for="{{ form.harga.id_for_label }}" class="form-label">
-                  Harga <span class="text-danger">*</span>
-                </label>
-                {{ form.harga }}
-                {% if form.harga.errors %}
-                  <div class="invalid-feedback d-block">
-                    {{ form.harga.errors.0 }}
                   </div>
                 {% endif %}
               </div>
@@ -183,18 +152,83 @@
                 {% endif %}
               </div>
 
+              <!-- Detail Terapi (Multi-Terapi Section) -->
+              <div class="col-12 mt-3">
+                <div class="border rounded-3 p-3" style="background-color: #f8f9fa;">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">
+                      <i class="bi bi-list-check"></i> Detail Terapi
+                      <span class="badge bg-primary ms-2 small">Min. 1 terapi</span>
+                    </h6>
+                  </div>
+                  
+                  {{ formset.management_form }}
+                  
+                  <div id="terapi-formset">
+                    {% for form in formset %}
+                    <div class="terapi-form-row border rounded mb-2 p-2 bg-white" data-form-idx="{{ forloop.counter0 }}">
+                      {{ form.id }}
+                      <div class="row align-items-center g-2">
+                        <div class="col-md-5">
+                          <label class="form-label small mb-1">Jenis Terapi <span class="text-danger">*</span></label>
+                          {{ form.jenis_terapi }}
+                          {% if form.jenis_terapi.errors %}
+                            <div class="text-danger small">{{ form.jenis_terapi.errors }}</div>
+                          {% endif %}
+                        </div>
+                        
+                        <div class="col-md-2">
+                          <label class="form-label small mb-1">Harga</label>
+                          <input type="text" class="form-control form-control-sm harga-display" readonly placeholder="Rp 0">
+                        </div>
+                        
+                        <div class="col-md-4">
+                          <label class="form-label small mb-1">Remark</label>
+                          {{ form.remark }}
+                        </div>
+                        
+                        <div class="col-md-1 text-center">
+                          <div class="d-none">{{ form.DELETE }}</div>
+                          <button type="button" class="btn btn-danger btn-sm btn-remove-terapi" title="Hapus">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                  
+                  <button type="button" id="add-terapi" class="btn btn-success btn-sm mt-2 mb-2">
+                    <i class="bi bi-plus-circle"></i> Tambah Terapi
+                  </button>
+                  
+                  <div class="alert alert-info mb-0 py-2">
+                    <div class="row small">
+                      <div class="col-md-6">
+                        <strong>Total Harga Terapi: </strong>
+                        <span id="total-harga-terapi" class="fs-5">Rp 0</span>
+                      </div>
+                      <div class="col-md-6">
+                        <strong>Biaya Transport: </strong>
+                        <span id="biaya-transport-display" class="fs-5">Rp 0</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Total Bayar Display -->
-              <div class="col-12">
-                <div class="alert alert-info border-3 border-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+              <div class="col-12 mt-2">
+                <div class="alert alert-info border-3 border-primary mb-0 py-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
                   <div class="d-flex justify-content-between align-items-center">
                     <div>
-                      <h5 class="text-white mb-1">
+                      <h6 class="text-white mb-1">
                         <i class="bi bi-cash-stack me-2"></i>Total Pembayaran
-                      </h5>
-                      <small class="text-white-50">Harga Terapi + Biaya Transport</small>
+                      </h6>
+                      <small class="text-white-50">Total Terapi + Transport</small>
                     </div>
                     <div class="text-end">
-                      <h2 class="text-white mb-0 fw-bold" id="totalBayarDisplay" style="font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                      <h2 class="text-white mb-0 fw-bold" id="totalBayarDisplay" style="font-size: 2rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
                         Rp 0
                       </h2>
                     </div>
@@ -213,6 +247,107 @@
               </button>
             </div>
           </form>
+
+          {% if is_edit %}
+            <hr class="my-4">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h5 class="mb-1"><i class="bi bi-images"></i> Progress Tracking</h5>
+                <p class="text-muted small mb-0">Simpan foto sebelum/sesudah dan catatan perkembangan terapi.</p>
+              </div>
+              <span class="badge" style="background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); color: white; padding: 0.5rem 0.8rem; border-radius: 999px;">
+                {{ progress_entries|length }} update
+              </span>
+            </div>
+
+            <div class="row g-4">
+              <div class="col-lg-5">
+                <div class="border rounded-3 p-3" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(37, 99, 235, 0.05) 100%);">
+                  <h6 class="mb-3"><i class="bi bi-cloud-arrow-up"></i> Tambah Progress Baru</h6>
+                  <form method="post" action="{% url 'add_progress_tracking' object.pk %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                      <label class="form-label">Judul Update</label>
+                      {{ progress_form.judul }}
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Catatan Progress</label>
+                      {{ progress_form.catatan }}
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Foto Sebelum</label>
+                      {{ progress_form.foto_sebelum }}
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Foto Sesudah</label>
+                      {{ progress_form.foto_sesudah }}
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                      <i class="bi bi-save2"></i> Simpan Progress
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              <div class="col-lg-7">
+                {% if progress_entries %}
+                  <div style="display: grid; gap: 1rem;">
+                    {% for progress in progress_entries %}
+                      <div class="border rounded-3 p-3" style="background: var(--card-bg); border-color: var(--card-border) !important; box-shadow: var(--shadow-sm);">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                          <div>
+                            <h6 class="mb-1">{{ progress.judul }}</h6>
+                            <div class="text-muted small">
+                              <i class="bi bi-clock-history"></i> {{ progress.created_at|date:"d M Y H:i" }}
+                              {% if progress.created_by %}
+                                • {{ progress.created_by.full_name|default:progress.created_by.username }}
+                              {% endif %}
+                            </div>
+                          </div>
+                        </div>
+                        {% if progress.catatan %}
+                          <p class="mb-3" style="white-space: pre-line;">{{ progress.catatan }}</p>
+                        {% endif %}
+                        <div class="row g-3">
+                          <div class="col-md-6">
+                            <div class="small text-muted mb-2">Foto Sebelum</div>
+                            {% if progress.foto_sebelum %}
+                              <a href="{{ progress.foto_sebelum.url }}" target="_blank">
+                                <img src="{{ progress.foto_sebelum.url }}" alt="Foto sebelum" class="img-fluid rounded-3" style="width: 100%; height: 180px; object-fit: cover; border: 1px solid var(--card-border);">
+                              </a>
+                            {% else %}
+                              <div class="d-flex align-items-center justify-content-center rounded-3" style="height: 180px; background: #f8fafc; color: #94a3b8; border: 1px dashed #cbd5e1;">
+                                Belum ada foto
+                              </div>
+                            {% endif %}
+                          </div>
+                          <div class="col-md-6">
+                            <div class="small text-muted mb-2">Foto Sesudah</div>
+                            {% if progress.foto_sesudah %}
+                              <a href="{{ progress.foto_sesudah.url }}" target="_blank">
+                                <img src="{{ progress.foto_sesudah.url }}" alt="Foto sesudah" class="img-fluid rounded-3" style="width: 100%; height: 180px; object-fit: cover; border: 1px solid var(--card-border);">
+                              </a>
+                            {% else %}
+                              <div class="d-flex align-items-center justify-content-center rounded-3" style="height: 180px; background: #f8fafc; color: #94a3b8; border: 1px dashed #cbd5e1;">
+                                Belum ada foto
+                              </div>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="text-center p-4 rounded-3" style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px dashed #bfdbfe;">
+                    <div style="font-size: 3rem; color: #60a5fa;"><i class="bi bi-camera"></i></div>
+                    <h6 class="mt-2 mb-1">Belum ada progress</h6>
+                    <p class="text-muted small mb-0">Upload foto dan catatan terapi pertama untuk mulai tracking perkembangan pasien.</p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -533,30 +668,19 @@ function formatCurrency(value) {
   return 'Rp ' + formatNumber(value);
 }
 
-function calculateTotal() {
-  const hargaField = document.getElementById('id_harga');
-  const transportField = document.getElementById('id_biaya_transport');
-  
-  const harga = parseInt(unformatNumber(hargaField.value)) || 0;
-  const transport = parseInt(unformatNumber(transportField.value)) || 0;
-  const total = harga + transport;
-  
-  document.getElementById('totalBayarDisplay').textContent = formatCurrency(total);
-}
+// calculateTotal() removed - now using calculateTotalTerapi() for multi-therapy support
 
 $(document).ready(function() {
-  // DEBUG: Check element types
+  // Form initialized with multi-terapi support
   console.log('=== FORM ELEMENT CHECK ===');
-  const hargaField = document.getElementById('id_harga');
   const transportField = document.getElementById('id_biaya_transport');
-  console.log('Harga field type:', hargaField?.type, 'Element:', hargaField);
   console.log('Transport field type:', transportField?.type, 'Element:', transportField);
-  console.log('Jenis Terapi select:', document.getElementById('id_jenis_terapi'));
+  console.log('Multi-terapi formset initialized');
   console.log('Terapis select:', document.getElementById('id_terapis'));
   console.log('==========================');
 
-  // Apply to harga and biaya_transport fields
-  const currencyFields = ['id_harga', 'id_biaya_transport'];
+  // Apply currency formatting to biaya_transport field only
+  const currencyFields = ['id_biaya_transport'];
   
   currencyFields.forEach(function(fieldId) {
     const field = document.getElementById(fieldId);
@@ -584,7 +708,7 @@ $(document).ready(function() {
       this.setSelectionRange(cursorPos + diff, cursorPos + diff);
       
       // Recalculate total
-      calculateTotal();
+      calculateTotalTerapi();
     });
   });
 
@@ -608,37 +732,8 @@ $(document).ready(function() {
     });
   });
 
-  // Auto-fill harga when jenis terapi changes (Support Select2)
-  $('#id_jenis_terapi').on('change select2:select', function() {
-    const jenisTerapiId = $(this).val();
-    console.log('Jenis Terapi changed to ID:', jenisTerapiId);
-    if (jenisTerapiId) {
-      console.log('Fetching price for jenis terapi:', jenisTerapiId);
-      fetch(`/ajax/jenis-terapi/${jenisTerapiId}/price/`)
-        .then(response => {
-          console.log('Price response status:', response.status);
-          return response.json();
-        })
-        .then(data => {
-          console.log('Price data received:', data);
-          if (data.success) {
-            const hargaField = document.getElementById('id_harga');
-            hargaField.value = formatNumber(data.harga);
-            console.log('Harga set to:', hargaField.value);
-            calculateTotal();
-          } else {
-            console.error('Price fetch failed:', data.error);
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching price:', error);
-        });
-    } else {
-      // Clear harga if no jenis terapi selected
-      document.getElementById('id_harga').value = '';
-      calculateTotal();
-    }
-  });
+  // Jenis terapi handling now done in multi-terapi formset section below
+  // (Old single-terapi handler removed)
 
   // Handle is_transport checkbox change
   const isTransportCheckbox = document.getElementById('id_is_transport');
@@ -658,7 +753,7 @@ $(document).ready(function() {
       if (!this.checked) {
         // Uncheck: set transport to 0
         transportField.value = '0';
-        calculateTotal();
+        calculateTotalTerapi();
       } else {
         // Check: restore transport from terapis if selected
         if (terapisSelect.value) {
@@ -668,13 +763,13 @@ $(document).ready(function() {
             .then(data => {
               if (data.success) {
                 transportField.value = formatNumber(data.biaya_transport);
-                calculateTotal();
+                calculateTotalTerapi();
               }
             })
             .catch(error => console.error('Error fetching transport:', error));
         } else {
           transportField.value = '';
-          calculateTotal();
+          calculateTotalTerapi();
         }
       }
     });
@@ -700,7 +795,7 @@ $(document).ready(function() {
             const transportField = document.getElementById('id_biaya_transport');
             transportField.value = formatNumber(data.biaya_transport);
             console.log('Transport set to:', transportField.value);
-            calculateTotal();
+            calculateTotalTerapi();
           } else {
             console.error('Transport fetch failed:', data.error);
           }
@@ -711,11 +806,11 @@ $(document).ready(function() {
     } else if (!isTransportCheckbox || !isTransportCheckbox.checked) {
       // If is_transport is unchecked, don't update transport
       console.log('is_transport is unchecked, skipping transport fetch');
-      calculateTotal();
+      calculateTotalTerapi();
     } else {
       // Clear transport if no terapis selected
       document.getElementById('id_biaya_transport').value = '';
-      calculateTotal();
+      calculateTotalTerapi();
     }
   });
 
@@ -723,32 +818,47 @@ $(document).ready(function() {
   document.getElementById('btnPreview').addEventListener('click', function() {
     // Get form values
     const pasien = document.getElementById('id_pasien');
-    const jenisTerapi = document.getElementById('id_jenis_terapi');
     const terapis = document.getElementById('id_terapis');
     const tanggal = document.getElementById('id_tanggal_kunjungan');
-    const harga = document.getElementById('id_harga');
     const transport = document.getElementById('id_biaya_transport');
     const cabang = document.getElementById('id_cabang');
     const status = document.getElementById('id_status');
     const catatan = document.getElementById('id_catatan');
 
-    // Validate required fields
-    if (!pasien.value || !jenisTerapi.value || !tanggal.value || !harga.value || !status.value) {
-      showToast('⚠️ Mohon isi semua field yang bertanda bintang (*)');
+    // Validate at least one therapy
+    const visibleTerapi = $('.terapi-form-row:visible').filter(function() {
+      let hasValue = $(this).find('select[name*="jenis_terapi"]').val();
+      let isDeleted = $(this).find('input[name*="DELETE"]').prop('checked');
+      return hasValue && !isDeleted;
+    });
+
+    if (!pasien.value || !tanggal.value || !status.value || visibleTerapi.length === 0) {
+      showToast('⚠️ Mohon isi semua field yang bertanda bintang (*) dan minimal 1 terapi');
       return;
     }
 
+    // Get total harga terapi from display
+    const totalHargaTerapi = parseFloat($('#total-harga-terapi').text().replace(/[^0-9]/g, '')) || 0;
+
     // Fill preview modal
     document.getElementById('previewPasien').textContent = pasien.options[pasien.selectedIndex]?.text || '-';
-    document.getElementById('previewJenisTerapi').textContent = jenisTerapi.options[jenisTerapi.selectedIndex]?.text || '-';
+    
+    // Build terapi list for preview
+    let terapiList = [];
+    visibleTerapi.each(function() {
+      let terapiSelect = $(this).find('select[name*="jenis_terapi"]');
+      let terapiText = terapiSelect.find('option:selected').text();
+      terapiList.push(terapiText);
+    });
+    document.getElementById('previewJenisTerapi').textContent = terapiList.join(', ') || '-';
+    
     document.getElementById('previewTerapis').textContent = terapis.value ? terapis.options[terapis.selectedIndex]?.text : 'Tidak ada';
     document.getElementById('previewTanggal').textContent = tanggal.value || '-';
-    document.getElementById('previewHarga').textContent = formatCurrency(unformatNumber(harga.value));
+    document.getElementById('previewHarga').textContent = formatCurrency(totalHargaTerapi);
     document.getElementById('previewTransport').textContent = formatCurrency(unformatNumber(transport.value));
     
-    const totalHarga = parseInt(unformatNumber(harga.value)) || 0;
     const totalTransport = parseInt(unformatNumber(transport.value)) || 0;
-    document.getElementById('previewTotal').textContent = formatCurrency(totalHarga + totalTransport);
+    document.getElementById('previewTotal').textContent = formatCurrency(totalHargaTerapi + totalTransport);
     
     document.getElementById('previewCabang').textContent = cabang.value ? cabang.options[cabang.selectedIndex]?.text : 'Tidak ada';
     document.getElementById('previewStatus').textContent = status.options[status.selectedIndex]?.text || '-';
@@ -759,8 +869,7 @@ $(document).ready(function() {
     modal.show();
   });
 
-  // Initial calculation
-  calculateTotal();
+  // Initial calculation handled by calculateTotalTerapi() in multi-terapi section
 });
 
 // AJAX Functions for Quick Create
@@ -938,10 +1047,7 @@ function saveJenisTerapi() {
 
 function submitRegistrasi() {
   // Unformat currency fields before submit
-  const hargaField = document.getElementById('id_harga');
   const transportField = document.getElementById('id_biaya_transport');
-  
-  hargaField.value = unformatNumber(hargaField.value);
   transportField.value = unformatNumber(transportField.value);
   
   // Close confirmation modal
@@ -951,5 +1057,220 @@ function submitRegistrasi() {
   // Submit the form
   document.querySelector('form').submit();
 }
+
+// ========================================
+// Multi-Terapi Formset JavaScript
+// ========================================
+let formCount = parseInt($('#id_details-TOTAL_FORMS').val()) || 0;
+
+// Ensure at least 1 empty form exists on page load
+if (formCount === 0) {
+  addEmptyTerapiForm();
+  formCount = 1;
+  $('#id_details-TOTAL_FORMS').val(formCount);
+}
+
+// Initialize: Load harga for existing forms
+$('.terapi-form-row').each(function() {
+  let $row = $(this);
+  let $select = $row.find('select[name*="jenis_terapi"]');
+  if ($select.val()) {
+    loadHargaTerapi($select);
+  }
+});
+
+// Update disabled options on all selects
+updateDisabledOptions();
+
+// Auto-populate harga saat jenis terapi dipilih
+$(document).on('change', 'select[name*="jenis_terapi"]', function() {
+  loadHargaTerapi($(this));
+  updateDisabledOptions();
+});
+
+// Function to load harga via AJAX
+function loadHargaTerapi($select) {
+  let terapiId = $select.val();
+  
+  if (terapiId) {
+    $.ajax({
+      url: '/api/jenis-terapi/' + terapiId + '/',
+      method: 'GET',
+      success: function(data) {
+        $select.closest('.terapi-form-row')
+               .find('.harga-display')
+               .val(data.harga_formatted)
+               .data('harga', data.harga);
+        calculateTotalTerapi();
+      },
+      error: function() {
+        $select.closest('.terapi-form-row')
+               .find('.harga-display')
+               .val('Rp 0')
+               .data('harga', 0);
+        calculateTotalTerapi();
+      }
+    });
+  } else {
+    $select.closest('.terapi-form-row')
+           .find('.harga-display')
+           .val('Rp 0')
+           .data('harga', 0);
+    calculateTotalTerapi();
+  }
+}
+
+// Function to add empty terapi form
+function addEmptyTerapiForm() {
+  let newFormHtml = `
+    <div class="terapi-form-row border rounded mb-2 p-2 bg-white" data-form-idx="${formCount}">
+      <input type="hidden" name="details-${formCount}-id" id="id_details-${formCount}-id">
+      <div class="row align-items-center g-2">
+        <div class="col-md-5">
+          <label class="form-label small mb-1">Jenis Terapi <span class="text-danger">*</span></label>
+          <select name="details-${formCount}-jenis_terapi" id="id_details-${formCount}-jenis_terapi" class="form-select terapi-select" required>
+            <option value="">---------</option>
+            ${getTerapiOptions()}
+          </select>
+        </div>
+        
+        <div class="col-md-2">
+          <label class="form-label small mb-1">Harga</label>
+          <input type="text" class="form-control form-control-sm harga-display" readonly placeholder="Rp 0">
+        </div>
+        
+        <div class="col-md-4">
+          <label class="form-label small mb-1">Remark</label>
+          <input type="text" name="details-${formCount}-remark" id="id_details-${formCount}-remark" class="form-control" placeholder="Catatan...">
+        </div>
+        
+        <div class="col-md-1 text-center">
+          <input type="checkbox" name="details-${formCount}-DELETE" id="id_details-${formCount}-DELETE" style="display: none;">
+          <button type="button" class="btn btn-danger btn-sm btn-remove-terapi" title="Hapus">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  $('#terapi-formset').append(newFormHtml);
+}
+
+// Get therapy options from first select (if exists) or create fresh
+function getTerapiOptions() {
+  let $firstSelect = $('.terapi-select').first();
+  if ($firstSelect.length) {
+    return $firstSelect.find('option').map(function() {
+      if ($(this).val()) {
+        return `<option value="${$(this).val()}">${$(this).text()}</option>`;
+      }
+    }).get().join('');
+  }
+  return '';
+}
+
+// Tambah form terapi baru
+$('#add-terapi').click(function() {
+  addEmptyTerapiForm();
+  
+  // Update form count
+  formCount++;
+  $('#id_details-TOTAL_FORMS').val(formCount);
+  
+  updateDisabledOptions();
+  calculateTotalTerapi();
+});
+
+// Hapus form terapi
+$(document).on('click', '.btn-remove-terapi', function() {
+  let $row = $(this).closest('.terapi-form-row');
+  let $deleteInput = $row.find('input[name*="DELETE"]');
+  
+  // Check if this is the last visible row
+  let visibleRows = $('.terapi-form-row:visible').length;
+  if (visibleRows <= 1) {
+    alert('Minimal 1 terapi harus dipilih!');
+    return;
+  }
+  
+  if ($deleteInput.length && $row.find('input[name*="-id"]').val()) {
+    // Mark for deletion (for existing records with ID)
+    $deleteInput.prop('checked', true);
+    $row.hide();
+  } else {
+    // Remove completely (for new forms)
+    $row.remove();
+  }
+  
+  updateDisabledOptions();
+  calculateTotalTerapi();
+});
+
+// Monitor biaya transport changes
+$('#id_biaya_transport, #id_is_transport').on('change keyup', function() {
+  calculateTotalTerapi();
+});
+
+// Update disabled options untuk prevent duplicate selection
+function updateDisabledOptions() {
+  // Get all selected therapy IDs
+  let selectedIds = [];
+  $('.terapi-form-row:visible').each(function() {
+    let $deleteCheckbox = $(this).find('input[name*="DELETE"]');
+    if (!$deleteCheckbox.prop('checked')) {
+      let selectedId = $(this).find('select[name*="jenis_terapi"]').val();
+      if (selectedId) {
+        selectedIds.push(selectedId);
+      }
+    }
+  });
+  
+  // Update each select
+  $('.terapi-form-row:visible').each(function() {
+    let $select = $(this).find('select[name*="jenis_terapi"]');
+    let currentValue = $select.val();
+    
+    $select.find('option').each(function() {
+      let optionValue = $(this).val();
+      if (optionValue && optionValue !== currentValue && selectedIds.includes(optionValue)) {
+        $(this).prop('disabled', true);
+      } else {
+        $(this).prop('disabled', false);
+      }
+    });
+  });
+}
+
+// Hitung total terapi dan total bayar
+function calculateTotalTerapi() {
+  let totalHarga = 0;
+  
+  // Sum all visible terapi harga
+  $('.terapi-form-row:visible').each(function() {
+    let $deleteCheckbox = $(this).find('input[name*="DELETE"]');
+    if (!$deleteCheckbox.prop('checked')) {
+      let harga = parseFloat($(this).find('.harga-display').data('harga')) || 0;
+      totalHarga += harga;
+    }
+  });
+  
+  // Get biaya transport
+  let biayaTransport = 0;
+  if ($('#id_is_transport').is(':checked')) {
+    let transportVal = unformatNumber($('#id_biaya_transport').val());
+    biayaTransport = parseFloat(transportVal) || 0;
+  }
+  
+  let totalBayar = totalHarga + biayaTransport;
+  
+  // Update displays
+  $('#total-harga-terapi').text(formatCurrency(totalHarga));
+  $('#biaya-transport-display').text(formatCurrency(biayaTransport));
+  $('#totalBayarDisplay').text(formatCurrency(totalBayar));
+}
+
+// Initial calculation
+calculateTotalTerapi();
 </script>
 {% endblock %}

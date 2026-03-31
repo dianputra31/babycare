@@ -1,0 +1,119 @@
+"""
+Update untuk registrasi_list.html - Tampilan Multi-Terapi
+
+Tambahkan snippet ini ke template registrasi_list.html untuk menampilkan multiple terapi
+"""
+
+<!-- Di table, untuk kolom "Jenis Terapi", ganti dengan: -->
+<td>
+    {% if registrasi.details.exists %}
+        <!-- Jika ada detail terapi (sistem baru) -->
+        {% for detail in registrasi.details.all %}
+            <span class="badge bg-info mb-1">
+                {{ detail.nama_terapi }}
+                <small>(Rp {{ detail.harga_terapi|floatformat:0 }})</small>
+            </span>
+            {% if not forloop.last %}<br>{% endif %}
+        {% endfor %}
+    {% else %}
+        <!-- Fallback untuk data lama (belum ada detail) -->
+        <span class="badge bg-secondary">
+            {{ registrasi.jenis_terapi.nama_terapi }}
+            <small>(Rp {{ registrasi.harga|floatformat:0 }})</small>
+        </span>
+    {% endif %}
+</td>
+
+<!-- CSS tambahan untuk badge -->
+<style>
+.badge.bg-info {
+    display: inline-block;
+    margin-right: 5px;
+}
+</style>
+
+<!-- ========================================== -->
+<!-- Detail View - Breakdown Terapi (Optional) -->
+<!-- ========================================== -->
+
+<!-- Jika ada halaman detail registrasi, tambahkan section ini: -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h5>Detail Terapi</h5>
+    </div>
+    <div class="card-body">
+        <table class="table table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 40%">Terapi</th>
+                    <th style="width: 20%" class="text-end">Harga</th>
+                    <th style="width: 40%">Remark</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if registrasi.details.exists %}
+                    {% for detail in registrasi.details.all %}
+                    <tr>
+                        <td>{{ detail.nama_terapi }}</td>
+                        <td class="text-end">Rp {{ detail.harga_terapi|floatformat:0|intcomma }}</td>
+                        <td>
+                            {% if detail.remark %}
+                                {{ detail.remark }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <!-- Fallback untuk data lama -->
+                    <tr>
+                        <td>{{ registrasi.jenis_terapi.nama_terapi }}</td>
+                        <td class="text-end">Rp {{ registrasi.harga|floatformat:0|intcomma }}</td>
+                        <td><span class="text-muted">-</span></td>
+                    </tr>
+                {% endif %}
+                
+                <!-- Subtotal Terapi -->
+                <tr class="table-info">
+                    <td><strong>Total Harga Terapi</strong></td>
+                    <td class="text-end"><strong>Rp {{ registrasi.harga|floatformat:0|intcomma }}</strong></td>
+                    <td></td>
+                </tr>
+                
+                <!-- Biaya Transport -->
+                <tr>
+                    <td>Biaya Transport</td>
+                    <td class="text-end">Rp {{ registrasi.biaya_transport|floatformat:0|intcomma }}</td>
+                    <td></td>
+                </tr>
+                
+                <!-- Grand Total -->
+                <tr class="table-success">
+                    <td><strong>TOTAL BAYAR</strong></td>
+                    <td class="text-end"><strong>Rp {{ registrasi.total_bayar|floatformat:0|intcomma }}</strong></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- Update untuk Query di ListView (Python)    -->
+<!-- ========================================== -->
+"""
+Tambahkan prefetch_related untuk optimize query di RegistrasiListView.get_queryset():
+
+def get_queryset(self):
+    qs = super().get_queryset().select_related(
+        'pasien', 'jenis_terapi', 'terapis', 'cabang'
+    ).prefetch_related(
+        'details',  # <-- Tambahkan ini untuk optimize query detail terapi
+        'details__jenis_terapi'
+    ).order_by('-tanggal_kunjungan')
+    
+    # ... rest of the queryset code
+    
+    return qs
+"""

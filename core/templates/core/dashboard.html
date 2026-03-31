@@ -83,6 +83,46 @@
             </div>
           </div>
         </div>
+
+        <!-- Total Terapis Aktif -->
+        <div class="col-12 col-sm-6 col-lg-3">
+          <div class="card stat-card bg-white">
+            <div class="stat-card-icon">
+              <i class="bi bi-person-badge"></i>
+            </div>
+            <div class="card-body stat-card-body">
+              <div class="stat-card-label text-muted">Terapis Aktif</div>
+              <div class="stat-card-value text-primary">{{ total_terapis_aktif }}</div>
+              <small class="text-muted">terapis tersedia</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Registrasi Bulan Ini dengan Trend -->
+        <div class="col-12 col-sm-6 col-lg-3">
+          <div class="card stat-card bg-white">
+            <div class="stat-card-icon">
+              <i class="bi bi-graph-up-arrow"></i>
+            </div>
+            <div class="card-body stat-card-body">
+              <div class="stat-card-label text-muted">Registrasi Bulan Ini</div>
+              <div class="stat-card-value text-success">{{ registrasi_bulan_ini }}</div>
+              {% if trend_registrasi > 0 %}
+              <small class="text-success">
+                <i class="bi bi-arrow-up"></i> +{{ trend_registrasi|floatformat:1 }}% dari bulan lalu
+              </small>
+              {% elif trend_registrasi < 0 %}
+              <small class="text-danger">
+                <i class="bi bi-arrow-down"></i> {{ trend_registrasi|floatformat:1 }}% dari bulan lalu
+              </small>
+              {% else %}
+              <small class="text-muted">
+                <i class="bi bi-dash"></i> Sama dengan bulan lalu
+              </small>
+              {% endif %}
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Quick Actions -->
@@ -200,6 +240,36 @@
             </div>
             <div class="card-body">
               <canvas id="pasienPerCabangChart" height="300"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Revenue 6-Month Trend Chart -->
+        <div class="col-lg-6 mb-4">
+          <div class="card shadow-sm h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+              <h6 class="mb-0 fw-bold">
+                <i class="bi bi-graph-up-arrow text-success"></i>
+                Pendapatan 6 Bulan Terakhir
+              </h6>
+            </div>
+            <div class="card-body">
+              <canvas id="revenueTrendChart" height="300"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top 5 Therapy Types Chart -->
+        <div class="col-lg-6 mb-4">
+          <div class="card shadow-sm h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+              <h6 class="mb-0 fw-bold">
+                <i class="bi bi-trophy text-warning"></i>
+                Top 5 Jenis Terapi Terpopuler
+              </h6>
+            </div>
+            <div class="card-body">
+              <canvas id="topTerapiChart" height="300"></canvas>
             </div>
           </div>
         </div>
@@ -498,6 +568,102 @@ document.addEventListener('DOMContentLoaded', function() {
         plugins: {
           legend: {
             position: 'bottom',
+          }
+        }
+      }
+    });
+  }
+
+  // 7. Revenue 6-Month Trend Chart
+  const revenueTrendCtx = document.getElementById('revenueTrendChart');
+  if (revenueTrendCtx) {
+    new Chart(revenueTrendCtx, {
+      type: 'line',
+      data: {
+        labels: {{ labels_pendapatan|safe }},
+        datasets: [{
+          label: 'Pendapatan (Rp)',
+          data: {{ pendapatan_per_bulan|safe }},
+          borderColor: successColor,
+          backgroundColor: 'rgba(25, 135, 84, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: successColor,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                let label = context.dataset.label || '';
+                if (label) {
+                  label += ': ';
+                }
+                label += 'Rp ' + context.parsed.y.toLocaleString('id-ID');
+                return label;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return 'Rp ' + value.toLocaleString('id-ID');
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 8. Top 5 Therapy Types Chart
+  const topTerapiCtx = document.getElementById('topTerapiChart');
+  if (topTerapiCtx) {
+    new Chart(topTerapiCtx, {
+      type: 'bar',
+      data: {
+        labels: {{ top_terapi_names|safe }},
+        datasets: [{
+          label: 'Jumlah Sesi',
+          data: {{ top_terapi_counts|safe }},
+          backgroundColor: [
+            '#ffc107',
+            '#0d6efd',
+            '#198754',
+            '#dc3545',
+            '#6f42c1'
+          ],
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false,
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: { stepSize: 1 }
           }
         }
       }

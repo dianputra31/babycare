@@ -11,28 +11,53 @@
       <a class="nav-link {% if request.path == '/dashboard/' %}active{% endif %}" href="/dashboard/">
         <i class="bi bi-speedometer2"></i> Dashboard
       </a>
+      {% if request.is_superadmin_user or 'notifikasi_view' in request.user_permissions or 'template_pesan_view' in request.user_permissions %}
+      {% if request.is_superadmin_user or 'notifikasi_view' in request.user_permissions %}
       <a class="nav-link {% if '/notifikasi/' in request.path %}active{% endif %}" href="/notifikasi/">
         <i class="bi bi-bell"></i> Notifikasi
         {% if unread_notifikasi_count > 0 %}
         <span class="badge bg-danger rounded-pill">{{ unread_notifikasi_count }}</span>
         {% endif %}
       </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'template_pesan_view' in request.user_permissions %}
+      <a class="nav-link {% if '/template-pesan/' in request.path %}active{% endif %}" href="{% url 'template_pesan_list' %}">
+        <i class="bi bi-chat-left-text"></i> Template Pesan
+      </a>
+      {% endif %}
+      {% endif %}
+      {% if request.is_superadmin_user or 'registrasi_view' in request.user_permissions %}
       <a class="nav-link {% if '/registrasi/' in request.path %}active{% endif %}" href="/registrasi/">
         <i class="bi bi-calendar-check"></i> Registrasi
       </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'calendar_view' in request.user_permissions %}
+      <a class="nav-link {% if '/calendar/' in request.path %}active{% endif %}" href="{% url 'calendar' %}">
+        <i class="bi bi-calendar3"></i> Kalender Appointment
+      </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'pemasukan_view' in request.user_permissions or 'pengeluaran_view' in request.user_permissions %}
       <hr class="border-secondary my-3">
       <h6 class="text-white text-uppercase mb-3 small">Laporan Keuangan</h6>
+      {% if request.is_superadmin_user or 'pemasukan_view' in request.user_permissions %}
       <a class="nav-link {% if '/pemasukan/' in request.path %}active{% endif %}" href="/pemasukan/">
         <i class="bi bi-cash-stack"></i> Pemasukan
       </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'pengeluaran_view' in request.user_permissions %}
       <a class="nav-link {% if '/pengeluaran/' in request.path %}active{% endif %}" href="/pengeluaran/">
         <i class="bi bi-wallet2"></i> Pengeluaran
       </a>
+      {% endif %}
+      {% endif %}
+      {% if request.is_superadmin_user or 'rekap_view' in request.user_permissions %}
       <hr class="border-secondary my-3">
       <h6 class="text-white text-uppercase mb-3 small">Rekap & Statistik</h6>
       <a class="nav-link {% if '/rekap-tindakan/' in request.path %}active{% endif %}" href="/rekap-tindakan/">
         <i class="bi bi-graph-up"></i> Rekap Tindakan
       </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'pembukuan_view' in request.user_permissions %}
       <hr class="border-secondary my-3">
       <h6 class="text-white text-uppercase mb-3 small">Pembukuan</h6>
       <a class="nav-link {% if '/pembukuan/total-pendapatan/' in request.path %}active{% endif %}" href="/pembukuan/total-pendapatan/">
@@ -50,62 +75,107 @@
       <a class="nav-link {% if '/pembukuan/saldo-akhir/' in request.path %}active{% endif %}" href="/pembukuan/saldo-akhir/">
         <i class="bi bi-calculator"></i> Saldo Akhir
       </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'cabang_view' in request.user_permissions or 'pasien_view' in request.user_permissions or 'terapis_view' in request.user_permissions or 'jenis_terapi_view' in request.user_permissions or 'user_view' in request.user_permissions or request.can_manage_roles %}
       <hr class="border-secondary my-3">
       <h6 class="text-white text-uppercase mb-3 small">Master Data</h6>
+      {% if request.is_superadmin_user or 'cabang_view' in request.user_permissions %}
       <a class="nav-link {% if '/cabang/' in request.path %}active{% endif %}" href="/cabang/">
         <i class="bi bi-building"></i> Cabang
       </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'pasien_view' in request.user_permissions %}
       <a class="nav-link {% if '/pasien/' in request.path %}active{% endif %}" href="/pasien/">
         <i class="bi bi-person"></i> Pasien
       </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'terapis_view' in request.user_permissions %}
       <a class="nav-link {% if '/terapis/' in request.path %}active{% endif %}" href="/terapis/">
         <i class="bi bi-person-badge"></i> Terapis
       </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'jenis_terapi_view' in request.user_permissions %}
       <a class="nav-link {% if '/jenis-terapi/' in request.path %}active{% endif %}" href="/jenis-terapi/">
         <i class="bi bi-bookmark"></i> Jenis Terapi
       </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'user_view' in request.user_permissions %}
       <a class="nav-link {% if '/user/' in request.path %}active{% endif %}" href="/user/">
         <i class="bi bi-people"></i> User
       </a>
+      {% endif %}
+      {% if request.can_manage_roles %}
+      <a class="nav-link {% if '/roles/' in request.path %}active{% endif %}" href="{% url 'role_list' %}">
+        <i class="bi bi-shield-lock"></i> Role & Privileges
+      </a>
+      {% endif %}
+      {% endif %}
+      {% if request.is_superadmin_user or 'settings_view' in request.user_permissions %}
       <hr class="border-secondary my-3">
       <h6 class="text-white text-uppercase mb-3 small">Pengaturan</h6>
       <a class="nav-link {% if '/pengaturan/' in request.path %}active{% endif %}" href="/pengaturan/">
         <i class="bi bi-gear"></i> Pengaturan
       </a>
+      {% endif %}
     </nav>
   </div>
 </div>
 
 <!-- Desktop Sidebar -->
-<div class="col-md-3 col-lg-2 d-none d-md-block sidebar">
-  <div class="p-4">
+<div class="col-md-3 col-lg-2 d-none d-md-block sidebar desktop-sidebar">
+  <div class="p-4 sidebar-inner">
     <h6 class="text-white text-uppercase mb-4 small">Menu</h6>
     <nav class="nav flex-column">
       <a class="nav-link {% if request.path == '/dashboard/' %}active{% endif %}" href="/dashboard/">
         <i class="bi bi-speedometer2"></i> Dashboard
       </a>
+      {% if request.is_superadmin_user or 'notifikasi_view' in request.user_permissions or 'template_pesan_view' in request.user_permissions %}
+      {% if request.is_superadmin_user or 'notifikasi_view' in request.user_permissions %}
       <a class="nav-link {% if '/notifikasi/' in request.path %}active{% endif %}" href="/notifikasi/">
         <i class="bi bi-bell"></i> Notifikasi
         {% if unread_notifikasi_count > 0 %}
         <span class="badge bg-danger rounded-pill">{{ unread_notifikasi_count }}</span>
         {% endif %}
       </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'template_pesan_view' in request.user_permissions %}
+      <a class="nav-link {% if '/template-pesan/' in request.path %}active{% endif %}" href="{% url 'template_pesan_list' %}">
+        <i class="bi bi-chat-left-text"></i> Template Pesan
+      </a>
+      {% endif %}
+      {% endif %}
+      {% if request.is_superadmin_user or 'registrasi_view' in request.user_permissions %}
       <a class="nav-link {% if '/registrasi/' in request.path %}active{% endif %}" href="/registrasi/">
         <i class="bi bi-calendar-check"></i> Registrasi
       </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'calendar_view' in request.user_permissions %}
+      <a class="nav-link {% if '/calendar/' in request.path %}active{% endif %}" href="{% url 'calendar' %}">
+        <i class="bi bi-calendar3"></i> Kalender Appointment
+      </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'pemasukan_view' in request.user_permissions or 'pengeluaran_view' in request.user_permissions %}
       <hr class="border-secondary my-3">
       <h6 class="text-white text-uppercase mb-3 small">Laporan Keuangan</h6>
+      {% if request.is_superadmin_user or 'pemasukan_view' in request.user_permissions %}
       <a class="nav-link {% if '/pemasukan/' in request.path %}active{% endif %}" href="/pemasukan/">
         <i class="bi bi-cash-stack"></i> Pemasukan
       </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'pengeluaran_view' in request.user_permissions %}
       <a class="nav-link {% if '/pengeluaran/' in request.path %}active{% endif %}" href="/pengeluaran/">
         <i class="bi bi-wallet2"></i> Pengeluaran
       </a>
+      {% endif %}
+      {% endif %}
+      {% if request.is_superadmin_user or 'rekap_view' in request.user_permissions %}
       <hr class="border-secondary my-3">
       <h6 class="text-white text-uppercase mb-3 small">Rekap & Statistik</h6>
       <a class="nav-link {% if '/rekap-tindakan/' in request.path %}active{% endif %}" href="/rekap-tindakan/">
         <i class="bi bi-graph-up"></i> Rekap Tindakan
       </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'pembukuan_view' in request.user_permissions %}
       <hr class="border-secondary my-3">
       <h6 class="text-white text-uppercase mb-3 small">Pembukuan</h6>
       <a class="nav-link {% if '/pembukuan/total-pendapatan/' in request.path %}active{% endif %}" href="/pembukuan/total-pendapatan/">
@@ -123,27 +193,48 @@
       <a class="nav-link {% if '/pembukuan/saldo-akhir/' in request.path %}active{% endif %}" href="/pembukuan/saldo-akhir/">
         <i class="bi bi-calculator"></i> Saldo Akhir
       </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'cabang_view' in request.user_permissions or 'pasien_view' in request.user_permissions or 'terapis_view' in request.user_permissions or 'jenis_terapi_view' in request.user_permissions or 'user_view' in request.user_permissions or request.can_manage_roles %}
       <hr class="border-secondary my-3">
       <h6 class="text-white text-uppercase mb-3 small">Master Data</h6>
+      {% if request.is_superadmin_user or 'cabang_view' in request.user_permissions %}
       <a class="nav-link {% if '/cabang/' in request.path %}active{% endif %}" href="/cabang/">
         <i class="bi bi-building"></i> Cabang
       </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'pasien_view' in request.user_permissions %}
       <a class="nav-link {% if '/pasien/' in request.path %}active{% endif %}" href="/pasien/">
         <i class="bi bi-person"></i> Pasien
       </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'terapis_view' in request.user_permissions %}
       <a class="nav-link {% if '/terapis/' in request.path %}active{% endif %}" href="/terapis/">
         <i class="bi bi-person-badge"></i> Terapis
       </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'jenis_terapi_view' in request.user_permissions %}
       <a class="nav-link {% if '/jenis-terapi/' in request.path %}active{% endif %}" href="/jenis-terapi/">
         <i class="bi bi-bookmark"></i> Jenis Terapi
       </a>
+      {% endif %}
+      {% if request.is_superadmin_user or 'user_view' in request.user_permissions %}
       <a class="nav-link {% if '/user/' in request.path %}active{% endif %}" href="/user/">
         <i class="bi bi-people"></i> User
       </a>
+      {% endif %}
+      {% if request.can_manage_roles %}
+      <a class="nav-link {% if '/roles/' in request.path %}active{% endif %}" href="{% url 'role_list' %}">
+        <i class="bi bi-shield-lock"></i> Role & Privileges
+      </a>
+      {% endif %}
+      {% endif %}
+      {% if request.is_superadmin_user or 'settings_view' in request.user_permissions %}
       <hr class="border-secondary my-3">
       <h6 class="text-white text-uppercase mb-3 small">Pengaturan</h6>
       <a class="nav-link {% if '/pengaturan/' in request.path %}active{% endif %}" href="/pengaturan/">
         <i class="bi bi-gear"></i> Pengaturan
-      </a>    </nav>
+      </a>
+      {% endif %}
+    </nav>
   </div>
 </div>

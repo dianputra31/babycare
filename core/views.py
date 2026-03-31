@@ -1,20 +1,103 @@
 # e:/projects/python/django/teguh/babycare/core/views.py
 from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DeleteView, View, FormView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth import authenticate, login
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login, update_session_auth_hash
 from django.contrib.auth.forms import AuthenticationForm
 from django.urls import reverse_lazy
-from django.shortcuts import redirect, render
-from django.db.models import Sum, Q
+from django.shortcuts import redirect, render, get_object_or_404
+from django.db.models import Sum, Q, Count
 from django.db import OperationalError
 from django.utils import timezone
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse, JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.cache import never_cache
+from django.conf import settings
 from datetime import datetime, timedelta
+from functools import wraps
+from urllib.parse import quote
 
-from .models import Pasien, Registrasi, Pemasukan, Pengeluaran, Notifikasi, Terapis, JenisTerapi, Cabang, User
-from .forms import RegistrasiForm, PemasukanForm, PengeluaranForm
+from .models import Pasien, Registrasi, RegistrasiDetail, Pemasukan, Pengeluaran, Notifikasi, Terapis, JenisTerapi, Cabang, User, ProgressTracking, Role, UserRole, TemplatePesan, NOTIFICATION_TYPE_CHOICES
+from .forms import RegistrasiForm, RegistrasiDetailFormSet, PemasukanForm, PengeluaranForm, ProgressTrackingForm, UserPasswordChangeForm, UserCreateForm, UserForm, RoleForm, TemplatePesanForm
+from django.db import transaction
+from decimal import Decimal
+from datetime import date
+from core.services.notification_service import generate_all_notifications
+from core.services.whatsapp_service import whatsapp_service
+from .rbac import DEFAULT_ROLE_BLUEPRINTS, can_manage_roles, is_rbac_bootstrap_mode, seed_default_roles, sync_permission_catalog
+
+
+def _expects_json_response(request):
+    accept_header = request.headers.get('Accept', '')
+    requested_with = request.headers.get('X-Requested-With')
+    return (
+        request.path.startswith('/api/')
+        or request.path.startswith('/ajax/')
+        or requested_with == 'XMLHttpRequest'
+        or 'application/json' in accept_header
+    )
+
+
+def deny_permission_response(request, permission_code=None, message=None):
+    message = message or 'Anda tidak punya akses untuk fitur ini.'
+    if _expects_json_response(request):
+        payload = {
+            'success': False,
+            'message': message,
+        }
+        if permission_code:
+            payload['permission'] = permission_code
+        return JsonResponse(payload, status=403)
+
+    messages.error(request, message)
+    return redirect('dashboard')
+
+
+def require_permission(code, message=None):
+    def decorator(view_func):
+        @login_required
+        @wraps(view_func)
+        def _wrapped(request, *args, **kwargs):
+            if getattr(request.user, 'has_permission', lambda c: False)(code):
+                return view_func(request, *args, **kwargs)
+            return deny_permission_response(request, code, message)
+
+        return _wrapped
+
+    return decorator
+
+
+class PermissionRequiredViewMixin(LoginRequiredMixin):
+    login_url = '/login/'
+    permission_required = None
+    permission_map = None
+    permission_denied_message = 'Anda tidak punya akses untuk fitur ini.'
+
+    def get_required_permission(self):
+        if self.permission_map:
+            return self.permission_map.get(self.request.method, self.permission_required)
+        return self.permission_required
+
+    def has_required_permission(self):
+        permission_code = self.get_required_permission()
+        if not permission_code:
+            return True
+        return getattr(self.request.user, 'has_permission', lambda c: False)(permission_code)
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+
+        if not self.has_required_permission():
+            return deny_permission_response(
+                request,
+                self.get_required_permission(),
+                self.permission_denied_message,
+            )
+
+        return super().dispatch(request, *args, **kwargs)
 
 
 def format_rupiah(value):
@@ -34,6 +117,26 @@ class HealthCheckView(View):
     """Simple health check endpoint."""
     def get(self, request):
         return HttpResponse("OK")
+
+
+@never_cache
+def manifest_json(request):
+    response = render(request, 'pwa/manifest.json', content_type='application/manifest+json')
+    return response
+
+
+@never_cache
+def service_worker(request):
+    response = render(request, 'pwa/sw.js', {
+        'cache_version': 'babycare-v20260331-pwa2'
+    }, content_type='application/javascript')
+    response['Service-Worker-Allowed'] = '/'
+    return response
+
+
+@never_cache
+def offline_view(request):
+    return render(request, 'offline.html')
 
 
 class DebugView(View):
@@ -94,6 +197,40 @@ class DashboardView(LoginRequiredMixin, View):
         ).aggregate(total=Sum('jumlah'))['total'] or 0
         notifikasi_belum_dibaca = Notifikasi.objects.filter(sudah_dibaca=False).count()
         
+        # Additional stats
+        total_terapis_aktif = Terapis.objects.filter(is_active=True, is_deleted=False).count()
+        registrasi_bulan_ini = Registrasi.objects.filter(
+            tanggal_kunjungan__year=today.year,
+            tanggal_kunjungan__month=today.month
+        ).count()
+        
+        # Previous month comparison
+        prev_month = (today.replace(day=1) - timedelta(days=1)).replace(day=1)
+        registrasi_bulan_lalu = Registrasi.objects.filter(
+            tanggal_kunjungan__year=prev_month.year,
+            tanggal_kunjungan__month=prev_month.month
+        ).count()
+        trend_registrasi = ((registrasi_bulan_ini - registrasi_bulan_lalu) / registrasi_bulan_lalu * 100) if registrasi_bulan_lalu > 0 else 0
+        
+        # Chart Data: Pendapatan Bulanan (6 bulan terakhir)
+        pendapatan_per_bulan = []
+        labels_pendapatan = []
+        for i in range(5, -1, -1):
+            month_date = today - timedelta(days=30*i)
+            month_start = month_date.replace(day=1)
+            if i > 0:
+                next_month = (month_start + timedelta(days=32)).replace(day=1)
+                month_end = next_month - timedelta(days=1)
+            else:
+                month_end = today
+            
+            revenue = Pemasukan.objects.filter(
+                tanggal__gte=month_start,
+                tanggal__lte=month_end
+            ).aggregate(total=Sum('jumlah'))['total'] or 0
+            pendapatan_per_bulan.append(float(revenue))
+            labels_pendapatan.append(month_date.strftime('%b %Y'))
+        
         # Chart Data 1: Registrasi per bulan (last 12 months)
         registrasi_per_bulan = []
         labels_bulan = []
@@ -119,7 +256,15 @@ class DashboardView(LoginRequiredMixin, View):
         terapis_names = [t['terapis__nama_terapis'] or 'Unknown' for t in top_terapis]
         terapis_counts = [t['count'] for t in top_terapis]
         
-        # Chart Data 3: Jenis Terapi (by frequency)
+        # Chart Data 3: Top 5 Jenis Terapi (by frequency) - NEW
+        top_jenis_terapi = RegistrasiDetail.objects.values('nama_terapi').annotate(
+            count=Count('id'),
+            revenue=Sum('harga_terapi')
+        ).order_by('-count')[:5]
+        top_terapi_names = [t['nama_terapi'] for t in top_jenis_terapi]
+        top_terapi_counts = [t['count'] for t in top_jenis_terapi]
+        
+        # Chart Data 4: Jenis Terapi (by frequency) - Keep for backward compatibility
         jenis_terapi_data = Registrasi.objects.values('jenis_terapi__nama_terapi').annotate(
             count=Count('id')
         ).order_by('-count')[:8]
@@ -161,7 +306,16 @@ class DashboardView(LoginRequiredMixin, View):
             'registrasi_hari_ini': registrasi_hari_ini,
             'pendapatan_bulan_ini': pendapatan_bulan_ini,
             'notifikasi_belum_dibaca': notifikasi_belum_dibaca,
-            # Chart data
+            'total_terapis_aktif': total_terapis_aktif,
+            'registrasi_bulan_ini': registrasi_bulan_ini,
+            'trend_registrasi': round(trend_registrasi, 1),
+            # Chart data for revenue (6 months)
+            'pendapatan_per_bulan': json.dumps(pendapatan_per_bulan),
+            'labels_pendapatan': json.dumps(labels_pendapatan),
+            # Chart data for top 5 therapy types
+            'top_terapi_names': json.dumps(top_terapi_names),
+            'top_terapi_counts': json.dumps(top_terapi_counts),
+            # Original chart data (keep for compatibility)
             'registrasi_per_bulan': json.dumps(registrasi_per_bulan),
             'labels_bulan': json.dumps(labels_bulan),
             'terapis_names': json.dumps(terapis_names),
@@ -177,11 +331,12 @@ class DashboardView(LoginRequiredMixin, View):
         }
         return render(request, 'core/dashboard.html', context)
 
-class RegistrasiListView(LoginRequiredMixin, ListView):
+class RegistrasiListView(PermissionRequiredViewMixin, ListView):
     model = Registrasi
     template_name = 'core/registrasi_list.html'
     context_object_name = 'registrasis'
     paginate_by = 50
+    permission_required = 'registrasi_view'
 
     def get_queryset(self):
         qs = super().get_queryset().select_related(
@@ -205,7 +360,10 @@ class RegistrasiListView(LoginRequiredMixin, ListView):
         
         user_roles = getattr(self.request, 'user_roles', set())
         if 'terapis' in user_roles:
-            qs = qs.filter(terapis__user=self.request.user)
+            # Terapis model in the active schema has no direct FK to User.
+            # Fall back to cabang scoping to avoid invalid joins.
+            if getattr(self.request, 'cabang_id', None) is not None:
+                qs = qs.filter(cabang_id=self.request.cabang_id)
         else:
             if getattr(self.request, 'cabang_id', None) is not None:
                 qs = qs.filter(cabang_id=self.request.cabang_id)
@@ -268,39 +426,53 @@ class RegistrasiListView(LoginRequiredMixin, ListView):
         from core.models import JenisTerapi, Terapis
         context['jenis_terapi_list'] = JenisTerapi.objects.all()
         context['terapis_list'] = Terapis.objects.all()
+        context['whatsapp_configured'] = whatsapp_service.is_configured()
         
         return context
 
-class RegistrasiCreateView(LoginRequiredMixin, CreateView):
+class RegistrasiCreateView(PermissionRequiredViewMixin, CreateView):
     model = Registrasi
     form_class = RegistrasiForm
     template_name = 'core/registrasi_form.html'
-    success_url = reverse_lazy('dashboard')
+    success_url = reverse_lazy('registrasi_list')
+    permission_required = 'registrasi_create'
 
     def get_initial(self):
         """Set default values for form fields."""
         initial = super().get_initial()
-        from datetime import date
         initial['tanggal_kunjungan'] = date.today()
         return initial
 
+    def get_context_data(self, **kwargs):
+        """Add formset to context"""
+        context = super().get_context_data(**kwargs)
+        if self.request.POST:
+            context['formset'] = RegistrasiDetailFormSet(self.request.POST)
+        else:
+            context['formset'] = RegistrasiDetailFormSet()
+        context['is_edit'] = False
+        return context
+
+    @transaction.atomic
     def form_valid(self, form):
-        """Generate kode_registrasi before saving"""
-        from datetime import date
+        """Handle form and formset validation & saving"""
+        context = self.get_context_data()
+        formset = context['formset']
         
-        # Auto-generate kode_registrasi if not provided
+        # Validate formset
+        if not formset.is_valid():
+            print("Formset errors:", formset.errors)
+            messages.error(self.request, 'Terjadi kesalahan pada data terapi. Periksa kembali input Anda.')
+            return self.form_invalid(form)
+        
+        # Generate kode_registrasi
         if not form.instance.kode_registrasi:
             today = date.today()
             cabang_id = form.instance.cabang_id
-            
-            # Format: P + CABANG_ID(2digit) + MMYY + sequential number (3 digits)
-            # Example: P010326001 (P=prefix, 01=cabang_id, 03=March, 26=2026, 001=first record)
-            # If no cabang: P000326001
             cabang_code = f'{cabang_id:02d}' if cabang_id else '00'
             month_year = today.strftime('%m%y')
             prefix = f'P{cabang_code}{month_year}'
             
-            # Get the highest sequence number for this cabang/month/year
             last_registrasi = Registrasi.objects.filter(
                 kode_registrasi__startswith=prefix,
                 cabang_id=cabang_id
@@ -308,7 +480,6 @@ class RegistrasiCreateView(LoginRequiredMixin, CreateView):
             
             if last_registrasi and last_registrasi.kode_registrasi:
                 try:
-                    # Extract the sequence number from the last kode
                     last_seq = int(last_registrasi.kode_registrasi[-3:])
                     next_seq = last_seq + 1
                 except (ValueError, IndexError):
@@ -316,24 +487,55 @@ class RegistrasiCreateView(LoginRequiredMixin, CreateView):
             else:
                 next_seq = 1
             
-            # Generate the new kode
             form.instance.kode_registrasi = f'{prefix}{next_seq:03d}'
         
-        messages.success(self.request, 'Data registrasi berhasil disimpan!')
+        # Calculate total harga from all terapi in formset
+        total_harga = Decimal('0.00')
+        first_terapi = None
+        for detail_form in formset:
+            if detail_form.cleaned_data and not detail_form.cleaned_data.get('DELETE'):
+                jenis_terapi = detail_form.cleaned_data.get('jenis_terapi')
+                if jenis_terapi:
+                    if first_terapi is None:
+                        first_terapi = jenis_terapi
+                    total_harga += jenis_terapi.harga
+        
+        # Set jenis_terapi (use first therapy) and harga
+        if first_terapi:
+            form.instance.jenis_terapi = first_terapi
+        form.instance.harga = total_harga
+        biaya_transport = form.instance.biaya_transport or Decimal('0.00')
+        form.instance.total_bayar = total_harga + biaya_transport
+        
+        # Save registrasi (header)
+        self.object = form.save()
+        
+        # Save detail terapi
+        formset.instance = self.object
+        details = formset.save(commit=False)
+        
+        for detail in details:
+            detail.registrasi = self.object
+            detail.kode_registrasi = self.object.kode_registrasi
+            detail.nama_terapi = detail.jenis_terapi.nama_terapi
+            detail.harga_terapi = detail.jenis_terapi.harga
+            detail.save()
+        
+        # Delete any marked for deletion
+        for obj in formset.deleted_objects:
+            obj.delete()
+        
+        messages.success(self.request, f'Registrasi berhasil disimpan! Kode: {self.object.kode_registrasi}')
         return super().form_valid(form)
     
     def form_invalid(self, form):
-        # Debug: print form errors to console
         print("Form errors:", form.errors)
-        print("Form cleaned_data:", getattr(form, 'cleaned_data', 'No cleaned data'))
-        
-        # Create detailed error message
         error_messages = []
         for field, errors in form.errors.items():
             if field == '__all__':
                 error_messages.extend(errors)
             else:
-                field_label = form.fields[field].label or field
+                field_label = form.fields.get(field, type('obj', (), {'label': field})).label or field
                 for error in errors:
                     error_messages.append(f"{field_label}: {error}")
         
@@ -344,24 +546,83 @@ class RegistrasiCreateView(LoginRequiredMixin, CreateView):
         
         return super().form_invalid(form)
 
-class RegistrasiEditView(LoginRequiredMixin, UpdateView):
+class RegistrasiEditView(PermissionRequiredViewMixin, UpdateView):
     model = Registrasi
     form_class = RegistrasiForm
     template_name = 'core/registrasi_form.html'
     success_url = reverse_lazy('registrasi_list')
+    permission_required = 'registrasi_edit'
 
+    def get_context_data(self, **kwargs):
+        """Add formset to context"""
+        context = super().get_context_data(**kwargs)
+        if self.request.POST:
+            context['formset'] = RegistrasiDetailFormSet(self.request.POST, instance=self.object)
+        else:
+            context['formset'] = RegistrasiDetailFormSet(instance=self.object)
+        context['is_edit'] = True
+        context['progress_form'] = ProgressTrackingForm()
+        context['progress_entries'] = self.object.progress_entries.select_related('created_by').all()
+        return context
+
+    @transaction.atomic
     def form_valid(self, form):
-        messages.success(self.request, 'Data registrasi berhasil diupdate!')
+        """Handle form and formset validation & saving"""
+        context = self.get_context_data()
+        formset = context['formset']
+        
+        # Validate formset
+        if not formset.is_valid():
+            print("Formset errors:", formset.errors)
+            messages.error(self.request, 'Terjadi kesalahan pada data terapi. Periksa kembali input Anda.')
+            return self.form_invalid(form)
+        
+        # Calculate total harga from all terapi in formset
+        total_harga = Decimal('0.00')
+        first_terapi = None
+        for detail_form in formset:
+            if detail_form.cleaned_data and not detail_form.cleaned_data.get('DELETE'):
+                jenis_terapi = detail_form.cleaned_data.get('jenis_terapi')
+                if jenis_terapi:
+                    if first_terapi is None:
+                        first_terapi = jenis_terapi
+                    total_harga += jenis_terapi.harga
+        
+        # Update jenis_terapi (use first therapy) and harga
+        if first_terapi:
+            form.instance.jenis_terapi = first_terapi
+        form.instance.harga = total_harga
+        biaya_transport = form.instance.biaya_transport or Decimal('0.00')
+        form.instance.total_bayar = total_harga + biaya_transport
+        
+        # Save registrasi (header)
+        self.object = form.save()
+        
+        # Save detail terapi
+        formset.instance = self.object
+        details = formset.save(commit=False)
+        
+        for detail in details:
+            detail.registrasi = self.object
+            detail.kode_registrasi = self.object.kode_registrasi
+            detail.nama_terapi = detail.jenis_terapi.nama_terapi
+            detail.harga_terapi = detail.jenis_terapi.harga
+            detail.save()
+        
+        # Delete any marked for deletion
+        for obj in formset.deleted_objects:
+            obj.delete()
+        
+        messages.success(self.request, f'Registrasi berhasil diupdate! Kode: {self.object.kode_registrasi}')
         return super().form_valid(form)
     
     def form_invalid(self, form):
-        # Create detailed error message
         error_messages = []
         for field, errors in form.errors.items():
             if field == '__all__':
                 error_messages.extend(errors)
             else:
-                field_label = form.fields[field].label or field
+                field_label = form.fields.get(field, type('obj', (), {'label': field})).label or field
                 for error in errors:
                     error_messages.append(f"{field_label}: {error}")
         
@@ -372,11 +633,45 @@ class RegistrasiEditView(LoginRequiredMixin, UpdateView):
         
         return super().form_invalid(form)
 
-class PemasukanCreateView(LoginRequiredMixin, CreateView):
+
+@require_permission('registrasi_send_whatsapp')
+@require_http_methods(["POST"])
+def send_whatsapp_reminder(request, registrasi_id):
+    registrasi = get_object_or_404(
+        Registrasi.objects.select_related('pasien', 'terapis', 'cabang').prefetch_related('details__jenis_terapi'),
+        pk=registrasi_id,
+        is_deleted=False,
+    )
+
+    result = whatsapp_service.send_appointment_reminder(registrasi)
+    status_code = 200 if result['success'] else 400
+    return JsonResponse(result, status=status_code)
+
+
+@require_permission('registrasi_add_progress')
+@require_http_methods(["POST"])
+def add_progress_tracking(request, registrasi_id):
+    registrasi = get_object_or_404(Registrasi, pk=registrasi_id, is_deleted=False)
+    form = ProgressTrackingForm(request.POST, request.FILES)
+
+    if form.is_valid():
+        progress = form.save(commit=False)
+        progress.registrasi = registrasi
+        progress.created_by = request.user
+        progress.save()
+        messages.success(request, 'Progress tracking berhasil ditambahkan.')
+    else:
+        error_text = ' '.join([' '.join(errors) for errors in form.errors.values()])
+        messages.error(request, error_text or 'Gagal menambahkan progress tracking.')
+
+    return redirect('registrasi_edit', pk=registrasi_id)
+
+class PemasukanCreateView(PermissionRequiredViewMixin, CreateView):
     model = Pemasukan
     form_class = PemasukanForm
     template_name = 'core/pemasukan_form.html'
     success_url = reverse_lazy('pemasukan_list')
+    permission_required = 'pemasukan_create'
 
     def get_success_url(self):
         """Check if there's a 'next' parameter and use it, otherwise use default."""
@@ -476,16 +771,57 @@ class PemasukanCreateView(LoginRequiredMixin, CreateView):
         return super().form_invalid(form)
 
 
-class PemasukanListView(LoginRequiredMixin, ListView):
+class PemasukanListView(PermissionRequiredViewMixin, ListView):
     model = Pemasukan
     template_name = 'core/pemasukan_list.html'
     context_object_name = 'pemasukans'
     paginate_by = 25
+    permission_required = 'pemasukan_view'
+
+    def get(self, request, *args, **kwargs):
+        export_format = request.GET.get('export')
+        if export_format == 'excel':
+            return self.export_to_excel(request)
+        if export_format == 'pdf':
+            return self.export_to_pdf(request)
+        return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
+        from datetime import datetime
+
         qs = super().get_queryset().select_related('registrasi__pasien', 'registrasi__jenis_terapi', 'cabang').order_by('-tanggal', '-created_at')
         if getattr(self.request, 'cabang_id', None) is not None:
             qs = qs.filter(cabang_id=self.request.cabang_id)
+
+        tanggal_dari = self.request.GET.get('tanggal_dari')
+        if tanggal_dari:
+            try:
+                qs = qs.filter(tanggal__gte=datetime.strptime(tanggal_dari, '%Y-%m-%d').date())
+            except ValueError:
+                pass
+
+        tanggal_sampai = self.request.GET.get('tanggal_sampai')
+        if tanggal_sampai:
+            try:
+                qs = qs.filter(tanggal__lte=datetime.strptime(tanggal_sampai, '%Y-%m-%d').date())
+            except ValueError:
+                pass
+
+        cabang_id = self.request.GET.get('cabang_id')
+        if cabang_id and getattr(self.request, 'cabang_id', None) is None:
+            qs = qs.filter(cabang_id=cabang_id)
+
+        metode_pembayaran = self.request.GET.get('metode_pembayaran')
+        if metode_pembayaran:
+            qs = qs.filter(metode_pembayaran=metode_pembayaran)
+
+        keyword = (self.request.GET.get('keyword') or '').strip()
+        if keyword:
+            qs = qs.filter(
+                Q(keterangan__icontains=keyword)
+                | Q(registrasi__pasien__nama_anak__icontains=keyword)
+                | Q(registrasi__kode_registrasi__icontains=keyword)
+            )
         return qs
     
     def get_context_data(self, **kwargs):
@@ -495,14 +831,159 @@ class PemasukanListView(LoginRequiredMixin, ListView):
         qs = self.get_queryset()
         total = qs.aggregate(total=Sum('jumlah'))['total'] or 0
         context['total_pemasukan'] = total
+        context['tanggal_dari'] = self.request.GET.get('tanggal_dari', '')
+        context['tanggal_sampai'] = self.request.GET.get('tanggal_sampai', '')
+        context['cabang_id'] = self.request.GET.get('cabang_id', '')
+        context['metode_pembayaran'] = self.request.GET.get('metode_pembayaran', '')
+        context['keyword'] = self.request.GET.get('keyword', '')
+        context['cabang_list'] = Cabang.objects.all().order_by('nama_cabang')
+        context['metode_choices'] = (
+            ('TUNAI', 'Tunai'),
+            ('TRANSFER', 'Transfer'),
+            ('QRIS', 'QRIS'),
+            ('DEBIT', 'Debit'),
+            ('KREDIT', 'Kredit'),
+        )
         return context
 
+    def export_to_excel(self, request):
+        from openpyxl import Workbook
+        from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
-class PemasukanEditView(LoginRequiredMixin, UpdateView):
+        queryset = self.get_queryset()
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = 'Pemasukan'
+
+        sheet.column_dimensions['A'].width = 14
+        sheet.column_dimensions['B'].width = 18
+        sheet.column_dimensions['C'].width = 28
+        sheet.column_dimensions['D'].width = 28
+        sheet.column_dimensions['E'].width = 18
+        sheet.column_dimensions['F'].width = 16
+        sheet.column_dimensions['G'].width = 22
+        sheet.column_dimensions['H'].width = 36
+
+        header_fill = PatternFill(start_color='198754', end_color='198754', fill_type='solid')
+        header_font = Font(color='FFFFFF', bold=True)
+        border = Border(
+            left=Side(style='thin', color='D1D5DB'),
+            right=Side(style='thin', color='D1D5DB'),
+            top=Side(style='thin', color='D1D5DB'),
+            bottom=Side(style='thin', color='D1D5DB'),
+        )
+
+        sheet.merge_cells('A1:H1')
+        sheet['A1'] = 'LAPORAN PEMASUKAN'
+        sheet['A1'].font = Font(size=14, bold=True)
+        sheet['A1'].alignment = Alignment(horizontal='center')
+
+        sheet.merge_cells('A2:H2')
+        sheet['A2'] = f"Diekspor: {timezone.localtime().strftime('%d %B %Y %H:%M')}"
+        sheet['A2'].alignment = Alignment(horizontal='center')
+
+        headers = ['Tanggal', 'Kode', 'Pasien', 'Cabang', 'Jumlah', 'Metode', 'Kasir', 'Keterangan']
+        for index, label in enumerate(headers, start=1):
+            cell = sheet.cell(row=4, column=index, value=label)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.border = border
+            cell.alignment = Alignment(horizontal='center')
+
+        for row_index, item in enumerate(queryset, start=5):
+            pasien = item.registrasi.pasien.nama_anak if item.registrasi and item.registrasi.pasien else '-'
+            kode = item.registrasi.kode_registrasi if item.registrasi else '-'
+            kasir = item.created_by.full_name if item.created_by and item.created_by.full_name else (item.created_by.username if item.created_by else '-')
+            row_values = [
+                item.tanggal.strftime('%d/%m/%Y') if item.tanggal else '-',
+                kode,
+                pasien,
+                item.cabang.nama_cabang if item.cabang else '-',
+                float(item.jumlah or 0),
+                item.metode_pembayaran or '-',
+                kasir,
+                item.keterangan or '-',
+            ]
+            for column_index, value in enumerate(row_values, start=1):
+                cell = sheet.cell(row=row_index, column=column_index, value=value)
+                cell.border = border
+                if column_index == 5:
+                    cell.number_format = '#,##0'
+
+        total_row = queryset.count() + 5
+        sheet.cell(row=total_row, column=1, value='Total').font = Font(bold=True)
+        sheet.cell(row=total_row, column=5, value=float(queryset.aggregate(total=Sum('jumlah'))['total'] or 0)).font = Font(bold=True)
+        sheet.cell(row=total_row, column=5).number_format = '#,##0'
+
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="pemasukan_{timezone.now().strftime("%Y%m%d_%H%M%S")}.xlsx"'
+        workbook.save(response)
+        return response
+
+    def export_to_pdf(self, request):
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4, landscape
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib.units import mm
+        from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+        queryset = self.get_queryset()
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="pemasukan_{timezone.now().strftime("%Y%m%d_%H%M%S")}.pdf"'
+
+        document = SimpleDocTemplate(response, pagesize=landscape(A4), leftMargin=12 * mm, rightMargin=12 * mm, topMargin=12 * mm, bottomMargin=12 * mm)
+        styles = getSampleStyleSheet()
+        elements = [
+            Paragraph('Laporan Pemasukan', styles['Title']),
+            Paragraph(f"Diekspor: {timezone.localtime().strftime('%d %B %Y %H:%M')}", styles['Normal']),
+            Spacer(1, 10),
+        ]
+
+        data = [[
+            'Tanggal', 'Kode', 'Pasien', 'Cabang', 'Jumlah', 'Metode', 'Kasir', 'Keterangan'
+        ]]
+        for item in queryset:
+            pasien = item.registrasi.pasien.nama_anak if item.registrasi and item.registrasi.pasien else '-'
+            kode = item.registrasi.kode_registrasi if item.registrasi else '-'
+            kasir = item.created_by.full_name if item.created_by and item.created_by.full_name else (item.created_by.username if item.created_by else '-')
+            data.append([
+                item.tanggal.strftime('%d/%m/%Y') if item.tanggal else '-',
+                kode,
+                pasien,
+                item.cabang.nama_cabang if item.cabang else '-',
+                format_rupiah(item.jumlah or 0),
+                item.metode_pembayaran or '-',
+                kasir,
+                (item.keterangan or '-')[:70],
+            ])
+
+        data.append(['', '', '', 'Total', format_rupiah(queryset.aggregate(total=Sum('jumlah'))['total'] or 0), '', '', ''])
+
+        table = Table(data, repeatRows=1, colWidths=[22 * mm, 26 * mm, 42 * mm, 32 * mm, 26 * mm, 24 * mm, 30 * mm, 58 * mm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#198754')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+            ('BACKGROUND', (0, 1), (-1, -2), colors.white),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#ECFDF3')),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+        ]))
+        elements.append(table)
+        document.build(elements)
+        return response
+
+
+class PemasukanEditView(PermissionRequiredViewMixin, UpdateView):
     model = Pemasukan
     form_class = PemasukanForm
     template_name = 'core/pemasukan_form.html'
     success_url = reverse_lazy('pemasukan_list')
+    permission_required = 'pemasukan_edit'
 
     def get_form(self, form_class=None):
         """Override to filter registrasi queryset - only show unpaid/partially paid registrations."""
@@ -564,16 +1045,53 @@ class PemasukanEditView(LoginRequiredMixin, UpdateView):
         return super().form_invalid(form)
 
 
-class PengeluaranListView(LoginRequiredMixin, ListView):
+class PengeluaranListView(PermissionRequiredViewMixin, ListView):
     model = Pengeluaran
     template_name = 'core/pengeluaran_list.html'
     context_object_name = 'pengeluarans'
     paginate_by = 25
+    permission_required = 'pengeluaran_view'
+
+    def get(self, request, *args, **kwargs):
+        export_format = request.GET.get('export')
+        if export_format == 'excel':
+            return self.export_to_excel(request)
+        if export_format == 'pdf':
+            return self.export_to_pdf(request)
+        return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
+        from datetime import datetime
+
         qs = super().get_queryset().order_by('-tanggal', '-created_at')
         if getattr(self.request, 'cabang_id', None) is not None:
             qs = qs.filter(cabang_id=self.request.cabang_id)
+
+        tanggal_dari = self.request.GET.get('tanggal_dari')
+        if tanggal_dari:
+            try:
+                qs = qs.filter(tanggal__gte=datetime.strptime(tanggal_dari, '%Y-%m-%d').date())
+            except ValueError:
+                pass
+
+        tanggal_sampai = self.request.GET.get('tanggal_sampai')
+        if tanggal_sampai:
+            try:
+                qs = qs.filter(tanggal__lte=datetime.strptime(tanggal_sampai, '%Y-%m-%d').date())
+            except ValueError:
+                pass
+
+        cabang_id = self.request.GET.get('cabang_id')
+        if cabang_id and getattr(self.request, 'cabang_id', None) is None:
+            qs = qs.filter(cabang_id=cabang_id)
+
+        kategori = (self.request.GET.get('kategori') or '').strip()
+        if kategori:
+            qs = qs.filter(kategori=kategori)
+
+        keyword = (self.request.GET.get('keyword') or '').strip()
+        if keyword:
+            qs = qs.filter(Q(keterangan__icontains=keyword) | Q(kategori__icontains=keyword))
         return qs
     
     def get_context_data(self, **kwargs):
@@ -583,14 +1101,141 @@ class PengeluaranListView(LoginRequiredMixin, ListView):
         qs = self.get_queryset()
         total = qs.aggregate(total=Sum('jumlah'))['total'] or 0
         context['total_pengeluaran'] = total
+        context['tanggal_dari'] = self.request.GET.get('tanggal_dari', '')
+        context['tanggal_sampai'] = self.request.GET.get('tanggal_sampai', '')
+        context['cabang_id'] = self.request.GET.get('cabang_id', '')
+        context['kategori'] = self.request.GET.get('kategori', '')
+        context['keyword'] = self.request.GET.get('keyword', '')
+        context['cabang_list'] = Cabang.objects.all().order_by('nama_cabang')
+        context['kategori_choices'] = Pengeluaran.objects.exclude(kategori__isnull=True).exclude(kategori__exact='').values_list('kategori', flat=True).distinct().order_by('kategori')
         return context
 
+    def export_to_excel(self, request):
+        from openpyxl import Workbook
+        from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
-class PengeluaranCreateView(LoginRequiredMixin, CreateView):
+        queryset = self.get_queryset().select_related('cabang', 'created_by')
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = 'Pengeluaran'
+
+        sheet.column_dimensions['A'].width = 14
+        sheet.column_dimensions['B'].width = 24
+        sheet.column_dimensions['C'].width = 18
+        sheet.column_dimensions['D'].width = 18
+        sheet.column_dimensions['E'].width = 20
+        sheet.column_dimensions['F'].width = 40
+
+        header_fill = PatternFill(start_color='DC3545', end_color='DC3545', fill_type='solid')
+        header_font = Font(color='FFFFFF', bold=True)
+        border = Border(
+            left=Side(style='thin', color='D1D5DB'),
+            right=Side(style='thin', color='D1D5DB'),
+            top=Side(style='thin', color='D1D5DB'),
+            bottom=Side(style='thin', color='D1D5DB'),
+        )
+
+        sheet.merge_cells('A1:F1')
+        sheet['A1'] = 'LAPORAN PENGELUARAN'
+        sheet['A1'].font = Font(size=14, bold=True)
+        sheet['A1'].alignment = Alignment(horizontal='center')
+
+        sheet.merge_cells('A2:F2')
+        sheet['A2'] = f"Diekspor: {timezone.localtime().strftime('%d %B %Y %H:%M')}"
+        sheet['A2'].alignment = Alignment(horizontal='center')
+
+        headers = ['Tanggal', 'Kategori', 'Cabang', 'Jumlah', 'Dibuat Oleh', 'Keterangan']
+        for index, label in enumerate(headers, start=1):
+            cell = sheet.cell(row=4, column=index, value=label)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.border = border
+            cell.alignment = Alignment(horizontal='center')
+
+        for row_index, item in enumerate(queryset, start=5):
+            kasir = item.created_by.full_name if item.created_by and item.created_by.full_name else (item.created_by.username if item.created_by else '-')
+            row_values = [
+                item.tanggal.strftime('%d/%m/%Y') if item.tanggal else '-',
+                item.kategori or '-',
+                item.cabang.nama_cabang if item.cabang else '-',
+                float(item.jumlah or 0),
+                kasir,
+                item.keterangan or '-',
+            ]
+            for column_index, value in enumerate(row_values, start=1):
+                cell = sheet.cell(row=row_index, column=column_index, value=value)
+                cell.border = border
+                if column_index == 4:
+                    cell.number_format = '#,##0'
+
+        total_row = queryset.count() + 5
+        sheet.cell(row=total_row, column=1, value='Total').font = Font(bold=True)
+        sheet.cell(row=total_row, column=4, value=float(queryset.aggregate(total=Sum('jumlah'))['total'] or 0)).font = Font(bold=True)
+        sheet.cell(row=total_row, column=4).number_format = '#,##0'
+
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="pengeluaran_{timezone.now().strftime("%Y%m%d_%H%M%S")}.xlsx"'
+        workbook.save(response)
+        return response
+
+    def export_to_pdf(self, request):
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4, landscape
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib.units import mm
+        from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+        queryset = self.get_queryset().select_related('cabang', 'created_by')
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="pengeluaran_{timezone.now().strftime("%Y%m%d_%H%M%S")}.pdf"'
+
+        document = SimpleDocTemplate(response, pagesize=landscape(A4), leftMargin=12 * mm, rightMargin=12 * mm, topMargin=12 * mm, bottomMargin=12 * mm)
+        styles = getSampleStyleSheet()
+        elements = [
+            Paragraph('Laporan Pengeluaran', styles['Title']),
+            Paragraph(f"Diekspor: {timezone.localtime().strftime('%d %B %Y %H:%M')}", styles['Normal']),
+            Spacer(1, 10),
+        ]
+
+        data = [['Tanggal', 'Kategori', 'Cabang', 'Jumlah', 'Dibuat Oleh', 'Keterangan']]
+        for item in queryset:
+            kasir = item.created_by.full_name if item.created_by and item.created_by.full_name else (item.created_by.username if item.created_by else '-')
+            data.append([
+                item.tanggal.strftime('%d/%m/%Y') if item.tanggal else '-',
+                item.kategori or '-',
+                item.cabang.nama_cabang if item.cabang else '-',
+                format_rupiah(item.jumlah or 0),
+                kasir,
+                (item.keterangan or '-')[:90],
+            ])
+
+        data.append(['', '', 'Total', format_rupiah(queryset.aggregate(total=Sum('jumlah'))['total'] or 0), '', ''])
+
+        table = Table(data, repeatRows=1, colWidths=[26 * mm, 38 * mm, 34 * mm, 28 * mm, 38 * mm, 84 * mm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#DC3545')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+            ('BACKGROUND', (0, 1), (-1, -2), colors.white),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#FEF2F2')),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+        ]))
+        elements.append(table)
+        document.build(elements)
+        return response
+
+
+class PengeluaranCreateView(PermissionRequiredViewMixin, CreateView):
     model = Pengeluaran
     form_class = PengeluaranForm
     template_name = 'core/pengeluaran_form.html'
     success_url = reverse_lazy('dashboard')
+    permission_required = 'pengeluaran_create'
 
     def get_initial(self):
         """Set default values for form fields."""
@@ -641,11 +1286,12 @@ class PengeluaranCreateView(LoginRequiredMixin, CreateView):
         return super().form_invalid(form)
 
 
-class PengeluaranEditView(LoginRequiredMixin, UpdateView):
+class PengeluaranEditView(PermissionRequiredViewMixin, UpdateView):
     model = Pengeluaran
     form_class = PengeluaranForm
     template_name = 'core/pengeluaran_form.html'
     success_url = reverse_lazy('pengeluaran_list')
+    permission_required = 'pengeluaran_edit'
 
     def form_valid(self, form):
         obj = form.save()
@@ -673,25 +1319,63 @@ class PengeluaranEditView(LoginRequiredMixin, UpdateView):
 # Master Data Views
 from .models import Pasien, JenisTerapi, Terapis
 
-class PasienListView(LoginRequiredMixin, ListView):
+class PasienListView(PermissionRequiredViewMixin, ListView):
     """List all pasien."""
     model = Pasien
     template_name = 'core/pasien_list.html'
     context_object_name = 'pasiens'
     paginate_by = 25
+    permission_required = 'pasien_view'
     
     def get_queryset(self):
-        qs = super().get_queryset().order_by('-id')
+        qs = super().get_queryset().select_related('cabang').order_by('-id')
         if getattr(self.request, 'cabang_id', None) is not None:
             qs = qs.filter(cabang_id=self.request.cabang_id)
+        
+        # Search by nama_anak or nama_orang_tua or no_wa
+        search_query = self.request.GET.get('search')
+        if search_query:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(nama_anak__icontains=search_query) |
+                Q(nama_orang_tua__icontains=search_query) |
+                Q(no_wa__icontains=search_query) |
+                Q(kode_pasien__icontains=search_query)
+            )
+        
+        # Filter by cabang
+        cabang_id = self.request.GET.get('cabang_id')
+        if cabang_id:
+            qs = qs.filter(cabang_id=cabang_id)
+        
+        # Filter by WhatsApp status
+        has_wa = self.request.GET.get('has_whatsapp')
+        if has_wa == 'true':
+            qs = qs.filter(has_whatsapp=True)
+        elif has_wa == 'false':
+            qs = qs.filter(has_whatsapp=False)
+        
         return qs
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Pass filter values to template
+        context['search_query'] = self.request.GET.get('search', '')
+        context['cabang_id_filter'] = self.request.GET.get('cabang_id', '')
+        context['has_whatsapp_filter'] = self.request.GET.get('has_whatsapp', '')
+        # Get all cabangs for filter dropdown
+        context['cabangs'] = Cabang.objects.all()
+        # Get total count (with filters applied)
+        context['total_pasien'] = self.get_queryset().count()
+        return context
 
-class PasienCreateView(LoginRequiredMixin, CreateView):
+class PasienCreateView(PermissionRequiredViewMixin, CreateView):
     """Create new pasien."""
     model = Pasien
-    fields = ['nama_anak', 'tanggal_lahir', 'jenis_kelamin', 'nama_orang_tua', 'alamat', 'no_wa', 'cabang']
+    fields = ['nama_anak', 'tanggal_lahir', 'jenis_kelamin', 'nama_orang_tua', 'alamat', 'no_wa', 'has_whatsapp', 'cabang']
     template_name = 'core/pasien_form.html'
     success_url = reverse_lazy('pasien_list')
+    permission_required = 'pasien_create'
     
     def get_form(self, form_class=None):
         from django import forms
@@ -704,7 +1388,8 @@ class PasienCreateView(LoginRequiredMixin, CreateView):
         )
         form.fields['nama_orang_tua'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Nama orang tua'})
         form.fields['alamat'].widget = forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Alamat lengkap'})
-        form.fields['no_wa'].widget.attrs.update({'class': 'form-control', 'placeholder': '08xx-xxxx-xxxx'})
+        form.fields['no_wa'].widget.attrs.update({'class': 'form-control', 'placeholder': '08xx-xxxx-xxxx', 'id': 'id_no_wa'})
+        form.fields['has_whatsapp'].widget.attrs.update({'class': 'form-check-input', 'id': 'id_has_whatsapp'})
         form.fields['cabang'].widget.attrs.update({'class': 'form-select'})
         return form
     
@@ -722,13 +1407,14 @@ class PasienCreateView(LoginRequiredMixin, CreateView):
         messages.error(self.request, 'Terjadi kesalahan. Periksa kembali data yang diinput.')
         return super().form_invalid(form)
 
-class PasienEditView(LoginRequiredMixin, UpdateView):
+class PasienEditView(PermissionRequiredViewMixin, UpdateView):
     """Edit existing pasien."""
     model = Pasien
-    fields = ['nama_anak', 'tanggal_lahir', 'jenis_kelamin', 'nama_orang_tua', 'alamat', 'no_wa', 'cabang']
+    fields = ['nama_anak', 'tanggal_lahir', 'jenis_kelamin', 'nama_orang_tua', 'alamat', 'no_wa', 'has_whatsapp', 'cabang']
     template_name = 'core/pasien_form.html'
     context_object_name = 'object'
     pk_url_kwarg = 'pk'
+    permission_required = 'pasien_edit'
     
     def get_success_url(self):
         return reverse_lazy('pasien_list')
@@ -744,7 +1430,8 @@ class PasienEditView(LoginRequiredMixin, UpdateView):
         )
         form.fields['nama_orang_tua'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Nama orang tua'})
         form.fields['alamat'].widget = forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Alamat lengkap'})
-        form.fields['no_wa'].widget.attrs.update({'class': 'form-control', 'placeholder': '08xx-xxxx-xxxx'})
+        form.fields['no_wa'].widget.attrs.update({'class': 'form-control', 'placeholder': '08xx-xxxx-xxxx', 'id': 'id_no_wa'})
+        form.fields['has_whatsapp'].widget.attrs.update({'class': 'form-check-input', 'id': 'id_has_whatsapp'})
         form.fields['cabang'].widget.attrs.update({'class': 'form-select'})
         return form
     
@@ -756,6 +1443,213 @@ class PasienEditView(LoginRequiredMixin, UpdateView):
         messages.error(self.request, 'Terjadi kesalahan. Periksa kembali data yang diinput.')
         return super().form_invalid(form)
 
+@require_permission('pasien_export')
+def export_pasien_excel(request):
+    """Export pasien list to Excel"""
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill
+    from datetime import datetime
+    
+    # Create workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Data Pasien"
+    
+    # Header styling
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=12)
+    header_alignment = Alignment(horizontal="center", vertical="center")
+    
+    # Headers
+    headers = ['No', 'Kode Pasien', 'Nama Anak', 'Tanggal Lahir', 'Usia', 'Jenis Kelamin', 
+               'Nama Orang Tua', 'No. WhatsApp', 'Status WA', 'Alamat', 'Cabang']
+    ws.append(headers)
+    
+    # Style header row
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+    
+    # Get data with same filters as list view
+    qs = Pasien.objects.select_related('cabang').filter(is_deleted=False).order_by('-id')
+    
+    # Apply filters from GET parameters
+    search_query = request.GET.get('search')
+    if search_query:
+        from django.db.models import Q
+        qs = qs.filter(
+            Q(nama_anak__icontains=search_query) |
+            Q(nama_orang_tua__icontains=search_query) |
+            Q(no_wa__icontains=search_query) |
+            Q(kode_pasien__icontains=search_query)
+        )
+    
+    cabang_id = request.GET.get('cabang_id')
+    if cabang_id:
+        qs = qs.filter(cabang_id=cabang_id)
+    
+    has_wa = request.GET.get('has_whatsapp')
+    if has_wa == 'true':
+        qs = qs.filter(has_whatsapp=True)
+    elif has_wa == 'false':
+        qs = qs.filter(has_whatsapp=False)
+    
+    # Fill data
+    for idx, pasien in enumerate(qs, start=1):
+        # Calculate age
+        today = datetime.now().date()
+        age = today.year - pasien.tanggal_lahir.year - ((today.month, today.day) < (pasien.tanggal_lahir.month, pasien.tanggal_lahir.day))
+        
+        row = [
+            idx,
+            pasien.kode_pasien or '-',
+            pasien.nama_anak,
+            pasien.tanggal_lahir.strftime('%d-%m-%Y'),
+            f"{age} tahun",
+            'Laki-laki' if pasien.jenis_kelamin == 'L' else 'Perempuan' if pasien.jenis_kelamin == 'P' else '-',
+            pasien.nama_orang_tua or '-',
+            pasien.no_wa or '-',
+            '✓ Terdaftar' if pasien.has_whatsapp else '✗ Belum',
+            pasien.alamat or '-',
+            pasien.cabang.nama_cabang if pasien.cabang else '-'
+        ]
+        ws.append(row)
+    
+    # Adjust column widths
+    column_widths = [5, 15, 20, 15, 10, 15, 20, 15, 15, 30, 15]
+    for idx, width in enumerate(column_widths, start=1):
+        ws.column_dimensions[chr(64 + idx)].width = width
+    
+    # Create response
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f"Data_Pasien_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    wb.save(response)
+    return response
+
+@require_permission('registrasi_export')
+def export_registrasi_excel(request):
+    """Export registrasi list to Excel"""
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill
+    from datetime import datetime
+    from django.db.models import Sum, F, DecimalField, Case, When
+    
+    # Create workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Data Registrasi"
+    
+    # Header styling
+    header_fill = PatternFill(start_color="667EEA", end_color="667EEA", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=12)
+    header_alignment = Alignment(horizontal="center", vertical="center")
+    
+    # Headers
+    headers = ['No', 'Kode Registrasi', 'Tanggal', 'Pasien', 'Jenis Terapi', 'Terapis', 
+               'Total Bayar', 'Sudah Dibayar', 'Sisa Tagihan', 'Status', 'Cabang']
+    ws.append(headers)
+    
+    # Style header row
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+    
+    # Get data with same filters as list view
+    qs = Registrasi.objects.select_related(
+        'pasien', 'jenis_terapi', 'terapis', 'cabang'
+    ).order_by('-tanggal_kunjungan')
+    
+    # Add payment info annotations
+    qs = qs.annotate(
+        total_paid=Sum('pemasukan__jumlah', output_field=DecimalField())
+    )
+    qs = qs.annotate(
+        sisa_tagihan=Case(
+            When(total_paid__isnull=True, then=F('total_bayar')),
+            default=F('total_bayar') - F('total_paid'),
+            output_field=DecimalField()
+        )
+    )
+    
+    # Apply filters from GET parameters
+    tanggal_dari = request.GET.get('tanggal_dari')
+    tanggal_sampai = request.GET.get('tanggal_sampai')
+    
+    if tanggal_dari:
+        try:
+            tanggal_dari_date = datetime.strptime(tanggal_dari, '%Y-%m-%d').date()
+            qs = qs.filter(tanggal_kunjungan__gte=tanggal_dari_date)
+        except:
+            pass
+    
+    if tanggal_sampai:
+        try:
+            tanggal_sampai_date = datetime.strptime(tanggal_sampai, '%Y-%m-%d').date()
+            qs = qs.filter(tanggal_kunjungan__lte=tanggal_sampai_date)
+        except:
+            pass
+    
+    pasien_query = request.GET.get('pasien_query')
+    if pasien_query:
+        qs = qs.filter(pasien__nama_anak__icontains=pasien_query)
+    
+    jenis_terapi_id = request.GET.get('jenis_terapi_id')
+    if jenis_terapi_id:
+        qs = qs.filter(jenis_terapi_id=jenis_terapi_id)
+    
+    terapis_id = request.GET.get('terapis_id')
+    if terapis_id:
+        qs = qs.filter(terapis_id=terapis_id)
+    
+    # Fill data
+    for idx, reg in enumerate(qs, start=1):
+        total_paid = reg.total_paid or 0
+        sisa = reg.sisa_tagihan or 0
+        status = 'LUNAS' if sisa <= 0 else 'BELUM LUNAS'
+        
+        row = [
+            idx,
+            reg.kode_registrasi or '-',
+            reg.tanggal_kunjungan.strftime('%d-%m-%Y'),
+            reg.pasien.nama_anak,
+            reg.jenis_terapi.nama_terapi,
+            reg.terapis.nama_terapis if reg.terapis else '-',
+            float(reg.total_bayar),
+            float(total_paid),
+            float(sisa),
+            status,
+            reg.cabang.nama_cabang if reg.cabang else '-'
+        ]
+        ws.append(row)
+    
+    # Format currency columns
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=7, max_col=9):
+        for cell in row:
+            cell.number_format = '"Rp "#,##0'
+    
+    # Adjust column widths
+    column_widths = [5, 18, 12, 20, 25, 20, 15, 15, 15, 15, 15]
+    for idx, width in enumerate(column_widths, start=1):
+        ws.column_dimensions[chr(64 + idx)].width = width
+    
+    # Create response
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    filename = f"Data_Registrasi_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    wb.save(response)
+    return response
+
 class TerapisListView(LoginRequiredMixin, ListView):
     """List all terapis."""
     model = Terapis
@@ -764,10 +1658,45 @@ class TerapisListView(LoginRequiredMixin, ListView):
     paginate_by = 25
     
     def get_queryset(self):
-        qs = super().get_queryset().order_by('-id')
+        qs = super().get_queryset().select_related('cabang').order_by('-id')
         if getattr(self.request, 'cabang_id', None) is not None:
             qs = qs.filter(cabang_id=self.request.cabang_id)
+        
+        # Search by nama_terapis or no_hp
+        search_query = self.request.GET.get('search')
+        if search_query:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(nama_terapis__icontains=search_query) |
+                Q(no_hp__icontains=search_query)
+            )
+        
+        # Filter by cabang
+        cabang_id = self.request.GET.get('cabang_id')
+        if cabang_id:
+            qs = qs.filter(cabang_id=cabang_id)
+        
+        # Filter by active status
+        is_active = self.request.GET.get('is_active')
+        if is_active == 'true':
+            qs = qs.filter(is_active=True, is_deleted=False)
+        elif is_active == 'false':
+            qs = qs.filter(is_active=False)
+        
         return qs
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Pass filter values to template
+        context['search_query'] = self.request.GET.get('search', '')
+        context['cabang_id_filter'] = self.request.GET.get('cabang_id', '')
+        context['is_active_filter'] = self.request.GET.get('is_active', '')
+        # Get all cabangs for filter dropdown
+        context['cabangs'] = Cabang.objects.all()
+        # Get total count and active count
+        context['total_terapis'] = self.get_queryset().count()
+        context['total_aktif'] = self.get_queryset().filter(is_active=True, is_deleted=False).count()
+        return context
 
 class TerapisCreateView(LoginRequiredMixin, CreateView):
     """Create new terapis."""
@@ -962,12 +1891,13 @@ class CabangDeleteView(LoginRequiredMixin, DeleteView):
         return response
 
 
-class RekapTindakanListView(LoginRequiredMixin, ListView):
+class RekapTindakanListView(PermissionRequiredViewMixin, ListView):
     """Rekap tindakan with filtering"""
     model = Registrasi
     template_name = 'core/rekap_tindakan_list.html'
     context_object_name = 'rekap_list'
     paginate_by = 50
+    permission_required = 'rekap_view'
 
     def get_queryset(self):
         today = timezone.now().date()
@@ -1040,11 +1970,20 @@ class RekapTindakanListView(LoginRequiredMixin, ListView):
         return context
 
 
-class NotifikasiListView(LoginRequiredMixin, ListView):
+def build_whatsapp_url(phone_number, message_text):
+    formatted_phone = whatsapp_service.format_phone_number(phone_number)
+    if not formatted_phone:
+        return None
+    encoded_message = quote(message_text or '')
+    return f'https://wa.me/{formatted_phone}?text={encoded_message}'
+
+
+class NotifikasiListView(PermissionRequiredViewMixin, ListView):
     model = Notifikasi
     template_name = 'core/notifikasi_list.html'
     context_object_name = 'notifikasi_list'
     paginate_by = 25
+    permission_required = 'notifikasi_view'
     
     def get_queryset(self):
         qs = Notifikasi.objects.select_related('pasien', 'registrasi').order_by('-tanggal_notifikasi', '-created_at')
@@ -1068,16 +2007,27 @@ class NotifikasiListView(LoginRequiredMixin, ListView):
         context['unread_count'] = Notifikasi.objects.filter(sudah_dibaca=False).count()
         context['current_filter'] = self.request.GET.get('filter', 'all')
         context['current_jenis'] = self.request.GET.get('jenis', '')
-        
-        # Get available notification types
-        jenis_list = Notifikasi.objects.values_list('jenis_notifikasi', flat=True).distinct()
-        context['jenis_list'] = [j for j in jenis_list if j]
+        context['jenis_list'] = NOTIFICATION_TYPE_CHOICES
+        context['can_manage_templates'] = self.request.user.has_permission('template_pesan_view')
+        context['can_generate_notifications'] = self.request.user.has_permission('notifikasi_generate')
+        context['can_mark_notifications'] = self.request.user.has_permission('notifikasi_mark_read')
+
+        type_label_map = dict(NOTIFICATION_TYPE_CHOICES)
+        for notif in context['notifikasi_list']:
+            notif.jenis_label = type_label_map.get(notif.jenis_notifikasi, notif.jenis_notifikasi or 'Info')
+            notif.whatsapp_number = getattr(notif.pasien, 'no_wa', None)
+            notif.rendered_message = TemplatePesan.build_message_for_notification(notif)
+            notif.whatsapp_url = None
+            if notif.whatsapp_number and notif.rendered_message:
+                notif.whatsapp_url = build_whatsapp_url(notif.whatsapp_number, notif.rendered_message)
         
         return context
 
 
-class MarkNotifikasiReadView(LoginRequiredMixin, View):
+class MarkNotifikasiReadView(PermissionRequiredViewMixin, View):
     """Mark notification as read via AJAX"""
+    permission_required = 'notifikasi_mark_read'
+
     def post(self, request, pk):
         try:
             notifikasi = Notifikasi.objects.get(pk=pk)
@@ -1088,12 +2038,95 @@ class MarkNotifikasiReadView(LoginRequiredMixin, View):
             return JsonResponse({'success': False, 'error': 'Notifikasi tidak ditemukan'}, status=404)
 
 
-class MarkAllNotifikasiReadView(LoginRequiredMixin, View):
+class MarkAllNotifikasiReadView(PermissionRequiredViewMixin, View):
     """Mark all notifications as read"""
+    permission_required = 'notifikasi_mark_read'
+
     def post(self, request):
         Notifikasi.objects.filter(sudah_dibaca=False).update(sudah_dibaca=True)
         messages.success(request, 'Semua notifikasi telah ditandai sebagai dibaca')
         return redirect('notifikasi_list')
+
+
+class GenerateNotificationsManualView(PermissionRequiredViewMixin, View):
+    """Manually trigger notification generation (birthday, inactive patients, etc)"""
+    permission_required = 'notifikasi_generate'
+
+    def post(self, request):
+        try:
+            result = generate_all_notifications()
+            total_created = result.get('total_created', 0)
+            
+            if total_created > 0:
+                messages.success(
+                    request, 
+                    f'✓ Berhasil membuat {total_created} notifikasi baru! '
+                    f'Cek detail di halaman notifikasi.'
+                )
+            else:
+                messages.info(
+                    request, 
+                    'Tidak ada notifikasi baru yang perlu dibuat saat ini.'
+                )
+        except Exception as e:
+            messages.error(request, f'✗ Gagal generate notifikasi: {str(e)}')
+        
+        return redirect('notifikasi_list')
+
+
+class TemplatePesanListView(PermissionRequiredViewMixin, ListView):
+    model = TemplatePesan
+    template_name = 'core/template_pesan_list.html'
+    context_object_name = 'template_list'
+    permission_required = 'template_pesan_view'
+
+    def get_queryset(self):
+        type_order = {code: index for index, (code, _label) in enumerate(NOTIFICATION_TYPE_CHOICES)}
+        type_labels = dict(NOTIFICATION_TYPE_CHOICES)
+        templates = list(TemplatePesan.objects.all())
+        for item in templates:
+            item.label = type_labels.get(item.tipe_pesan, item.tipe_pesan)
+        templates.sort(key=lambda item: type_order.get(item.tipe_pesan, 999))
+        return templates
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['can_edit_templates'] = self.request.user.has_permission('template_pesan_edit')
+        return context
+
+
+class TemplatePesanCreateView(PermissionRequiredViewMixin, CreateView):
+    model = TemplatePesan
+    form_class = TemplatePesanForm
+    template_name = 'core/template_pesan_form.html'
+    success_url = reverse_lazy('template_pesan_list')
+    permission_required = 'template_pesan_edit'
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Template pesan berhasil dibuat.')
+        return super().form_valid(form)
+
+
+class TemplatePesanEditView(PermissionRequiredViewMixin, UpdateView):
+    model = TemplatePesan
+    form_class = TemplatePesanForm
+    template_name = 'core/template_pesan_form.html'
+    success_url = reverse_lazy('template_pesan_list')
+    permission_required = 'template_pesan_edit'
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Template pesan berhasil diperbarui.')
+        return super().form_valid(form)
+
+
+class TemplatePesanDeleteView(PermissionRequiredViewMixin, View):
+    permission_required = 'template_pesan_edit'
+
+    def post(self, request, pk):
+        template = get_object_or_404(TemplatePesan, pk=pk)
+        template.delete()
+        messages.success(request, 'Template pesan berhasil dihapus.')
+        return redirect('template_pesan_list')
 
 
 # AJAX Views for Quick Create from Modals
@@ -1306,9 +2339,10 @@ class AjaxGetRegistrasiDetailView(LoginRequiredMixin, View):
 # PEMBUKUAN (Accounting) Views
 # ============================================================================
 
-class TotalPendapatanView(LoginRequiredMixin, TemplateView):
+class TotalPendapatanView(PermissionRequiredViewMixin, TemplateView):
     """Total income report"""
     template_name = 'core/pembukuan/total_pendapatan.html'
+    permission_required = 'pembukuan_view'
     
     def get(self, request, *args, **kwargs):
         """Handle both normal view and Excel export"""
@@ -1509,9 +2543,10 @@ class TotalPendapatanView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class TotalPengeluaranView(LoginRequiredMixin, TemplateView):
+class TotalPengeluaranView(PermissionRequiredViewMixin, TemplateView):
     """Total expense report"""
     template_name = 'core/pembukuan/total_pengeluaran.html'
+    permission_required = 'pembukuan_view'
     
     def get(self, request, *args, **kwargs):
         """Handle both normal view and Excel export"""
@@ -1676,9 +2711,10 @@ class TotalPengeluaranView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class RekapPasienTerapisView(LoginRequiredMixin, TemplateView):
+class RekapPasienTerapisView(PermissionRequiredViewMixin, TemplateView):
     """Summary of number of patients per therapist"""
     template_name = 'core/pembukuan/rekap_pasien_terapis.html'
+    permission_required = 'pembukuan_view'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1697,9 +2733,10 @@ class RekapPasienTerapisView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class RekapTransportTerapisView(LoginRequiredMixin, TemplateView):
+class RekapTransportTerapisView(PermissionRequiredViewMixin, TemplateView):
     """Summary of transport money per therapist"""
     template_name = 'core/pembukuan/rekap_transport_terapis.html'
+    permission_required = 'pembukuan_view'
     
     def get_context_data(self, **kwargs):
         import json
@@ -1743,9 +2780,10 @@ class RekapTransportTerapisView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class SaldoAkhirView(LoginRequiredMixin, TemplateView):
+class SaldoAkhirView(PermissionRequiredViewMixin, TemplateView):
     """Final balance report (Total Income - Total Expenses)"""
     template_name = 'core/pembukuan/saldo_akhir.html'
+    permission_required = 'pembukuan_view'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1770,10 +2808,14 @@ class SaldoAkhirView(LoginRequiredMixin, TemplateView):
 # PENGATURAN (SETTINGS)
 # ============================================
 
-class AppSettingsView(LoginRequiredMixin, View):
+class AppSettingsView(PermissionRequiredViewMixin, View):
     """View for managing app settings (font size and logo)."""
     login_url = '/login/'
     template_name = 'core/pengaturan.html'
+    permission_map = {
+        'GET': 'settings_view',
+        'POST': 'settings_edit',
+    }
 
     def get(self, request):
         from .models import AppSettings
@@ -1813,6 +2855,104 @@ class AppSettingsView(LoginRequiredMixin, View):
 # USER MANAGEMENT
 # ============================================
 
+class RoleManagementAccessMixin(LoginRequiredMixin):
+    login_url = '/login/'
+
+    def dispatch(self, request, *args, **kwargs):
+        sync_permission_catalog()
+        if not can_manage_roles(request.user):
+            raise PermissionDenied('Hanya superadmin yang dapat mengelola role dan privileges.')
+        return super().dispatch(request, *args, **kwargs)
+
+
+class RoleListView(RoleManagementAccessMixin, ListView):
+    model = Role
+    template_name = 'core/role_list.html'
+    context_object_name = 'roles'
+
+    def get_queryset(self):
+        return Role.objects.all().annotate(
+            total_permissions=Count('rolepermission__permission_id', distinct=True),
+            total_users=Count('userrole__user_id', distinct=True),
+        ).order_by('nama_role')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['role_blueprints'] = DEFAULT_ROLE_BLUEPRINTS
+        context['bootstrap_mode'] = is_rbac_bootstrap_mode()
+        return context
+
+
+class RoleCreateView(RoleManagementAccessMixin, View):
+    template_name = 'core/role_form.html'
+
+    def get(self, request):
+        form = RoleForm()
+        context = {
+            'form': form,
+            'is_create': True,
+            'permission_groups': form.permission_groups,
+            'selected_permission_ids': form.get_selected_permission_ids(),
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request):
+        form = RoleForm(request.POST)
+        if form.is_valid():
+            role = form.save()
+            messages.success(request, f'Role {role.nama_role} berhasil dibuat.')
+            return redirect('role_list')
+
+        context = {
+            'form': form,
+            'is_create': True,
+            'permission_groups': form.permission_groups,
+            'selected_permission_ids': form.get_selected_permission_ids(),
+        }
+        return render(request, self.template_name, context)
+
+
+class RoleEditView(RoleManagementAccessMixin, View):
+    template_name = 'core/role_form.html'
+
+    def get(self, request, pk):
+        role = get_object_or_404(Role, pk=pk)
+        form = RoleForm(instance=role)
+        context = {
+            'form': form,
+            'is_create': False,
+            'role_obj': role,
+            'permission_groups': form.permission_groups,
+            'selected_permission_ids': form.get_selected_permission_ids(),
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request, pk):
+        role = get_object_or_404(Role, pk=pk)
+        form = RoleForm(request.POST, instance=role)
+        if form.is_valid():
+            role = form.save()
+            messages.success(request, f'Role {role.nama_role} berhasil diperbarui.')
+            return redirect('role_list')
+
+        context = {
+            'form': form,
+            'is_create': False,
+            'role_obj': role,
+            'permission_groups': form.permission_groups,
+            'selected_permission_ids': form.get_selected_permission_ids(),
+        }
+        return render(request, self.template_name, context)
+
+
+class RoleSeedDefaultsView(RoleManagementAccessMixin, View):
+    def post(self, request):
+        result = seed_default_roles()
+        created = ', '.join(result['created']) or '-'
+        updated = ', '.join(result['updated']) or '-'
+        messages.success(request, f'Role rekomendasi berhasil disiapkan. Baru: {created}. Diperbarui: {updated}.')
+        return redirect('role_list')
+
 class UserListView(LoginRequiredMixin, ListView):
     """List all users."""
     model = User
@@ -1821,7 +2961,16 @@ class UserListView(LoginRequiredMixin, ListView):
     paginate_by = 25
 
     def get_queryset(self):
-        return User.objects.all().order_by('-created_at')
+        return User.objects.select_related('cabang').order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        for user in context['users']:
+            user.assigned_role_names = list(
+                Role.objects.filter(userrole__user=user).values_list('nama_role', flat=True)
+            )
+        context['can_manage_roles'] = can_manage_roles(self.request.user)
+        return context
 
 
 class UserCreateView(LoginRequiredMixin, View):
@@ -1830,17 +2979,16 @@ class UserCreateView(LoginRequiredMixin, View):
     template_name = 'core/user_form.html'
 
     def get(self, request):
-        from .forms import UserCreateForm
-        form = UserCreateForm()
+        form = UserCreateForm(current_user=request.user)
         context = {
             'form': form,
             'is_create': True,
+            'can_manage_roles': can_manage_roles(request.user),
         }
         return render(request, self.template_name, context)
 
     def post(self, request):
-        from .forms import UserCreateForm
-        form = UserCreateForm(request.POST)
+        form = UserCreateForm(request.POST, current_user=request.user)
         
         if form.is_valid():
             user = form.save()
@@ -1850,6 +2998,7 @@ class UserCreateView(LoginRequiredMixin, View):
         context = {
             'form': form,
             'is_create': True,
+            'can_manage_roles': can_manage_roles(request.user),
         }
         return render(request, self.template_name, context)
 
@@ -1860,20 +3009,19 @@ class UserEditView(LoginRequiredMixin, View):
     template_name = 'core/user_form.html'
 
     def get(self, request, pk):
-        from .forms import UserForm
         user = User.objects.get(pk=pk)
-        form = UserForm(instance=user)
+        form = UserForm(instance=user, current_user=request.user)
         context = {
             'form': form,
             'is_create': False,
             'user_obj': user,
+            'can_manage_roles': can_manage_roles(request.user),
         }
         return render(request, self.template_name, context)
 
     def post(self, request, pk):
-        from .forms import UserForm
         user = User.objects.get(pk=pk)
-        form = UserForm(request.POST, instance=user)
+        form = UserForm(request.POST, instance=user, current_user=request.user)
         
         if form.is_valid():
             user = form.save()
@@ -1884,6 +3032,7 @@ class UserEditView(LoginRequiredMixin, View):
             'form': form,
             'is_create': False,
             'user_obj': user,
+            'can_manage_roles': can_manage_roles(request.user),
         }
         return render(request, self.template_name, context)
 
@@ -1901,6 +3050,30 @@ class UserToggleActiveView(LoginRequiredMixin, View):
         messages.success(request, f'User {user.username} berhasil {status}!')
         return redirect('user_list')
 
+
+class ChangeOwnPasswordView(LoginRequiredMixin, FormView):
+    """Allow the currently logged-in user to change their own password."""
+    login_url = '/login/'
+    template_name = 'core/change_password.html'
+    form_class = UserPasswordChangeForm
+    success_url = reverse_lazy('change_own_password')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        user = form.save()
+        update_session_auth_hash(self.request, user)
+        messages.success(self.request, 'Password berhasil diubah. Sesi login Anda tetap aktif.')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = 'Edit Password'
+        return context
+
 # ============================================
 # NOTIFICATION GENERATION
 # ============================================
@@ -1908,8 +3081,11 @@ class UserToggleActiveView(LoginRequiredMixin, View):
 class GenerateNotificationsView(LoginRequiredMixin, View):
     """Generate notifications on-demand."""
     login_url = '/login/'
+    permission_required = 'notifikasi_generate'
 
     def post(self, request):
+        if not request.user.has_permission(self.permission_required):
+            return deny_permission_response(request, self.permission_required, 'Anda tidak punya akses untuk generate notifikasi.')
         from core.services.notification_service import generate_all_notifications
         from django.http import JsonResponse
         
@@ -1927,3 +3103,166 @@ class GenerateNotificationsView(LoginRequiredMixin, View):
         except Exception as e:
             messages.error(request, f'Error generating notifications: {str(e)}')
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+# ==========================================
+# API Endpoint untuk Multi-Terapi
+# ==========================================
+
+def api_jenis_terapi_detail(request, pk):
+    """API endpoint untuk get detail jenis terapi (untuk AJAX)"""
+    try:
+        terapi = JenisTerapi.objects.get(pk=pk, is_deleted=False)
+        return JsonResponse({
+            'id': terapi.id,
+            'nama_terapi': terapi.nama_terapi,
+            'harga': float(terapi.harga),
+            'harga_formatted': f'Rp {int(terapi.harga):,}'.replace(',', '.')
+        })
+    except JenisTerapi.DoesNotExist:
+        return JsonResponse({'error': 'Terapi tidak ditemukan'}, status=404)
+
+# ==========================================
+# CALENDAR VIEW
+# ==========================================
+
+class CalendarView(PermissionRequiredViewMixin, TemplateView):
+    """Calendar view for appointment scheduling"""
+    template_name = 'core/calendar.html'
+    permission_required = 'calendar_view'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Get all terapis for filter
+        context['terapis_list'] = Terapis.objects.filter(is_active=True, is_deleted=False).order_by('nama_terapis')
+        # Get all cabangs for filter
+        context['cabang_list'] = Cabang.objects.all().order_by('nama_cabang')
+        return context
+
+@require_permission('calendar_view')
+def calendar_events_api(request):
+    """API endpoint for FullCalendar events (JSON)"""
+    from datetime import datetime
+    import json
+    
+    # Get query parameters
+    start = request.GET.get('start')  # ISO format dari FullCalendar
+    end = request.GET.get('end')
+    terapis_id = request.GET.get('terapis_id')
+    cabang_id = request.GET.get('cabang_id')
+    status_filter = request.GET.get('status_filter')
+    
+    # Base queryset
+    qs = Registrasi.objects.select_related('pasien', 'terapis', 'jenis_terapi', 'cabang').filter(is_deleted=False)
+    
+    # Filter by date range
+    if start:
+        try:
+            start_date = datetime.fromisoformat(start.replace('Z', '+00:00')).date()
+            qs = qs.filter(tanggal_kunjungan__gte=start_date)
+        except:
+            pass
+    
+    if end:
+        try:
+            end_date = datetime.fromisoformat(end.replace('Z', '+00:00')).date()
+            qs = qs.filter(tanggal_kunjungan__lte=end_date)
+        except:
+            pass
+    
+    # Filter by terapis
+    if terapis_id:
+        qs = qs.filter(terapis_id=terapis_id)
+    
+    # Filter by cabang
+    if cabang_id:
+        qs = qs.filter(cabang_id=cabang_id)
+    
+    # Filter by status
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+    
+    # Build events list for FullCalendar
+    events = []
+    for reg in qs:
+        # Determine color based on status - VERY DARK for better contrast
+        color_map = {
+            'BOOKED': '#92400e',      # Very Dark Orange
+            'CONFIRMED': '#1e40af',   # Very Dark Blue
+            'COMPLETED': '#065f46',   # Very Dark Green
+            'CANCELLED': '#991b1b',   # Very Dark Red
+        }
+        color = color_map.get(reg.status, '#1f2937')
+        
+        events.append({
+            'id': reg.id,
+            'title': f"{reg.pasien.nama_anak} - {reg.jenis_terapi.nama_terapi}",
+            'start': reg.tanggal_kunjungan.isoformat(),
+            'backgroundColor': color,
+            'borderColor': color,
+            'extendedProps': {
+                'pasien': reg.pasien.nama_anak,
+                'terapis': reg.terapis.nama_terapis if reg.terapis else 'Belum ditentukan',
+                'terapis_id': reg.terapis.id if reg.terapis else None,
+                'jenis_terapi': reg.jenis_terapi.nama_terapi,
+                'status': reg.status,
+                'cabang': reg.cabang.nama_cabang if reg.cabang else '-',
+                'kode_registrasi': reg.kode_registrasi or '-',
+            }
+        })
+    
+    return JsonResponse(events, safe=False)
+
+@require_permission('registrasi_reschedule')
+@require_http_methods(["POST"])
+def update_registrasi_date_api(request, registrasi_id):
+    """
+    API endpoint to update registrasi date via drag & drop
+    """
+    try:
+        import json
+        from datetime import datetime
+        
+        # Parse request body
+        data = json.loads(request.body)
+        new_date_str = data.get('tanggal_kunjungan')
+        
+        if not new_date_str:
+            return JsonResponse({'success': False, 'message': 'Tanggal tidak valid'}, status=400)
+        
+        # Get registrasi
+        registrasi = Registrasi.objects.get(id=registrasi_id, is_deleted=False)
+        old_date = registrasi.tanggal_kunjungan
+        today = timezone.localdate()
+
+        if old_date < today:
+            return JsonResponse({
+                'success': False,
+                'message': 'Jadwal yang sudah terlewat tidak bisa dipindahkan.'
+            }, status=400)
+        
+        # Parse new date
+        new_date = datetime.strptime(new_date_str, '%Y-%m-%d').date()
+
+        if new_date <= today:
+            return JsonResponse({
+                'success': False,
+                'message': 'Jadwal hanya bisa dipindah ke hari mendatang (H+).'
+            }, status=400)
+        
+        # Update tanggal_kunjungan
+        registrasi.tanggal_kunjungan = new_date
+        registrasi.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Appointment berhasil dipindahkan dari {old_date.strftime("%d %b %Y")} ke {new_date.strftime("%d %b %Y")}',
+            'old_date': old_date.isoformat(),
+            'new_date': new_date.isoformat()
+        })
+        
+    except Registrasi.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Registrasi tidak ditemukan'}, status=404)
+    except ValueError as e:
+        return JsonResponse({'success': False, 'message': f'Format tanggal invalid: {str(e)}'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error: {str(e)}'}, status=500)

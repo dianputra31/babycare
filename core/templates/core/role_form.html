@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if is_create %}Tambah{% else %}Edit{% endif %} Role - Babycare{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <div class="col-md-9 col-lg-10 main-content">
+      <div class="container-fluid py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h1 class="h3 mb-1 text-dark fw-bold">
+              <i class="bi bi-{% if is_create %}plus-circle{% else %}pencil-square{% endif %} text-primary"></i>
+              {% if is_create %}Tambah{% else %}Edit{% endif %} Role
+            </h1>
+            <nav aria-label="breadcrumb">
+              <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'role_list' %}">Role & Privileges</a></li>
+                <li class="breadcrumb-item active">{% if is_create %}Tambah{% else %}Edit{% endif %}</li>
+              </ol>
+            </nav>
+          </div>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-xl-8">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body p-4">
+                <form method="post">
+                  {% csrf_token %}
+
+                  <div class="mb-3">
+                    <label for="{{ form.nama_role.id_for_label }}" class="form-label fw-bold">
+                      {{ form.nama_role.label }} <span class="text-danger">*</span>
+                    </label>
+                    {{ form.nama_role }}
+                    {% if form.nama_role.errors %}
+                      <div class="text-danger small mt-1">{{ form.nama_role.errors }}</div>
+                    {% endif %}
+                  </div>
+
+                  <div class="mb-4">
+                    <label for="{{ form.deskripsi.id_for_label }}" class="form-label fw-bold">
+                      {{ form.deskripsi.label }}
+                    </label>
+                    {{ form.deskripsi }}
+                    {% if form.deskripsi.errors %}
+                      <div class="text-danger small mt-1">{{ form.deskripsi.errors }}</div>
+                    {% endif %}
+                  </div>
+
+                  {% if role_obj and role_obj.nama_role|lower == 'superadmin' or role_obj and role_obj.nama_role|lower == 'owner' %}
+                  <div class="alert alert-danger border-0">
+                    Role ini selalu dianggap full access. Checklist privilege di bawah hanya ditampilkan sebagai referensi.
+                  </div>
+                  {% endif %}
+
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                      <h5 class="mb-1">Daftar Privileges</h5>
+                      <p class="text-muted small mb-0">Kelompokkan akses per modul agar batas role tetap jelas.</p>
+                    </div>
+                  </div>
+
+                  {% if form.permissions.errors %}
+                  <div class="text-danger small mb-3">{{ form.permissions.errors }}</div>
+                  {% endif %}
+
+                  <div class="row g-3">
+                    {% for group in permission_groups %}
+                    <div class="col-lg-6">
+                      <div class="border rounded-3 h-100">
+                        <div class="px-3 py-2 border-bottom bg-light">
+                          <div class="fw-semibold">{{ group.label }}</div>
+                          <div class="small text-muted">{{ group.permissions|length }} privilege</div>
+                        </div>
+                        <div class="p-3">
+                          {% for permission in group.permissions %}
+                          <label class="form-check d-flex align-items-start gap-2 mb-2">
+                            <input class="form-check-input mt-1" type="checkbox" name="permissions" value="{{ permission.id }}" id="perm_{{ permission.id }}"
+                                   {% if permission.id|stringformat:'s' in selected_permission_ids %}checked{% endif %}
+                                   {% if role_obj and role_obj.nama_role|lower == 'superadmin' or role_obj and role_obj.nama_role|lower == 'owner' %}disabled{% endif %}>
+                            <span>
+                              <span class="fw-semibold d-block">{{ permission.label }}</span>
+                              <span class="small text-muted">{{ permission.code }}</span>
+                            </span>
+                          </label>
+                          {% endfor %}
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+
+                  <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                    <a href="{% url 'role_list' %}" class="btn btn-secondary">
+                      <i class="bi bi-x-circle"></i> Batal
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                      <i class="bi bi-check-circle"></i> Simpan Role
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-xl-4">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-info text-white py-3">
+                <h6 class="mb-0 fw-bold">
+                  <i class="bi bi-info-circle"></i> Panduan Batas Role
+                </h6>
+              </div>
+              <div class="card-body">
+                <p class="small mb-2">Gunakan role yang sempit per fungsi kerja. Hindari memberi terlalu banyak privilege ke role harian.</p>
+                <p class="small mb-2"><strong>superadmin</strong> untuk akses penuh semua cabang dan pengaturan user.</p>
+                <p class="small mb-2"><strong>admin operasional</strong> untuk registrasi, pasien, jadwal, dan notifikasi.</p>
+                <p class="small mb-2"><strong>finance</strong> untuk pemasukan, pengeluaran, dan pembukuan.</p>
+                <p class="small mb-0"><strong>viewer</strong> untuk akses baca saja.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

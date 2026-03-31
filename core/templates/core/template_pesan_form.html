@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Edit{% else %}Tambah{% endif %} Template Pesan - Babycare{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <div class="col-md-9 col-lg-10 main-content">
+      <div class="container-fluid py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h1 class="h3 mb-1 text-dark fw-bold">
+              <i class="bi bi-{% if object %}pencil-square{% else %}plus-circle{% endif %} text-primary"></i>
+              {% if object %}Edit{% else %}Tambah{% endif %} Template Pesan
+            </h1>
+            <p class="text-muted mb-0">Template ini akan dipakai untuk tombol follow-up WhatsApp di halaman notifikasi.</p>
+          </div>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-xl-8">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body p-4">
+                <form method="post">
+                  {% csrf_token %}
+
+                  <div class="mb-3">
+                    <label for="{{ form.tipe_pesan.id_for_label }}" class="form-label fw-bold">{{ form.tipe_pesan.label }}</label>
+                    {{ form.tipe_pesan }}
+                    {% if form.tipe_pesan.errors %}
+                    <div class="text-danger small mt-1">{{ form.tipe_pesan.errors }}</div>
+                    {% endif %}
+                  </div>
+
+                  <div class="mb-3">
+                    <label for="{{ form.template_pesan.id_for_label }}" class="form-label fw-bold">{{ form.template_pesan.label }}</label>
+                    {{ form.template_pesan }}
+                    <div class="form-text">{{ form.template_pesan.help_text }}</div>
+                    {% if form.template_pesan.errors %}
+                    <div class="text-danger small mt-1">{{ form.template_pesan.errors }}</div>
+                    {% endif %}
+                  </div>
+
+                  <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                    <a href="{% url 'template_pesan_list' %}" class="btn btn-secondary">
+                      <i class="bi bi-x-circle"></i> Batal
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                      <i class="bi bi-check-circle"></i> Simpan Template
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-xl-4">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-info text-white py-3">
+                <h6 class="mb-0 fw-bold">
+                  <i class="bi bi-lightbulb"></i> Contoh Placeholder
+                </h6>
+              </div>
+              <div class="card-body">
+                <p class="small mb-2"><strong>#pasien</strong> akan diganti dengan nama anak.</p>
+                <p class="small mb-2"><strong>#orang_tua</strong> akan diganti dengan nama orang tua, jika tersedia.</p>
+                <p class="small mb-2"><strong>#tanggal</strong> akan diisi tanggal kunjungan saat ada registrasi terkait.</p>
+                <p class="small mb-2"><strong>#kode_registrasi</strong> akan diisi kode registrasi yang terkait.</p>
+                <p class="small mb-0"><strong>#jenis_notifikasi</strong> akan diisi kode tipe notifikasi aktif.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

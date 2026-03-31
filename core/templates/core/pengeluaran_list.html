@@ -20,9 +20,66 @@
           </h3>
           <p class="text-muted small">Daftar semua pengeluaran operasional</p>
         </div>
-        <a href="/pengeluaran/new/" class="btn btn-primary btn-sm">
-          <i class="bi bi-plus-lg"></i> Input Pengeluaran
-        </a>
+        <div class="d-flex gap-2 flex-wrap justify-content-end">
+          {% with request.GET.urlencode as current_query %}
+          <a href="?{% if current_query %}{{ current_query }}&{% endif %}export=excel" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel"></i> Export Excel
+          </a>
+          <a href="?{% if current_query %}{{ current_query }}&{% endif %}export=pdf" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-file-earmark-pdf"></i> Export PDF
+          </a>
+          {% endwith %}
+          <a href="/pengeluaran/new/" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg"></i> Input Pengeluaran
+          </a>
+        </div>
+      </div>
+
+      <div class="card bg-white mb-4">
+        <div class="card-body">
+          <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-2">
+              <label class="form-label">Dari Tanggal</label>
+              <input type="date" class="form-control form-control-sm" name="tanggal_dari" value="{{ tanggal_dari }}">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Sampai Tanggal</label>
+              <input type="date" class="form-control form-control-sm" name="tanggal_sampai" value="{{ tanggal_sampai }}">
+            </div>
+            {% if not request.cabang_id %}
+            <div class="col-md-2">
+              <label class="form-label">Cabang</label>
+              <select class="form-select form-select-sm" name="cabang_id">
+                <option value="">Semua Cabang</option>
+                {% for cabang in cabang_list %}
+                <option value="{{ cabang.id }}" {% if cabang_id == cabang.id|stringformat:'s' %}selected{% endif %}>{{ cabang.nama_cabang }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            {% endif %}
+            <div class="col-md-2">
+              <label class="form-label">Kategori</label>
+              <select class="form-select form-select-sm" name="kategori">
+                <option value="">Semua Kategori</option>
+                {% for item in kategori_choices %}
+                <option value="{{ item }}" {% if kategori == item %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Cari</label>
+              <input type="text" class="form-control form-control-sm" name="keyword" value="{{ keyword }}" placeholder="Kategori atau keterangan...">
+            </div>
+            <div class="col-12 d-flex gap-2">
+              <button type="submit" class="btn btn-primary btn-sm">
+                <i class="bi bi-funnel"></i> Filter
+              </button>
+              <a href="/pengeluaran/" class="btn btn-secondary btn-sm">
+                <i class="bi bi-arrow-counterclockwise"></i> Reset
+              </a>
+            </div>
+          </form>
+        </div>
       </div>
 
       <!-- Table Card -->
@@ -77,42 +134,19 @@
               </table>
             </div>
 
-            <!-- Pagination -->
-            {% if is_paginated %}
-              <nav aria-label="Page navigation" class="mt-4">
-                <ul class="pagination justify-content-center">
-                  {% if page_obj.has_previous %}
-                    <li class="page-item">
-                      <a class="page-link" href="?page=1">First</a>
-                    </li>
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
-                    </li>
-                  {% endif %}
-
-                  <li class="page-item active">
-                    <span class="page-link">
-                      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                    </span>
-                  </li>
-
-                  {% if page_obj.has_next %}
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
-                    </li>
-                    <li class="page-item">
-                      <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
-                    </li>
-                  {% endif %}
-                </ul>
-              </nav>
-            {% endif %}
+            {% render_pagination page_obj %}
           {% else %}
-            <div class="text-center py-5">
-              <i class="bi bi-inbox" style="font-size: 48px; color: #D1D5DB;"></i>
-              <p class="text-muted mt-3">Belum ada data pengeluaran</p>
-              <a href="/pengeluaran/new/" class="btn btn-primary btn-sm">
-                <i class="bi bi-plus-lg"></i> Input Pengeluaran Pertama
+            <div class="empty-state">
+              <div class="empty-state-icon">
+                <i class="bi bi-receipt"></i>
+              </div>
+              <h3 class="empty-state-title">Belum Ada Data Pengeluaran</h3>
+              <p class="empty-state-description">
+                Kelola pengeluaran bisnis dengan mencatat setiap transaksi keluar.
+              </p>
+              <a href="/pengeluaran/new/" class="empty-state-action">
+                <i class="bi bi-receipt-cutoff"></i>
+                <span>Catat Pengeluaran Pertama</span>
               </a>
             </div>
           {% endif %}

@@ -1,6 +1,54 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block title %}Notifikasi - Babycare{% endblock %}
+
+{% block extra_head %}
+<style>
+  .notification-stack {
+    padding: 16px;
+  }
+
+  .notification-box {
+    border: solid #000 1px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    padding: 16px 18px;
+    background: #ffffff;
+    cursor: pointer;
+  }
+
+  .notification-box.notification-box-unread {
+    background: #f8fafc;
+  }
+
+  .notification-whatsapp-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .notification-template-preview {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 768px) {
+    .notification-stack {
+      padding: 12px;
+    }
+
+    .notification-whatsapp-action {
+      justify-content: center;
+    }
+  }
+</style>
+{% endblock %}
 
 {% block content %}
 {% include 'partials/_navbar.html' %}
@@ -22,23 +70,40 @@
           </h3>
           <p class="text-muted small">Kelola notifikasi dan pengingat</p>
         </div>
-        {% if unread_count > 0 %}
-        <form method="post" action="{% url 'notifikasi_mark_all_read' %}">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-secondary btn-sm">
-            <i class="bi bi-check-all"></i> Tandai Semua Dibaca
-          </button>
-        </form>
-        {% endif %}
+        <div class="d-flex gap-2">
+          {% if can_manage_templates %}
+          <a href="{% url 'template_pesan_list' %}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-chat-left-text"></i> Template Pesan
+          </a>
+          {% endif %}
+          {% if can_generate_notifications %}
+          <form method="post" action="{% url 'generate_notifications_manual' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success btn-sm" title="Generate notifikasi otomatis (ulang tahun, pasien tidak aktif, dll)">
+              <i class="bi bi-arrow-repeat"></i> Generate Notifikasi
+            </button>
+          </form>
+          {% endif %}
+          {% if unread_count > 0 %}
+          {% if can_mark_notifications %}
+          <form method="post" action="{% url 'notifikasi_mark_all_read' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary btn-sm">
+              <i class="bi bi-check-all"></i> Tandai Semua Dibaca
+            </button>
+          </form>
+          {% endif %}
+          {% endif %}
+        </div>
       </div>
 
       <!-- Filter Card -->
       <div class="card bg-white mb-3">
         <div class="card-body">
-          <form method="get" class="row g-3">
+          <form method="get" class="row g-3" id="filterForm">
             <div class="col-md-3">
               <label class="form-label small fw-bold">Status</label>
-              <select name="filter" class="form-select form-select-sm">
+              <select name="filter" class="form-select form-select-sm" id="filterStatus" onchange="this.form.submit()">
                 <option value="all" {% if current_filter == 'all' %}selected{% endif %}>Semua</option>
                 <option value="unread" {% if current_filter == 'unread' %}selected{% endif %}>Belum Dibaca</option>
                 <option value="read" {% if current_filter == 'read' %}selected{% endif %}>Sudah Dibaca</option>
@@ -47,10 +112,10 @@
             
             <div class="col-md-4">
               <label class="form-label small fw-bold">Jenis Notifikasi</label>
-              <select name="jenis" class="form-select form-select-sm">
+              <select name="jenis" class="form-select form-select-sm" id="filterJenis" onchange="this.form.submit()">
                 <option value="">Semua Jenis</option>
-                {% for jenis in jenis_list %}
-                <option value="{{ jenis }}" {% if current_jenis == jenis %}selected{% endif %}>{{ jenis }}</option>
+                {% for jenis_code, jenis_label in jenis_list %}
+                <option value="{{ jenis_code }}" {% if current_jenis == jenis_code %}selected{% endif %}>{{ jenis_label }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -68,15 +133,13 @@
       </div>
 
       <!-- Notifications List -->
-      <div class="card bg-white">
-        <div class="card-body p-0">
+      <div >
+        <div  style="border:solid red 0px;">
           {% if notifikasi_list %}
-            <div class="list-group list-group-flush">
+            <div class="notification-stack">
               {% for notif in notifikasi_list %}
-              <div class="list-group-item list-group-item-action {% if not notif.sudah_dibaca %}bg-light{% endif %}" 
-                   data-notif-id="{{ notif.id }}"
-                   style="cursor: pointer;">
-                <div class="d-flex w-100 justify-content-between align-items-start">
+              <div class="notification-box {% if not notif.sudah_dibaca %}notification-box-unread{% endif %}" data-notif-id="{{ notif.id }}">
+                <div class="d-flex w-100 justify-content-between align-items-start" style="border-radius:10px;border:solid #cdcdcd 1px;margin-top:10px;padding:20px;">
                   <div class="flex-grow-1">
                     <div class="d-flex align-items-center mb-2">
                       {% if not notif.sudah_dibaca %}
@@ -84,6 +147,7 @@
                       {% endif %}
                       
                       <span class="badge bg-info me-2">{{ notif.jenis_notifikasi|default:"Info" }}</span>
+                      <span class="small text-muted me-2">{{ notif.jenis_label }}</span>
                       
                       <small class="text-muted">
                         <i class="bi bi-calendar3"></i> {{ notif.tanggal_notifikasi|date:"d M Y" }}
@@ -105,13 +169,30 @@
                       <i class="bi bi-info-circle"></i> Terkait registrasi: {{ notif.registrasi.kode_registrasi }}
                     </small>
                     {% endif %}
+
+                    {% if notif.whatsapp_url %}
+                    <div class="mt-3 pt-2 border-top">
+                      <a href="{{ notif.whatsapp_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-sm notification-whatsapp-action">
+                        <i class="bi bi-whatsapp"></i> Kirim pesan di WhatsApp ({{ notif.whatsapp_number }})
+                      </a>
+                      <div class="small text-muted mt-2 notification-template-preview">
+                        Template terisi otomatis: {{ notif.rendered_message }}
+                      </div>
+                    </div>
+                    {% elif notif.pasien and notif.pasien.no_wa %}
+                    <div class="small text-muted mt-3 pt-2 border-top">
+                      Nomor WhatsApp tersedia: {{ notif.pasien.no_wa }}, tetapi pesan belum bisa dibuka otomatis.
+                    </div>
+                    {% endif %}
                   </div>
                   
                   <div class="ms-3">
-                    {% if not notif.sudah_dibaca %}
+                    {% if not notif.sudah_dibaca and can_mark_notifications %}
                     <button class="btn btn-sm btn-outline-primary mark-read-btn" data-id="{{ notif.id }}">
                       <i class="bi bi-check"></i> Tandai Dibaca
                     </button>
+                    {% elif not notif.sudah_dibaca %}
+                    <i class="bi bi-circle-fill text-danger" title="Belum dibaca"></i>
                     {% else %}
                     <i class="bi bi-check-circle text-success" title="Sudah dibaca"></i>
                     {% endif %}
@@ -121,34 +202,7 @@
               {% endfor %}
             </div>
 
-            <!-- Pagination -->
-            {% if is_paginated %}
-            <nav class="mt-3 p-3">
-              <ul class="pagination pagination-sm justify-content-center mb-0">
-                {% if page_obj.has_previous %}
-                <li class="page-item">
-                  <a class="page-link" href="?page=1{% if current_filter %}&filter={{ current_filter }}{% endif %}{% if current_jenis %}&jenis={{ current_jenis }}{% endif %}">First</a>
-                </li>
-                <li class="page-item">
-                  <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_filter %}&filter={{ current_filter }}{% endif %}{% if current_jenis %}&jenis={{ current_jenis }}{% endif %}">Previous</a>
-                </li>
-                {% endif %}
-
-                <li class="page-item active">
-                  <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-                </li>
-
-                {% if page_obj.has_next %}
-                <li class="page-item">
-                  <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_filter %}&filter={{ current_filter }}{% endif %}{% if current_jenis %}&jenis={{ current_jenis }}{% endif %}">Next</a>
-                </li>
-                <li class="page-item">
-                  <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if current_filter %}&filter={{ current_filter }}{% endif %}{% if current_jenis %}&jenis={{ current_jenis }}{% endif %}">Last</a>
-                </li>
-                {% endif %}
-              </ul>
-            </nav>
-            {% endif %}
+            {% render_pagination page_obj %}
 
           {% else %}
             <!-- Empty State -->

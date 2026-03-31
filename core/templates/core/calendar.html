@@ -1,0 +1,1498 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Kalender Appointment{% endblock %}
+
+{% block extra_head %}
+<!-- FullCalendar CSS -->
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
+<style>
+    /* Smooth Animations */
+    * {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    /* Calendar Container - Premium Design */
+    #calendar {
+        background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+        padding: 30px;
+        border-radius: 16px;
+        box-shadow: 
+            0 10px 30px rgba(0, 0, 0, 0.08),
+            0 4px 12px rgba(0, 0, 0, 0.05),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(21, 101, 192, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    #calendar::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(21, 101, 192, 0.03) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    
+    /* Filter Section - Premium Card */
+    .filter-section {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafb 100%);
+        padding: 28px;
+        border-radius: 16px;
+        margin-bottom: 28px;
+        box-shadow: 
+            0 8px 24px rgba(0, 0, 0, 0.06),
+            0 2px 8px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(21, 101, 192, 0.08);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .filter-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #1565C0 0%, #0D47A1 50%, #1565C0 100%);
+        background-size: 200% 100%;
+        animation: shimmer 3s linear infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+    }
+    
+    .filter-section .form-label {
+        font-weight: 700;
+        font-size: 12px;
+        color: #1F2937;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .filter-section .form-select {
+        border-radius: 10px;
+        border: 2px solid #e5e7eb;
+        padding: 12px 16px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #374151;
+        background-color: white;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+    
+    .filter-section .form-select:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .filter-section .form-select:focus {
+        border-color: #1565C0;
+        box-shadow: 
+            0 0 0 4px rgba(21, 101, 192, 0.1),
+            0 4px 12px rgba(21, 101, 192, 0.15);
+        transform: translateY(-1px);
+    }
+    
+    .filter-section .btn-primary {
+        background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 12px 24px;
+        font-weight: 700;
+        font-size: 14px;
+        letter-spacing: 0.5px;
+        box-shadow: 
+            0 4px 12px rgba(21, 101, 192, 0.3),
+            0 2px 4px rgba(21, 101, 192, 0.2);
+    }
+    
+    .filter-section .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+            0 8px 20px rgba(21, 101, 192, 0.4),
+            0 4px 8px rgba(21, 101, 192, 0.3);
+    }
+    
+    .filter-section .btn-primary:active {
+        transform: translateY(0);
+    }
+    
+    
+    /* FullCalendar - Premium Overrides */
+    .fc {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    }
+    
+    /* Toolbar - Enhanced */
+    .fc .fc-toolbar {
+        margin-bottom: 24px;
+        padding: 0;
+    }
+    
+    .fc .fc-toolbar-chunk {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    /* Buttons - Premium Style */
+    .fc .fc-button-primary {
+        background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 10px 18px;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.3px;
+        box-shadow: 
+            0 4px 10px rgba(21, 101, 192, 0.25),
+            0 2px 4px rgba(21, 101, 192, 0.15);
+        text-transform: none;
+    }
+    
+    .fc .fc-button-primary:hover {
+        background: linear-gradient(135deg, #0D47A1 0%, #084298 100%);
+        transform: translateY(-2px);
+        box-shadow: 
+            0 8px 16px rgba(21, 101, 192, 0.35),
+            0 4px 8px rgba(21, 101, 192, 0.25);
+    }
+    
+    .fc .fc-button-primary:not(:disabled):active,
+    .fc .fc-button-primary:not(:disabled).fc-button-active {
+        background: linear-gradient(135deg, #084298 0%, #052c65 100%);
+        box-shadow: 
+            inset 0 2px 4px rgba(0, 0, 0, 0.2),
+            0 2px 4px rgba(21, 101, 192, 0.15);
+    }
+    
+    .fc .fc-button-primary:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+    
+    /* Title - Premium Typography with Better Gradient */
+    .fc .fc-toolbar-title {
+        font-size: 32px;
+        font-weight: 900;
+        background: linear-gradient(135deg, #1f2937 0%, #1565C0 80%, #0ea5e9 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        letter-spacing: -1px;
+        text-shadow: none;
+        position: relative;
+    }
+    
+    /* Table Headers - Modern Look */
+    .fc .fc-col-header {
+        background: transparent;
+    }
+    
+    .fc .fc-col-header-cell {
+        background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        border-color: #e5e7eb;
+        padding: 14px 10px;
+        border-radius: 10px 10px 0 0;
+    }
+    
+    .fc .fc-col-header-cell-cushion {
+        color: #1F2937;
+        font-weight: 800;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    /* Day Cells - Premium Grid */
+    .fc .fc-daygrid-day {
+        transition: all 0.2s ease;
+        position: relative;
+    }
+    
+    .fc .fc-daygrid-day:hover {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        cursor: pointer;
+    }
+    
+    .fc .fc-daygrid-day-number {
+        color: #6b7280;
+        font-weight: 700;
+        font-size: 13px;
+        padding: 10px;
+        transition: all 0.2s ease;
+    }
+    
+    .fc .fc-daygrid-day:hover .fc-daygrid-day-number {
+        color: #1565C0;
+        transform: scale(1.1);
+    }
+    
+    /* Today Highlight - Special */
+    .fc .fc-day-today {
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+        position: relative;
+    }
+    
+    .fc .fc-day-today::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #1565C0 0%, #0ea5e9 50%, #1565C0 100%);
+        background-size: 200% 100%;
+        animation: shimmer 2s linear infinite;
+    }
+    
+    .fc .fc-day-today .fc-daygrid-day-number {
+        background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
+        color: white;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        box-shadow: 
+            0 4px 12px rgba(21, 101, 192, 0.4),
+            0 2px 4px rgba(21, 101, 192, 0.3);
+    }
+    
+    /* Events - ULTRA COMPACT & VERY DARK Colors */
+    .fc-event {
+        cursor: move !important; /* Draggable indicator */
+        border: none !important;
+        border-radius: 5px;
+        padding: 3px 5px;
+        margin: 1px 1px;
+        font-size: 10px !important;
+        font-weight: 600;
+        box-shadow: 
+            0 2px 6px rgba(0, 0, 0, 0.2),
+            0 1px 3px rgba(0, 0, 0, 0.15);
+        position: relative;
+        overflow: hidden;
+        letter-spacing: 0px;
+        line-height: 1.15;
+    }
+    
+    /* Drag helper visual feedback */
+    .fc-event-dragging {
+        opacity: 0.6;
+        transform: scale(1.05);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4) !important;
+        cursor: grabbing !important;
+    }
+
+    .fc-event-locked {
+        cursor: not-allowed !important;
+        opacity: 0.72;
+        filter: grayscale(0.15);
+        border: 2px dashed rgba(255, 255, 255, 0.7) !important;
+        position: relative;
+    }
+
+    .fc-event-locked::after {
+        content: 'LOCKED';
+        position: absolute;
+        top: 2px;
+        right: 4px;
+        font-size: 7px;
+        font-weight: 800;
+        letter-spacing: 0.6px;
+        color: rgba(255, 255, 255, 0.95);
+        background: rgba(15, 23, 42, 0.35);
+        padding: 1px 4px;
+        border-radius: 999px;
+        pointer-events: none;
+    }
+
+    .fc-event-today-movable {
+        border: 2px solid rgba(255, 255, 255, 0.85) !important;
+        box-shadow:
+            0 0 0 2px rgba(250, 204, 21, 0.35),
+            0 6px 16px rgba(0, 0, 0, 0.22) !important;
+    }
+
+    .fc-event-today-movable::after {
+        content: 'TODAY';
+        position: absolute;
+        top: 2px;
+        right: 4px;
+        font-size: 7px;
+        font-weight: 800;
+        letter-spacing: 0.6px;
+        color: #1f2937;
+        background: linear-gradient(135deg, #fde68a 0%, #facc15 100%);
+        padding: 1px 4px;
+        border-radius: 999px;
+        pointer-events: none;
+    }
+
+    
+    .fc-event::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+        transition: left 0.6s ease;
+    }
+    
+    .fc-event:hover::before {
+        left: 100%;
+    }
+    
+    .fc-event:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 
+            0 6px 16px rgba(0, 0, 0, 0.25),
+            0 3px 8px rgba(0, 0, 0, 0.2);
+        z-index: 15;
+    }
+    
+    .fc-event .fc-event-title {
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        letter-spacing: 0px;
+        line-height: 1.15;
+        font-size: 10px !important;
+        white-space: nowrap;
+    }
+    
+    .fc-event .fc-event-time {
+        font-weight: 700;
+        font-size: 9px !important;
+        opacity: 0.95;
+    }
+    
+    /* Event Colors - VERY DARK (matching backend colors) */
+    
+    /* Booked - Very Dark Orange */
+    .fc-event[style*="background-color: rgb(146, 64, 14)"],
+    .fc-event[style*="background-color: #92400e"] {
+        background: #92400e !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 6px rgba(146, 64, 14, 0.5), 0 1px 3px rgba(146, 64, 14, 0.4) !important;
+    }
+    
+    /* Confirmed - Very Dark Blue */
+    .fc-event[style*="background-color: rgb(30, 64, 175)"],
+    .fc-event[style*="background-color: #1e40af"] {
+        background: #1e40af !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 6px rgba(30, 64, 175, 0.5), 0 1px 3px rgba(30, 64, 175, 0.4) !important;
+    }
+    
+    /* Completed - Very Dark Green */
+    .fc-event[style*="background-color: rgb(6, 95, 70)"],
+    .fc-event[style*="background-color: #065f46"] {
+        background: #065f46 !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 6px rgba(6, 95, 70, 0.5), 0 1px 3px rgba(6, 95, 70, 0.4) !important;
+    }
+    
+    /* Cancelled - Very Dark Red */
+    .fc-event[style*="background-color: rgb(153, 27, 27)"],
+    .fc-event[style*="background-color: #991b1b"] {
+        background: #991b1b !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 6px rgba(153, 27, 27, 0.5), 0 1px 3px rgba(153, 27, 27, 0.4) !important;
+    }
+    
+    /* Others - Very Dark Gray */
+    .fc-event[style*="background-color: rgb(31, 41, 55)"],
+    .fc-event[style*="background-color: #1f2937"] {
+        background: #1f2937 !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 6px rgba(31, 41, 55, 0.5), 0 1px 3px rgba(31, 41, 55, 0.4) !important;
+    }
+    
+    /* More Events Link - Elegant Button Style */
+    .fc .fc-more-link {
+        color: #1565C0;
+        font-weight: 800;
+        font-size: 12px;
+        padding: 6px 14px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, rgba(21, 101, 192, 0.08) 0%, rgba(21, 101, 192, 0.12) 100%);
+        letter-spacing: 0.3px;
+        transition: all 0.3s ease;
+        display: inline-block;
+        margin-top: 4px;
+        border: 2px solid rgba(21, 101, 192, 0.2);
+    }
+    
+    .fc .fc-more-link:hover {
+        background: linear-gradient(135deg, rgba(21, 101, 192, 0.15) 0%, rgba(21, 101, 192, 0.25) 100%);
+        text-decoration: none;
+        transform: scale(1.08) translateY(-1px);
+        box-shadow: 0 4px 10px rgba(21, 101, 192, 0.2);
+        border-color: rgba(21, 101, 192, 0.4);
+    }
+    
+    /* KILL ALL TABLE BORDERS - Aggressive Override! */
+    .fc *,
+    .fc table,
+    .fc tbody,
+    .fc thead,
+    .fc tr,
+    .fc th,
+    .fc td,
+    .fc-theme-standard td,
+    .fc-theme-standard th,
+    .fc-theme-standard .fc-scrollgrid,
+    .fc .fc-scrollgrid,
+    .fc .fc-scrollgrid table,
+    .fc-scrollgrid-sync-table,
+    .fc-col-header,
+    .fc-daygrid-body,
+    .fc-scrollgrid-section,
+    .fc-scrollgrid-section-body,
+    .fc-scrollgrid-section-header {
+        border: none !important;
+        border-style: none !important;
+        border-width: 0 !important;
+        border-color: transparent !important;
+    }
+    
+    /* Scrollgrid - Clean transparent background */
+    .fc-theme-standard .fc-scrollgrid {
+        background: transparent !important;
+        border-radius: 0 !important;
+    }
+    
+    /* Table spacing for card effect */
+    .fc table {
+        border-spacing: 6px !important;
+        border-collapse: separate !important;
+    }
+    
+    .fc-scrollgrid-section table {
+        border-spacing: 6px !important;
+        border-collapse: separate !important;
+    }
+    
+    .fc-col-header table {
+        border-spacing: 6px 0 !important;
+    }
+    
+    /* Column Headers - Floating Cards */
+    .fc .fc-col-header-cell {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+        border-radius: 12px 12px 0 0 !important;
+        box-shadow: 
+            0 2px 6px rgba(0, 0, 0, 0.08),
+            0 1px 3px rgba(0, 0, 0, 0.05) !important;
+        border: none !important;
+        margin: 0 !important;
+        position: relative;
+    }
+    
+    .fc .fc-scrollgrid-sync-inner {
+        padding: 12px 8px !important;
+    }
+    
+    /* Day Cells - Individual Cards with spacing */
+    .fc .fc-daygrid-day {
+        background: white !important;
+        border-radius: 12px !important;
+        box-shadow: 
+            0 3px 10px rgba(0, 0, 0, 0.08),
+            0 1px 4px rgba(0, 0, 0, 0.06) !important;
+        border: none !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        position: relative;
+        overflow: visible !important;
+    }
+    
+    .fc .fc-daygrid-day:hover {
+        transform: translateY(-6px) scale(1.03) !important;
+        box-shadow: 
+            0 12px 28px rgba(0, 0, 0, 0.15),
+            0 6px 12px rgba(0, 0, 0, 0.1),
+            0 0 0 3px rgba(21, 101, 192, 0.1) !important;
+        z-index: 10 !important;
+    }
+    
+    /* Day Frame - Compact spacing for more events */
+    .fc .fc-daygrid-day-frame {
+        padding: 6px !important;
+        min-height: 85px !important;
+        border: none !important;
+    }
+    
+    /* Day Top (date number container) */
+    .fc .fc-daygrid-day-top {
+        border: none !important;
+        margin-bottom: 2px !important;
+    }
+    
+    /* Events Container */
+    .fc .fc-daygrid-day-events {
+        margin-top: 2px !important;
+    }
+    
+    /* Day Background */
+    .fc .fc-daygrid-day-bg {
+        border: none !important;
+    }
+    
+    /* Other Month Days - More subtle */
+    .fc .fc-day-other {
+        background: linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%) !important;
+        opacity: 0.5 !important;
+    }
+    
+    .fc .fc-day-other:hover {
+        opacity: 0.7 !important;
+    }
+    
+    /* Remove week number borders if shown */
+    .fc .fc-daygrid-week-number {
+        border: none !important;
+    }
+    
+    /* WEEKEND STYLING - Sabtu & Minggu dengan warna khusus */
+    /* Sabtu - Biru muda */
+    .fc .fc-day-sat {
+        background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%) !important;
+        border: 2px solid #7dd3fc !important;
+    }
+    
+    .fc .fc-day-sat:hover {
+        background: linear-gradient(135deg, #bae6fd 0%, #7dd3fc 100%) !important;
+        box-shadow: 
+            0 12px 28px rgba(14, 165, 233, 0.2),
+            0 6px 12px rgba(14, 165, 233, 0.15),
+            0 0 0 3px rgba(14, 165, 233, 0.15) !important;
+    }
+    
+    /* Minggu - Merah muda / Pink */
+    .fc .fc-day-sun {
+        background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%) !important;
+        border: 2px solid #f9a8d4 !important;
+    }
+    
+    .fc .fc-day-sun:hover {
+        background: linear-gradient(135deg, #fbcfe8 0%, #f9a8d4 100%) !important;
+        box-shadow: 
+            0 12px 28px rgba(236, 72, 153, 0.2),
+            0 6px 12px rgba(236, 72, 153, 0.15),
+            0 0 0 3px rgba(236, 72, 153, 0.15) !important;
+    }
+    
+    /* Header Sabtu & Minggu */
+    .fc .fc-col-header-cell.fc-day-sat {
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+    }
+    
+    .fc .fc-col-header-cell.fc-day-sat .fc-col-header-cell-cushion {
+        color: white !important;
+        font-weight: 900 !important;
+    }
+    
+    .fc .fc-col-header-cell.fc-day-sun {
+        background: linear-gradient(135deg, #ec4899 0%, #db2777 100%) !important;
+    }
+    
+    .fc .fc-col-header-cell.fc-day-sun .fc-col-header-cell-cushion {
+        color: white !important;
+        font-weight: 900 !important;
+    }
+    
+    /* Modal - Ultra Premium */
+    #eventModal .modal-content {
+        border-radius: 16px;
+        border: none;
+        overflow: hidden;
+        box-shadow: 
+            0 20px 60px rgba(0, 0, 0, 0.3),
+            0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+    
+    #eventModal .modal-header {
+        background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
+        color: white;
+        border-bottom: none;
+        padding: 24px 28px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    #eventModal .modal-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    }
+    
+    #eventModal .modal-title {
+        font-weight: 800;
+        font-size: 20px;
+        letter-spacing: -0.3px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    #eventModal .btn-close {
+        filter: brightness(0) invert(1);
+        opacity: 0.8;
+        position: relative;
+        z-index: 1;
+    }
+    
+    #eventModal .btn-close:hover {
+        opacity: 1;
+        transform: rotate(90deg);
+    }
+    
+    #eventModal .modal-body {
+        padding: 28px;
+        background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+    }
+    
+    #eventModal .modal-body > div {
+        padding: 16px 0;
+        border-bottom: 2px solid rgba(229, 231, 235, 0.8);
+        transition: all 0.2s ease;
+    }
+    
+    #eventModal .modal-body > div:hover {
+        background: rgba(21, 101, 192, 0.03);
+        padding-left: 8px;
+        border-left: 3px solid #1565C0;
+    }
+    
+    #eventModal .modal-body > div:last-child {
+        border-bottom: none;
+    }
+    
+    #eventModal .modal-body strong {
+        color: #6b7280;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 800;
+        display: block;
+        margin-bottom: 6px;
+    }
+    
+    #eventModal .modal-body .badge {
+        padding: 8px 18px;
+        font-size: 14px;
+        font-weight: 700;
+        border-radius: 24px;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    #eventModal .modal-footer {
+        border-top: 2px solid rgba(229, 231, 235, 0.8);
+        background: linear-gradient(180deg, #fafbfc 0%, #f8f9fa 100%);
+        padding: 20px 28px;
+    }
+    
+    #eventModal .modal-footer .btn {
+        border-radius: 10px;
+        padding: 10px 24px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    #eventModal .modal-footer .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Loading State */
+    .fc .fc-view-harness {
+        position: relative;
+    }
+    
+    /* Header Button */
+    .btn-outline-secondary {
+        border: 2px solid #e5e7eb;
+        color: #374151;
+        font-weight: 700;
+        background: white;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+    
+    .btn-outline-secondary:hover {
+        border-color: #1565C0;
+        color: #1565C0;
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(21, 101, 192, 0.15);
+    }
+    
+    /* Responsive - Mobile First */
+    @media (max-width: 768px) {
+        #calendar {
+            padding: 20px;
+        }
+        
+        .filter-section {
+            padding: 20px;
+        }
+        
+        .filter-section .form-select {
+            font-size: 13px;
+        }
+        
+        .fc .fc-toolbar-title {
+            font-size: 20px;
+        }
+        
+        .fc .fc-button-primary {
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+    <div class="row g-0 min-vh-100">
+        {% include 'partials/_sidebar.html' %}
+
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3 class="h4 mb-1">
+                        <i class="bi bi-calendar3"></i> Kalender Appointment
+                    </h3>
+                    <p class="text-muted small">Jadwal kunjungan dan appointment pasien</p>
+                </div>
+                <a href="{% url 'registrasi_list' %}" class="btn btn-outline-secondary" style="border-radius: 8px; font-weight: 600;">
+                    <i class="bi bi-list-ul"></i> Lihat Daftar
+                </a>
+            </div>
+
+            <!-- Drag & Drop Info Banner -->
+            <div class="alert alert-info d-flex align-items-center mb-3" style="border-radius: 10px; border-left: 4px solid #0dcaf0; background: linear-gradient(135deg, rgba(13, 202, 240, 0.1) 0%, rgba(13, 202, 240, 0.05) 100%);">
+                <i class="bi bi-arrows-move" style="font-size: 1.5rem; margin-right: 12px; color: #0dcaf0;"></i>
+                <div>
+                    <strong>💡 Aturan Pindah Jadwal:</strong> Appointment hanya bisa dipindah jika jadwalnya minimal hari ini, dan tujuan pindah harus ke hari mendatang (H+). Jadwal lampau otomatis dikunci.
+                </div>
+            </div>
+
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <form id="filterForm" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="filterTerapis" class="form-label">🧑‍⚕️ Filter Terapis</label>
+                        <select class="form-select" id="filterTerapis" name="terapis">
+                            <option value="">Semua Terapis</option>
+                            {% for terapis in terapis_list %}
+                            <option value="{{ terapis.id }}">{{ terapis.nama_terapis }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="filterCabang" class="form-label">🏢 Filter Cabang</label>
+                        <select class="form-select" id="filterCabang" name="cabang">
+                            <option value="">Semua Cabang</option>
+                            {% for cabang in cabang_list %}
+                            <option value="{{ cabang.id }}">{{ cabang.nama_cabang }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="filterStatus" class="form-label">📊 Filter Status</label>
+                        <select class="form-select" id="filterStatus" name="status">
+                            <option value="">Semua Status</option>
+                            <option value="BOOKED">📅 Booked</option>
+                            <option value="CONFIRMED">✓ Confirmed</option>
+                            <option value="COMPLETED">✓✓ Completed</option>
+                            <option value="CANCELLED">✗ Cancelled</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="button" class="btn btn-primary w-100" id="applyFilter" style="border-radius: 8px; padding: 10px; font-weight: 600;">
+                            <i class="bi bi-funnel-fill"></i> Terapkan Filter
+                        </button>
+                    </div>
+                </form>
+                
+            </div>
+
+            <!-- Calendar -->
+            <div id='calendar'></div>
+        </div>
+    </div>
+</div>
+
+<!-- Event Detail Modal -->
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 12px; border: none; overflow: hidden;">
+            <div class="modal-header" style="border-bottom: none;">
+                <h5 class="modal-title" id="eventModalLabel">
+                    <i class="bi bi-calendar-event"></i> Detail Appointment
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="eventModalBody">
+                <!-- Event details will be loaded here -->
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid #e5e7eb; background-color: #f8f9fa;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">
+                    <i class="bi bi-x-circle"></i> Tutup
+                </button>
+                <a href="#" id="editEventBtn" class="btn btn-primary" style="border-radius: 8px;">
+                    <i class="bi bi-pencil"></i> Edit Registrasi
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- FullCalendar JS -->
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+
+<script>
+console.log('Calendar script loaded');
+
+function normalizeLocalDate(date) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function formatDateForApi(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function canReschedule(sourceDate, targetDate) {
+    const today = normalizeLocalDate(new Date());
+    const normalizedSource = normalizeLocalDate(sourceDate);
+    const normalizedTarget = normalizeLocalDate(targetDate);
+
+    return normalizedSource >= today && normalizedTarget > today;
+}
+
+function getScheduleState(date) {
+    const today = normalizeLocalDate(new Date());
+    const normalizedDate = normalizeLocalDate(date);
+
+    if (normalizedDate < today) {
+        return 'past';
+    }
+    if (normalizedDate.getTime() === today.getTime()) {
+        return 'today';
+    }
+    return 'future';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM Content Loaded');
+    
+    // Check if FullCalendar is loaded
+    if (typeof FullCalendar === 'undefined') {
+        console.error('FullCalendar is not loaded!');
+        alert('Error: FullCalendar library tidak ter-load. Silakan refresh halaman.');
+        return;
+    }
+    console.log('FullCalendar library loaded successfully');
+    
+    var calendarEl = document.getElementById('calendar');
+    if (!calendarEl) {
+        console.error('Calendar element not found!');
+        return;
+    }
+    console.log('Calendar element found:', calendarEl);
+    
+    var apiUrl = '{% url "calendar_events_api" %}';
+    console.log('API URL:', apiUrl);
+    
+    var calendar;
+    
+    function initCalendar() {
+        console.log('Initializing calendar...');
+        
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            locale: 'id',
+            buttonText: {
+                today: 'Hari Ini',
+                month: 'Bulan',
+                week: 'Minggu',
+                day: 'Hari'
+            },
+            height: 'auto',
+            events: function(info, successCallback, failureCallback) {
+                console.log('Fetching events...');
+                console.log('Date range:', info.startStr, 'to', info.endStr);
+                
+                var params = new URLSearchParams({
+                    start: info.startStr,
+                    end: info.endStr,
+                    terapis_id: document.getElementById('filterTerapis').value || '',
+                    cabang_id: document.getElementById('filterCabang').value || '',
+                    status_filter: document.getElementById('filterStatus').value || ''
+                });
+                
+                console.log('Request URL:', apiUrl + '?' + params.toString());
+                
+                fetch(apiUrl + '?' + params.toString())
+                    .then(response => {
+                        console.log('Response status:', response.status);
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok: ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Events received:', data.length, 'events');
+                        console.log('Event data:', data);
+                        successCallback(data);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching events:', error);
+                        failureCallback(error);
+                        alert('Gagal memuat data appointment: ' + error.message);
+                    });
+            },
+            eventClick: function(info) {
+                console.log('Event clicked:', info.event);
+                var event = info.event;
+                var props = event.extendedProps;
+                var scheduleState = getScheduleState(event.start);
+                var moveStateBadge = '';
+                var moveStateNote = '';
+
+                if (scheduleState === 'past') {
+                    moveStateBadge = '<span class="badge" style="background: linear-gradient(135deg, #c2410c 0%, #ea580c 100%); color: white; font-size: 13px; padding: 8px 14px;">LOCKED</span>';
+                    moveStateNote = '<div class="mt-2 small" style="color: #9a3412; font-weight: 600;">Jadwal lampau tidak bisa dipindahkan dan mode edit dibatasi dari kalender.</div>';
+                } else if (scheduleState === 'today') {
+                    moveStateBadge = '<span class="badge" style="background: linear-gradient(135deg, #facc15 0%, #eab308 100%); color: #1f2937; font-size: 13px; padding: 8px 14px;">TODAY</span>';
+                    moveStateNote = '<div class="mt-2 small" style="color: #a16207; font-weight: 600;">Jadwal hari ini masih bisa dipindahkan, tetapi hanya ke hari mendatang (H+).</div>';
+                } else {
+                    moveStateBadge = '<span class="badge" style="background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%); color: white; font-size: 13px; padding: 8px 14px;">MOVEABLE</span>';
+                    moveStateNote = '<div class="mt-2 small" style="color: #1d4ed8; font-weight: 600;">Jadwal ini bisa dipindahkan ke hari mendatang sesuai aturan kalender.</div>';
+                }
+                
+                // Status badge styling
+                var badgeClass = '';
+                var badgeIcon = '';
+                switch(props.status) {
+                    case 'BOOKED':
+                        badgeClass = 'bg-warning text-dark';
+                        badgeIcon = '📅';
+                        break;
+                    case 'CONFIRMED':
+                        badgeClass = 'bg-primary';
+                        badgeIcon = '✓';
+                        break;
+                    case 'COMPLETED':
+                        badgeClass = 'bg-success';
+                        badgeIcon = '✓✓';
+                        break;
+                    case 'CANCELLED':
+                        badgeClass = 'bg-danger';
+                        badgeIcon = '✗';
+                        break;
+                    default:
+                        badgeClass = 'bg-secondary';
+                        badgeIcon = '•';
+                }
+                
+                // Build modal content
+                var modalBody = `
+                    <div class="mb-3">
+                        <strong>Kode Registrasi</strong>
+                        <div style="font-size: 16px; color: #1F2937; font-weight: 600;">${props.kode_registrasi}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Pasien</strong>
+                        <div style="font-size: 15px; color: #374151;">${props.pasien}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Terapis</strong>
+                        <div style="font-size: 15px; color: #374151;">${props.terapis}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Jenis Terapi</strong>
+                        <div style="font-size: 15px; color: #374151;">${props.jenis_terapi}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Cabang</strong>
+                        <div style="font-size: 15px; color: #374151;">${props.cabang}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Tanggal</strong>
+                        <div style="font-size: 15px; color: #374151;">${new Date(event.start).toLocaleDateString('id-ID', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        })}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Status</strong>
+                        <div>
+                            <span class="badge ${badgeClass}" style="font-size: 14px; padding: 8px 16px;">
+                                ${badgeIcon} ${props.status}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mb-1">
+                        <strong>Status Operasional</strong>
+                        <div class="mt-2">${moveStateBadge}</div>
+                        ${moveStateNote}
+                    </div>
+                `;
+                
+                document.getElementById('eventModalBody').innerHTML = modalBody;
+                var editButton = document.getElementById('editEventBtn');
+                if (scheduleState === 'past') {
+                    editButton.setAttribute('href', '#');
+                    editButton.classList.remove('btn-primary');
+                    editButton.classList.add('btn-secondary', 'disabled');
+                    editButton.setAttribute('aria-disabled', 'true');
+                    editButton.setAttribute('title', 'Jadwal lampau tidak dapat diedit dari kalender');
+                } else {
+                    editButton.setAttribute('href', '/registrasi/' + event.id + '/edit/');
+                    editButton.classList.remove('btn-secondary', 'disabled');
+                    editButton.classList.add('btn-primary');
+                    editButton.removeAttribute('aria-disabled');
+                    editButton.setAttribute('title', 'Edit Registrasi');
+                }
+                
+                var modal = new bootstrap.Modal(document.getElementById('eventModal'));
+                modal.show();
+            },
+            eventDidMount: function(info) {
+                // Add tooltip
+                info.el.title = info.event.title + ' - ' + info.event.extendedProps.status;
+
+                var eventDate = normalizeLocalDate(info.event.start);
+                var today = normalizeLocalDate(new Date());
+                if (eventDate < today) {
+                    info.el.classList.add('fc-event-locked');
+                    info.el.title += ' | Jadwal lampau tidak bisa dipindahkan';
+                } else if (eventDate.getTime() === today.getTime()) {
+                    info.el.classList.add('fc-event-today-movable');
+                    info.el.title += ' | Jadwal hari ini masih bisa dipindah ke H+';
+                }
+                
+                // Force compact font sizing via JavaScript
+                info.el.style.fontSize = '9px';
+                
+                // Target title and time specifically
+                var titleEl = info.el.querySelector('.fc-event-title');
+                var timeEl = info.el.querySelector('.fc-event-time');
+                
+                if (titleEl) {
+                    titleEl.style.fontSize = '9px';
+                }
+                if (timeEl) {
+                    timeEl.style.fontSize = '8px';
+                }
+            },
+            dayCellDidMount: function(info) {
+                // STYLING SETIAP DAY CELL - Compact for more events
+                var dayOfWeek = info.date.getDay(); // 0 = Sunday, 6 = Saturday
+                var el = info.el;
+                
+                // REMOVE ALL BORDERS - No more table look!
+                el.style.border = 'none';
+                el.style.borderRadius = '16px';
+                el.style.margin = '6px';
+                el.style.padding = '8px';
+                el.style.minHeight = '100px';
+                el.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                el.style.position = 'relative';
+                
+                // Weekend styling dengan warna yang lebih soft & elegant
+                if (dayOfWeek === 0) {
+                    // Minggu - Soft Rose Gold
+                    el.style.background = 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)';
+                    el.style.boxShadow = '0 4px 12px rgba(244, 63, 94, 0.08), 0 2px 6px rgba(244, 63, 94, 0.05)';
+                } else if (dayOfWeek === 6) {
+                    // Sabtu - Soft Sky Blue
+                    el.style.background = 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)';
+                    el.style.boxShadow = '0 4px 12px rgba(14, 165, 233, 0.08), 0 2px 6px rgba(14, 165, 233, 0.05)';
+                } else {
+                    // Weekdays - Clean White with subtle shadow
+                    el.style.background = 'linear-gradient(135deg, #ffffff 0%, #fafbfc 100%)';
+                    el.style.boxShadow = '0 3px 10px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.04)';
+                }
+                
+                // Hover effect - akan di-handle oleh CSS
+                el.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-6px) scale(1.02)';
+                    this.style.boxShadow = '0 12px 30px rgba(0, 0, 0, 0.12), 0 6px 14px rgba(0, 0, 0, 0.08), 0 0 0 3px rgba(21, 101, 192, 0.08)';
+                    this.style.zIndex = '10';
+                });
+                
+                el.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                    this.style.zIndex = '1';
+                    
+                    if (dayOfWeek === 0) {
+                        this.style.boxShadow = '0 4px 12px rgba(244, 63, 94, 0.08), 0 2px 6px rgba(244, 63, 94, 0.05)';
+                    } else if (dayOfWeek === 6) {
+                        this.style.boxShadow = '0 4px 12px rgba(14, 165, 233, 0.08), 0 2px 6px rgba(14, 165, 233, 0.05)';
+                    } else {
+                        this.style.boxShadow = '0 3px 10px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.04)';
+                    }
+                });
+                
+                // Style DATE NUMBER - Smaller for more event space
+                var dayNumber = el.querySelector('.fc-daygrid-day-number');
+                if (dayNumber) {
+                    dayNumber.style.fontSize = '16px';
+                    dayNumber.style.fontWeight = '700';
+                    dayNumber.style.color = '#1F2937';
+                    dayNumber.style.padding = '4px 6px';
+                    dayNumber.style.borderRadius = '6px';
+                    dayNumber.style.transition = 'all 0.2s ease';
+                    
+                    // Weekend date number colors
+                    if (dayOfWeek === 0) {
+                        dayNumber.style.color = '#f43f5e'; // Rose
+                    } else if (dayOfWeek === 6) {
+                        dayNumber.style.color = '#0ea5e9'; // Sky
+                    }
+                }
+                
+                // TODAY highlight - Special styling
+                if (info.isToday) {
+                    el.style.background = 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)';
+                    el.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.25), 0 3px 10px rgba(59, 130, 246, 0.15), inset 0 0 0 2px #3b82f6';
+                    
+                    if (dayNumber) {
+                        dayNumber.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
+                        dayNumber.style.color = 'white';
+                        dayNumber.style.padding = '6px 10px';
+                        dayNumber.style.borderRadius = '8px';
+                        dayNumber.style.fontWeight = '800';
+                        dayNumber.style.fontSize = '18px';
+                        dayNumber.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
+                    }
+                }
+                
+                // Style OTHER MONTH days
+                if (info.isOther) {
+                    el.style.opacity = '0.35';
+                    el.style.background = 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)';
+                }
+            },
+            viewDidMount: function(view) {
+                // REMOVE TABLE BORDERS & Style Headers
+                setTimeout(function() {
+                    // KILL ALL TABLE BORDERS
+                    var tables = document.querySelectorAll('#calendar table');
+                    tables.forEach(function(table) {
+                        table.style.border = 'none';
+                        table.style.borderCollapse = 'separate';
+                        table.style.borderSpacing = '0';
+                    });
+                    
+                    var allCells = document.querySelectorAll('#calendar td, #calendar th');
+                    allCells.forEach(function(cell) {
+                        cell.style.border = 'none';
+                    });
+                    
+                    var scrollgrids = document.querySelectorAll('.fc-scrollgrid');
+                    scrollgrids.forEach(function(grid) {
+                        grid.style.border = 'none';
+                    });
+                    
+                    // Style HEADER CELLS - Elegant rounded cards
+                    var headers = document.querySelectorAll('.fc-col-header-cell');
+                    headers.forEach(function(header, index) {
+                        var dayIndex = index % 7;
+                        
+                        header.style.border = 'none';
+                        header.style.borderRadius = '14px 14px 0 0';
+                        header.style.padding = '16px 10px';
+                        header.style.fontWeight = '800';
+                        header.style.fontSize = '13px';
+                        header.style.letterSpacing = '1.2px';
+                        header.style.textTransform = 'uppercase';
+                        header.style.margin = '0 6px';
+                        header.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
+                        
+                        var cushion = header.querySelector('.fc-col-header-cell-cushion');
+                        
+                        if (dayIndex === 0) {
+                            // Minggu - Rose/Pink gradient
+                            header.style.background = 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)';
+                            if (cushion) {
+                                cushion.style.color = 'white';
+                                cushion.style.fontWeight = '900';
+                                cushion.style.textShadow = '0 2px 4px rgba(0, 0, 0, 0.2)';
+                            }
+                        } else if (dayIndex === 6) {
+                            // Sabtu - Sky blue gradient
+                            header.style.background = 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)';
+                            if (cushion) {
+                                cushion.style.color = 'white';
+                                cushion.style.fontWeight = '900';
+                                cushion.style.textShadow = '0 2px 4px rgba(0, 0, 0, 0.2)';
+                            }
+                        } else {
+                            // Weekdays - Elegant gray gradient
+                            header.style.background = 'linear-gradient(135deg, #374151 0%, #1f2937 100%)';
+                            if (cushion) {
+                                cushion.style.color = 'white';
+                                cushion.style.fontWeight = '800';
+                            }
+                        }
+                    });
+                    
+                    // Style DAY NAMES in header
+                    var dayNames = document.querySelectorAll('.fc-col-header-cell-cushion');
+                    dayNames.forEach(function(name) {
+                        name.style.letterSpacing = '1.5px';
+                    });
+                    
+                }, 50);
+            },
+            // ===== DRAG & DROP ENHANCEMENTS =====
+            editable: true,
+            droppable: true,
+            eventStartEditable: true,
+            eventDurationEditable: false,
+            eventAllow: function(dropInfo, draggedEvent) {
+                if (!draggedEvent || !draggedEvent.start) {
+                    return true;
+                }
+
+                return canReschedule(draggedEvent.start, dropInfo.start);
+            },
+            eventOverlap: false, // Prevent overlapping events
+            eventDrop: function(info) {
+                // When event is dragged to new date/time
+                const event = info.event;
+                const registrasiId = event.id;
+                const sourceDate = info.oldEvent && info.oldEvent.start ? info.oldEvent.start : event.start;
+                const targetDate = event.start;
+
+                if (!canReschedule(sourceDate, targetDate)) {
+                    info.revert();
+
+                    const today = normalizeLocalDate(new Date());
+                    const normalizedSource = normalizeLocalDate(sourceDate);
+                    const normalizedTarget = normalizeLocalDate(targetDate);
+
+                    let errorMessage = 'Jadwal tidak bisa dipindahkan.';
+                    if (normalizedSource < today) {
+                        errorMessage = 'Jadwal yang sudah terlewat tidak bisa dipindahkan.';
+                    } else if (normalizedTarget <= today) {
+                        errorMessage = 'Jadwal hanya bisa dipindah ke hari mendatang (H+).';
+                    }
+
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Perpindahan Tidak Diizinkan',
+                        text: errorMessage,
+                        confirmButtonColor: '#1565C0'
+                    });
+                    return;
+                }
+                
+                // Format date in LOCAL timezone (not UTC) to avoid date shift
+                const start = event.start;
+                const newDate = formatDateForApi(start);
+                
+                // Check for conflicts
+                const terapisId = event.extendedProps.terapis_id;
+                const overlappingEvents = calendar.getEvents().filter(e => {
+                    return e.id !== event.id && 
+                           e.extendedProps.terapis_id === terapisId &&
+                           e.start.toDateString() === event.start.toDateString();
+                });
+                
+                if (overlappingEvents.length > 0) {
+                    // Conflict detected!
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Konflik Jadwal!',
+                        html: `Terapis <strong>${event.extendedProps.terapis}</strong> sudah memiliki ${overlappingEvents.length} appointment lain di tanggal ini:<br><br>` +
+                              overlappingEvents.map(e => `• ${e.title} (${e.extendedProps.status})`).join('<br>'),
+                        showCancelButton: true,
+                        confirmButtonText: 'Tetap Pindahkan',
+                        cancelButtonText: 'Batalkan',
+                        confirmButtonColor: '#f59e0b',
+                        cancelButtonColor: '#6b7280'
+                    }).then((result) => {
+                        if (!result.isConfirmed) {
+                            info.revert(); // Revert the drag
+                            return;
+                        }
+                        // Proceed with update
+                        updateEventDate(registrasiId, newDate, info);
+                    });
+                } else {
+                    // No conflict, proceed
+                    updateEventDate(registrasiId, newDate, info);
+                }
+            },
+            eventResize: function(info) {
+                // Prevent resizing - revert immediately
+                info.revert();
+                showToast('Resize tidak tersedia. Gunakan form edit untuk ubah durasi.', 'info');
+            },
+            loading: function(isLoading) {
+                console.log('Calendar loading state:', isLoading);
+            }
+        });
+        
+        console.log('Rendering calendar...');
+        try {
+            calendar.render();
+            console.log('Calendar rendered successfully');
+        } catch (error) {
+            console.error('Error rendering calendar:', error);
+            alert('Error saat render kalender: ' + error.message);
+        }
+    }
+    
+    // ===== UPDATE EVENT DATE (DRAG & DROP HANDLER) =====
+    function updateEventDate(registrasiId, newDate, dragInfo) {
+        // Get CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                         '{{ csrf_token }}';
+        
+        // Show loading
+        Swal.fire({
+            title: 'Memindahkan Appointment...',
+            text: 'Mohon tunggu',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // Send AJAX request to update date
+        fetch(`/api/registrasi/${registrasiId}/update-date/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                tanggal_kunjungan: newDate
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: 'Appointment berhasil dipindahkan ke ' + new Date(newDate).toLocaleDateString('id-ID', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    }),
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
+                // Refresh calendar to show updated data
+                calendar.refetchEvents();
+            } else {
+                throw new Error(data.message || 'Gagal memindahkan appointment');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating date:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal!',
+                text: error.message || 'Terjadi kesalahan saat memindahkan appointment',
+                confirmButtonColor: '#dc3545'
+            });
+            dragInfo.revert(); // Revert the drag
+        });
+    }
+    
+    // Initialize calendar
+    try {
+        initCalendar();
+    } catch (error) {
+        console.error('Error initializing calendar:', error);
+        alert('Error saat inisialisasi kalender: ' + error.message);
+    }
+    
+    // Apply filter button
+    document.getElementById('applyFilter').addEventListener('click', function() {
+        console.log('Apply filter clicked');
+        if (calendar) {
+            calendar.refetchEvents();
+        } else {
+            console.error('Calendar not initialized');
+        }
+    });
+    
+    // Auto-submit on dropdown change
+    document.getElementById('filterTerapis').addEventListener('change', function() {
+        console.log('Terapis filter changed to:', this.value);
+        if (calendar) {
+            calendar.refetchEvents();
+        }
+    });
+    
+    document.getElementById('filterCabang').addEventListener('change', function() {
+        console.log('Cabang filter changed to:', this.value);
+        if (calendar) {
+            calendar.refetchEvents();
+        }
+    });
+    
+    document.getElementById('filterStatus').addEventListener('change', function() {
+        console.log('Status filter changed to:', this.value);
+        if (calendar) {
+            calendar.refetchEvents();
+        }
+    });
+    
+    console.log('Event listeners attached');
+});
+
+console.log('Calendar script end');
+</script>
+{% endblock %}

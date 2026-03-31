@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load custom_filters %}
 
 {% block title %}User - Babycare{% endblock %}
 
@@ -59,8 +60,9 @@
                   <th style="width: 5%;">#</th>
                   <th style="width: 15%;">Username</th>
                   <th style="width: 20%;">Nama Lengkap</th>
-                  <th style="width: 20%;">Email</th>
-                  <th style="width: 15%;">Cabang</th>
+                  <th style="width: 18%;">Email</th>
+                  <th style="width: 12%;">Cabang</th>
+                  <th style="width: 15%;">Role</th>
                   <th style="width: 10%;">Status</th>
                   <th style="width: 15%;" class="text-center">Aksi</th>
                 </tr>
@@ -76,6 +78,13 @@
                     <td>{{ user.full_name|default:"-" }}</td>
                     <td>{{ user.email|default:"-" }}</td>
                     <td>{{ user.cabang|default:"-" }}</td>
+                    <td>
+                      {% for role_name in user.assigned_role_names %}
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle mb-1">{{ role_name }}</span>
+                      {% empty %}
+                        <span class="text-muted small">Belum ada role</span>
+                      {% endfor %}
+                    </td>
                     <td>
                       {% if user.is_active %}
                         <span class="badge bg-success">Aktif</span>
@@ -102,7 +111,7 @@
                   {% endfor %}
                 {% else %}
                   <tr>
-                    <td colspan="7" class="text-center py-5 text-muted">
+                    <td colspan="8" class="text-center py-5 text-muted">
                       <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                       Belum ada data user
                     </td>
@@ -113,39 +122,7 @@
           </div>
         </div>
         
-        {% if is_paginated %}
-        <div class="card-footer bg-white py-3">
-          <nav>
-            <ul class="pagination pagination-sm justify-content-center mb-0">
-              {% if page_obj.has_previous %}
-              <li class="page-item">
-                <a class="page-link" href="?page=1">«</a>
-              </li>
-              <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">‹</a>
-              </li>
-              {% endif %}
-              
-              {% for num in page_obj.paginator.page_range %}
-                {% if page_obj.number == num %}
-                <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
-                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
-                {% endif %}
-              {% endfor %}
-              
-              {% if page_obj.has_next %}
-              <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.next_page_number }}">›</a>
-              </li>
-              <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">»</a>
-              </li>
-              {% endif %}
-            </ul>
-          </nav>
-        </div>
-        {% endif %}
+        {% render_pagination page_obj %}
       </div>
 
     </div>

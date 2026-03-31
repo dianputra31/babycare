@@ -1,0 +1,325 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ is_edit|yesno:"Edit,Tambah" }} Registrasi Multi-Terapi{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">{{ is_edit|yesno:"Edit,Tambah" }} Registrasi</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="registrasi-form">
+                        {% csrf_token %}
+                        
+                        <!-- Form Header: Data Registrasi -->
+                        <div class="form-section mb-4">
+                            <h5 class="mb-3">Data Registrasi</h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.pasien.id_for_label }}" class="form-label">Pasien *</label>
+                                    {{ form.pasien }}
+                                    {% if form.pasien.errors %}
+                                        <div class="text-danger small">{{ form.pasien.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.terapis.id_for_label }}" class="form-label">Terapis</label>
+                                    {{ form.terapis }}
+                                    {% if form.terapis.errors %}
+                                        <div class="text-danger small">{{ form.terapis.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <label for="{{ form.tanggal_kunjungan.id_for_label }}" class="form-label">Tanggal Kunjungan *</label>
+                                    {{ form.tanggal_kunjungan }}
+                                    {% if form.tanggal_kunjungan.errors %}
+                                        <div class="text-danger small">{{ form.tanggal_kunjungan.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <label for="{{ form.cabang.id_for_label }}" class="form-label">Cabang</label>
+                                    {{ form.cabang }}
+                                    {% if form.cabang.errors %}
+                                        <div class="text-danger small">{{ form.cabang.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <label for="{{ form.status.id_for_label }}" class="form-label">Status *</label>
+                                    {{ form.status }}
+                                    {% if form.status.errors %}
+                                        <div class="text-danger small">{{ form.status.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check">
+                                        {{ form.is_transport }}
+                                        <label class="form-check-label" for="{{ form.is_transport.id_for_label }}">
+                                            Ada Biaya Transport
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.biaya_transport.id_for_label }}" class="form-label">Biaya Transport</label>
+                                    {{ form.biaya_transport }}
+                                    {% if form.biaya_transport.errors %}
+                                        <div class="text-danger small">{{ form.biaya_transport.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="col-12 mb-3">
+                                    <label for="{{ form.catatan.id_for_label }}" class="form-label">Catatan</label>
+                                    {{ form.catatan }}
+                                    {% if form.catatan.errors %}
+                                        <div class="text-danger small">{{ form.catatan.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- FormSet: Detail Terapi (Multiple) -->
+                        <div class="form-section mb-4">
+                            <h5 class="mb-3">Detail Terapi</h5>
+                            
+                            {{ formset.management_form }}
+                            
+                            <div id="terapi-formset">
+                                {% for form in formset %}
+                                <div class="terapi-form-row card mb-3" data-form-idx="{{ forloop.counter0 }}">
+                                    <div class="card-body">
+                                        {{ form.id }}
+                                        <div class="row align-items-end">
+                                            <div class="col-md-4 mb-2">
+                                                <label class="form-label">Jenis Terapi *</label>
+                                                {{ form.jenis_terapi }}
+                                                {% if form.jenis_terapi.errors %}
+                                                    <div class="text-danger small">{{ form.jenis_terapi.errors }}</div>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            <div class="col-md-2 mb-2">
+                                                <label class="form-label">Harga</label>
+                                                <input type="text" class="form-control harga-display" readonly placeholder="Rp 0">
+                                            </div>
+                                            
+                                            <div class="col-md-3 mb-2">
+                                                <label class="form-label">Remark</label>
+                                                {{ form.remark }}
+                                                {% if form.remark.errors %}
+                                                    <div class="text-danger small">{{ form.remark.errors }}</div>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            <div class="col-md-2 mb-2">
+                                                <label class="form-label">Remark 2</label>
+                                                {{ form.remark2 }}
+                                            </div>
+                                            
+                                            <div class="col-md-1 mb-2 text-end">
+                                                {{ form.DELETE }}
+                                                <button type="button" class="btn btn-danger btn-sm btn-remove-terapi">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <button type="button" id="add-terapi" class="btn btn-success mb-3">
+                                <i class="bi bi-plus-circle"></i> Tambah Terapi
+                            </button>
+                            
+                            <div class="total-section alert alert-info">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <strong>Total Harga Terapi: </strong>
+                                        <span id="total-harga" class="fs-5">Rp 0</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Total Bayar (+ Transport): </strong>
+                                        <span id="total-bayar" class="fs-5 text-success">Rp 0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Simpan
+                            </button>
+                            <a href="{% url 'registrasi_list' %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Batal
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    let formCount = parseInt($('#id_details-TOTAL_FORMS').val());
+    
+    // Initialize: Load harga for existing forms
+    $('.terapi-form-row').each(function() {
+        let $row = $(this);
+        let $select = $row.find('select[name*="jenis_terapi"]');
+        if ($select.val()) {
+            loadHargaTerapi($select);
+        }
+    });
+    
+    // Auto-populate harga saat jenis terapi dipilih
+    $(document).on('change', 'select[name*="jenis_terapi"]', function() {
+        loadHargaTerapi($(this));
+    });
+    
+    // Function to load harga via AJAX
+    function loadHargaTerapi($select) {
+        let terapiId = $select.val();
+        
+        if (terapiId) {
+            $.ajax({
+                url: '/api/jenis-terapi/' + terapiId + '/',
+                method: 'GET',
+                success: function(data) {
+                    $select.closest('.terapi-form-row')
+                           .find('.harga-display')
+                           .val(data.harga_formatted)
+                           .data('harga', data.harga);
+                    calculateTotal();
+                },
+                error: function() {
+                    $select.closest('.terapi-form-row')
+                           .find('.harga-display')
+                           .val('Rp 0')
+                           .data('harga', 0);
+                    calculateTotal();
+                }
+            });
+        } else {
+            $select.closest('.terapi-form-row')
+                   .find('.harga-display')
+                   .val('Rp 0')
+                   .data('harga', 0);
+            calculateTotal();
+        }
+    }
+    
+    // Tambah form terapi baru
+    $('#add-terapi').click(function() {
+        let $templateRow = $('#terapi-formset .terapi-form-row').first().clone();
+        
+        // Update form indices
+        $templateRow.attr('data-form-idx', formCount);
+        $templateRow.find(':input').each(function() {
+            let name = $(this).attr('name');
+            let id = $(this).attr('id');
+            
+            if (name) {
+                name = name.replace(/-\d+-/, `-${formCount}-`);
+                $(this).attr('name', name);
+            }
+            if (id) {
+                id = id.replace(/-\d+-/, `-${formCount}-`);
+                $(this).attr('id', id);
+            }
+        });
+        
+        // Clear values
+        $templateRow.find(':input:not([type=hidden])').val('');
+        $templateRow.find('.harga-display').val('Rp 0').data('harga', 0);
+        $templateRow.find('input[name*="DELETE"]').prop('checked', false);
+        
+        // Append to formset
+        $('#terapi-formset').append($templateRow);
+        
+        // Update form count
+        formCount++;
+        $('#id_details-TOTAL_FORMS').val(formCount);
+        
+        calculateTotal();
+    });
+    
+    // Hapus form terapi
+    $(document).on('click', '.btn-remove-terapi', function() {
+        let $row = $(this).closest('.terapi-form-row');
+        let $deleteInput = $row.find('input[name*="DELETE"]');
+        
+        // Check if this is the last visible row
+        let visibleRows = $('.terapi-form-row:visible').length;
+        if (visibleRows <= 1) {
+            alert('Minimal 1 terapi harus dipilih!');
+            return;
+        }
+        
+        if ($deleteInput.length) {
+            // Mark for deletion (for existing records)
+            $deleteInput.prop('checked', true);
+            $row.hide();
+        } else {
+            // Remove completely (for new forms)
+            $row.remove();
+        }
+        
+        calculateTotal();
+    });
+    
+    // Monitor biaya transport changes
+    $('#id_biaya_transport, #id_is_transport').on('change', function() {
+        calculateTotal();
+    });
+    
+    // Hitung total
+    function calculateTotal() {
+        let totalHarga = 0;
+        
+        // Sum all visible terapi harga
+        $('.terapi-form-row:visible').each(function() {
+            let $deleteCheckbox = $(this).find('input[name*="DELETE"]');
+            if (!$deleteCheckbox.prop('checked')) {
+                let harga = parseFloat($(this).find('.harga-display').data('harga')) || 0;
+                totalHarga += harga;
+            }
+        });
+        
+        // Get biaya transport
+        let biayaTransport = 0;
+        if ($('#id_is_transport').is(':checked')) {
+            let transportVal = $('#id_biaya_transport').val().replace(/[^0-9]/g, '');
+            biayaTransport = parseFloat(transportVal) || 0;
+        }
+        
+        let totalBayar = totalHarga + biayaTransport;
+        
+        // Update display
+        $('#total-harga').text('Rp ' + formatNumber(totalHarga));
+        $('#total-bayar').text('Rp ' + formatNumber(totalBayar));
+    }
+    
+    // Format number with thousand separators
+    function formatNumber(num) {
+        return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+    
+    // Initial calculation
+    calculateTotal();
+});
+</script>
+{% endblock %}

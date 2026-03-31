@@ -46,6 +46,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.unread_notifikasi_count',
+                'core.context_processors.app_settings',
             ],
         },
     },
@@ -90,12 +91,21 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Jakarta'
 USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+FONNTE_API_KEY = os.getenv('FONNTE_API_KEY', '')
+PWA_APP_NAME = 'Babycare'
+PWA_APP_DESCRIPTION = 'Aplikasi manajemen registrasi, jadwal, dan operasional klinik Babycare.'
+PWA_THEME_COLOR = '#1565C0'
+PWA_BACKGROUND_COLOR = '#F8FAFB'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/login/'

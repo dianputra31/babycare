@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load custom_filters %}
 
 {% block title %}Daftar Pasien - Babycare{% endblock %}
 
@@ -17,11 +18,56 @@
           <h3 class="h4 mb-1">
             <i class="bi bi-person"></i> Daftar Pasien
           </h3>
-          <p class="text-muted small">Kelola data pasien</p>
+          <p class="text-muted small">Kelola data pasien (Total: {{ total_pasien }} pasien)</p>
         </div>
-        <a href="/pasien/new/" class="btn btn-primary btn-sm">
-          <i class="bi bi-plus-lg"></i> Pasien Baru
-        </a>
+        <div class="d-flex gap-2">
+          <a href="{% url 'export_pasien_excel' %}?{{ request.GET.urlencode }}" class="btn btn-success btn-sm">
+            <i class="bi bi-file-earmark-excel"></i> Export Excel
+          </a>
+          <a href="/pasien/new/" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg"></i> Pasien Baru
+          </a>
+        </div>
+      </div>
+
+      <!-- Filter Form -->
+      <div class="card border-0 shadow-sm mb-4" style="background-color: #f8f9fb;">
+        <div class="card-body">
+          <h6 class="mb-3" style="color: #2c3e50; font-weight: 600;">🔍 Cari & Filter Data</h6>
+          <form method="GET" class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-bold">Cari Nama/Orang Tua/No HP</label>
+              <input type="text" class="form-control form-control-sm" name="search" value="{{ search_query }}" placeholder="Ketik untuk mencari...">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-bold">Filter Cabang</label>
+              <select class="form-select form-select-sm" name="cabang_id">
+                <option value="">-- Semua Cabang --</option>
+                {% for cabang in cabangs %}
+                <option value="{{ cabang.id }}" {% if cabang_id_filter|stringformat:"s" == cabang.id|stringformat:"s" %}selected{% endif %}>
+                  {{ cabang.nama_cabang }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small fw-bold">Status WhatsApp</label>
+              <select class="form-select form-select-sm" name="has_whatsapp">
+                <option value="">-- Semua --</option>
+                <option value="true" {% if has_whatsapp_filter == 'true' %}selected{% endif %}>✅ Terdaftar</option>
+                <option value="false" {% if has_whatsapp_filter == 'false' %}selected{% endif %}>❌ Belum</option>
+              </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-2">
+              <button type="submit" class="btn btn-primary btn-sm flex-fill">
+                <i class="bi bi-search"></i> Cari/Filter
+              </button>
+              <a href="/pasien/" class="btn btn-secondary btn-sm flex-fill">
+                <i class="bi bi-arrow-counterclockwise"></i> Reset
+              </a>
+            </div>
+          </form>
+        </div>
       </div>
 
       {% if pasiens %}
@@ -79,49 +125,27 @@
             </table>
           </div>
 
-          <!-- Pagination -->
-          {% if is_paginated %}
-          <nav aria-label="Page navigation" class="p-3">
-            <ul class="pagination pagination-sm justify-content-center mb-0">
-              {% if page_obj.has_previous %}
-                <li class="page-item">
-                  <a class="page-link" href="?page=1">First</a>
-                </li>
-                <li class="page-item">
-                  <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
-                </li>
-              {% endif %}
-
-              <li class="page-item active">
-                <span class="page-link" style="font-size: 0.85rem;">
-                  Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                </span>
-              </li>
-
-              {% if page_obj.has_next %}
-                <li class="page-item">
-                  <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
-                </li>
-                <li class="page-item">
-                  <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
-                </li>
-              {% endif %}
-            </ul>
-          </nav>
-          {% endif %}
+          {% render_pagination page_obj %}
         </div>
       </div>
 
       {% else %}
       <!-- Empty State -->
-      <div class="card">
-        <div class="card-body text-center py-5">
-          <i class="bi bi-inbox" style="font-size: 48px; color: #D1D5DB; margin-bottom: 16px;"></i>
-          <h5 class="text-muted">Belum ada pasien</h5>
-          <p class="text-muted small mb-3">Mulai dengan membuat data pasien baru</p>
-          <a href="/pasien/new/" class="btn btn-primary">
-            <i class="bi bi-plus-lg"></i> Pasien Baru
-          </a>
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <i class="bi bi-people"></i>
+            </div>
+            <h3 class="empty-state-title">Belum Ada Data Pasien</h3>
+            <p class="empty-state-description">
+              Tambahkan data pasien untuk memulai mengelola registrasi dan riwayat terapi mereka.
+            </p>
+            <a href="/pasien/new/" class="empty-state-action">
+              <i class="bi bi-person-plus-fill"></i>
+              <span>Tambah Pasien Pertama</span>
+            </a>
+          </div>
         </div>
       </div>
       {% endif %}

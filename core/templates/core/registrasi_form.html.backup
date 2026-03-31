@@ -1,0 +1,955 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrasi Baru - Babycare{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 class="h4 mb-1">
+            <i class="bi bi-plus-circle"></i> Registrasi Baru
+          </h3>
+          <p class="text-muted small">Tambahkan registrasi terapi baru</p>
+        </div>
+      </div>
+
+      <!-- Form Card -->
+      <div class="card bg-white">
+        <div class="card-body">
+          <form method="post" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger" role="alert">
+                {% for error in form.non_field_errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <div class="row g-3">
+              <!-- Pasien -->
+              <div class="col-md-6">
+                <label for="{{ form.pasien.id_for_label }}" class="form-label">
+                  Pasien <span class="text-danger">*</span>
+                </label>
+                <div class="d-flex gap-2">
+                  {{ form.pasien }}
+                  <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalPasien" style="white-space: nowrap;">
+                    <i class="bi bi-plus-lg"></i>
+                  </button>
+                </div>
+                {% if form.pasien.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.pasien.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Jenis Terapi -->
+              <div class="col-md-6">
+                <label for="{{ form.jenis_terapi.id_for_label }}" class="form-label">
+                  Jenis Terapi <span class="text-danger">*</span>
+                </label>
+                <div class="d-flex gap-2">
+                  {{ form.jenis_terapi }}
+                  <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalJenisTerapi" style="white-space: nowrap;">
+                    <i class="bi bi-plus-lg"></i>
+                  </button>
+                </div>
+                {% if form.jenis_terapi.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.jenis_terapi.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Terapis -->
+              <div class="col-md-6">
+                <label for="{{ form.terapis.id_for_label }}" class="form-label">
+                  Terapis
+                </label>
+                <div class="d-flex gap-2">
+                  {{ form.terapis }}
+                  <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalTerapis" style="white-space: nowrap;">
+                    <i class="bi bi-plus-lg"></i>
+                  </button>
+                </div>
+                {% if form.terapis.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.terapis.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Tanggal -->
+              <div class="col-md-6">
+                <label for="{{ form.tanggal_kunjungan.id_for_label }}" class="form-label">
+                  Tanggal <span class="text-danger">*</span>
+                </label>
+                {{ form.tanggal_kunjungan }}
+                {% if form.tanggal_kunjungan.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.tanggal_kunjungan.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Harga -->
+              <div class="col-md-6">
+                <label for="{{ form.harga.id_for_label }}" class="form-label">
+                  Harga <span class="text-danger">*</span>
+                </label>
+                {{ form.harga }}
+                {% if form.harga.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.harga.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Biaya Transport + Include Transport Checkbox -->
+              <div class="col-md-6">
+                <label for="{{ form.biaya_transport.id_for_label }}" class="form-label">
+                  Biaya Transport
+                </label>
+                <div class="input-group">
+                  {{ form.biaya_transport }}
+                  <span class="input-group-text" style="background-color: #f8f9fa; border-left: 0;">
+                    <div class="form-check mb-0">
+                      {{ form.is_transport }}
+                      <label class="form-check-label ms-2" for="{{ form.is_transport.id_for_label }}" style="cursor: pointer; font-size: 0.9rem; margin-bottom: 0;">
+                        Include Transport?
+                      </label>
+                    </div>
+                  </span>
+                </div>
+                {% if form.biaya_transport.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.biaya_transport.errors.0 }}
+                  </div>
+                {% endif %}
+                {% if form.is_transport.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.is_transport.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Cabang -->
+              <div class="col-md-6">
+                <label for="{{ form.cabang.id_for_label }}" class="form-label">
+                  Cabang
+                </label>
+                {{ form.cabang }}
+                {% if form.cabang.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.cabang.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Status -->
+              <div class="col-md-6">
+                <label for="{{ form.status.id_for_label }}" class="form-label">
+                  Status <span class="text-danger">*</span>
+                </label>
+                {{ form.status }}
+                {% if form.status.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.status.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Catatan -->
+              <div class="col-12">
+                <label for="{{ form.catatan.id_for_label }}" class="form-label">
+                  Catatan
+                </label>
+                {{ form.catatan }}
+                {% if form.catatan.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.catatan.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Total Bayar Display -->
+              <div class="col-12">
+                <div class="alert alert-info border-3 border-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h5 class="text-white mb-1">
+                        <i class="bi bi-cash-stack me-2"></i>Total Pembayaran
+                      </h5>
+                      <small class="text-white-50">Harga Terapi + Biaya Transport</small>
+                    </div>
+                    <div class="text-end">
+                      <h2 class="text-white mb-0 fw-bold" id="totalBayarDisplay" style="font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                        Rp 0
+                      </h2>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-end mt-4">
+              <a href="/registrasi/" class="btn btn-outline-secondary">
+                <i class="bi bi-x-lg"></i> Batal
+              </a>
+              <button type="button" id="btnPreview" class="btn btn-primary btn-lg">
+                <i class="bi bi-check-lg"></i> Simpan
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container untuk Success Messages -->
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 11000;">
+  <div id="successToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        <span id="toastMessage"></span>
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Konfirmasi Simpan Registrasi -->
+<div class="modal fade" id="modalKonfirmasi" tabindex="-1" aria-labelledby="modalKonfirmasiLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="modalKonfirmasiLabel">
+          <i class="bi bi-clipboard-check"></i> Konfirmasi Data Registrasi
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted mb-4">Mohon periksa kembali data sebelum menyimpan:</p>
+        
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="card border-0 bg-light">
+              <div class="card-body">
+                <small class="text-muted d-block mb-1">Pasien</small>
+                <strong id="previewPasien">-</strong>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card border-0 bg-light">
+              <div class="card-body">
+                <small class="text-muted d-block mb-1">Jenis Terapi</small>
+                <strong id="previewJenisTerapi">-</strong>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card border-0 bg-light">
+              <div class="card-body">
+                <small class="text-muted d-block mb-1">Terapis</small>
+                <strong id="previewTerapis">-</strong>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card border-0 bg-light">
+              <div class="card-body">
+                <small class="text-muted d-block mb-1">Tanggal Kunjungan</small>
+                <strong id="previewTanggal">-</strong>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border-0 bg-light">
+              <div class="card-body">
+                <small class="text-muted d-block mb-1">Harga Terapi</small>
+                <strong id="previewHarga">Rp 0</strong>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border-0 bg-light">
+              <div class="card-body">
+                <small class="text-muted d-block mb-1">Biaya Transport</small>
+                <strong id="previewTransport">Rp 0</strong>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border-0 bg-success text-white">
+              <div class="card-body">
+                <small class="text-white-50 d-block mb-1">Total Bayar</small>
+                <strong class="fs-5" id="previewTotal">Rp 0</strong>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card border-0 bg-light">
+              <div class="card-body">
+                <small class="text-muted d-block mb-1">Cabang</small>
+                <strong id="previewCabang">-</strong>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card border-0 bg-light">
+              <div class="card-body">
+                <small class="text-muted d-block mb-1">Status</small>
+                <strong id="previewStatus">-</strong>
+              </div>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="card border-0 bg-light">
+              <div class="card-body">
+                <small class="text-muted d-block mb-1">Catatan</small>
+                <strong id="previewCatatan">-</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-lg"></i> Batal
+        </button>
+        <button type="button" class="btn btn-primary btn-lg" onclick="submitRegistrasi()">
+          <i class="bi bi-check-circle-fill"></i> Ya, Simpan Data
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Pasien Baru -->
+<div class="modal fade" id="modalPasien" tabindex="-1" aria-labelledby="modalPasienLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalPasienLabel">
+          <i class="bi bi-person-plus"></i> Pasien Baru
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formPasien">
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Nama Anak <span class="text-danger">*</span></label>
+              <input type="text" name="nama_anak" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Tanggal Lahir <span class="text-danger">*</span></label>
+              <input type="date" name="tanggal_lahir" class="form-control" required max="{% now 'Y-m-d' %}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Jenis Kelamin <span class="text-danger">*</span></label>
+              <select name="jenis_kelamin" class="form-select" required>
+                <option value="">-- Pilih --</option>
+                <option value="L">Laki-laki</option>
+                <option value="P">Perempuan</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Nama Orang Tua</label>
+              <input type="text" name="nama_orang_tua" class="form-control">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Alamat</label>
+              <textarea name="alamat" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">No WhatsApp</label>
+              <input type="text" name="no_wa" class="form-control" placeholder="08xx-xxxx-xxxx">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Cabang</label>
+              <select name="cabang" class="form-select">
+                <option value="">-- Pilih --</option>
+                {% for cabang in form.cabang.field.queryset %}
+                  <option value="{{ cabang.id }}">{{ cabang.nama_cabang }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div id="errorPasien" class="alert alert-danger mt-3" style="display:none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-primary" onclick="savePasien()">
+          <i class="bi bi-check-lg"></i> Simpan
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Terapis Baru -->
+<div class="modal fade" id="modalTerapis" tabindex="-1" aria-labelledby="modalTerapisLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalTerapisLabel">
+          <i class="bi bi-person-plus"></i> Terapis Baru
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formTerapis">
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Nama Terapis <span class="text-danger">*</span></label>
+              <input type="text" name="nama_terapis" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">No. HP</label>
+              <input type="text" name="no_hp" class="form-control" placeholder="08xx-xxxx-xxxx">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Alamat</label>
+              <textarea name="alamat" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Cabang</label>
+              <select name="cabang" class="form-select">
+                <option value="">-- Pilih --</option>
+                {% for cabang in form.cabang.field.queryset %}
+                  <option value="{{ cabang.id }}">{{ cabang.nama_cabang }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Biaya Transport Default</label>
+              <input type="text" name="biaya_transport_default" class="form-control currency-input" placeholder="0" value="0">
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                <input type="checkbox" name="is_active" class="form-check-input" id="terapisIsActive" checked>
+                <label class="form-check-label" for="terapisIsActive">Terapis Aktif</label>
+              </div>
+            </div>
+          </div>
+          <div id="errorTerapis" class="alert alert-danger mt-3" style="display:none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-primary" onclick="saveTerapis()">
+          <i class="bi bi-check-lg"></i> Simpan
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Jenis Terapi Baru -->
+<div class="modal fade" id="modalJenisTerapi" tabindex="-1" aria-labelledby="modalJenisTerapiLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalJenisTerapiLabel">
+          <i class="bi bi-plus-square"></i> Jenis Terapi Baru
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formJenisTerapi">
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Nama Terapi <span class="text-danger">*</span></label>
+              <input type="text" name="nama_terapi" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Min. Umur (bulan)</label>
+              <input type="number" name="kategori_usia_min" class="form-control" placeholder="0">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Max. Umur (bulan)</label>
+              <input type="number" name="kategori_usia_max" class="form-control" placeholder="0">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Harga (Rp)</label>
+              <input type="text" name="harga" class="form-control currency-input" placeholder="0" value="0">
+            </div>
+          </div>
+          <div id="errorJenisTerapi" class="alert alert-danger mt-3" style="display:none;"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-primary" onclick="saveJenisTerapi()">
+          <i class="bi bi-check-lg"></i> Simpan
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Global variables for formatting
+function formatNumber(value) {
+  if (!value && value !== 0) return '';
+  // Convert to number and floor (remove decimal part like .00)
+  let num = Math.floor(parseFloat(value) || 0);
+  if (!num && num !== 0) return '';
+  // Add thousand separators (dots)
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function unformatNumber(value) {
+  if (!value) return '';
+  // Remove all dots to get raw number
+  return value.toString().replace(/\./g, '');
+}
+
+function formatCurrency(value) {
+  if (!value || value === 0) return 'Rp 0';
+  return 'Rp ' + formatNumber(value);
+}
+
+function calculateTotal() {
+  const hargaField = document.getElementById('id_harga');
+  const transportField = document.getElementById('id_biaya_transport');
+  
+  const harga = parseInt(unformatNumber(hargaField.value)) || 0;
+  const transport = parseInt(unformatNumber(transportField.value)) || 0;
+  const total = harga + transport;
+  
+  document.getElementById('totalBayarDisplay').textContent = formatCurrency(total);
+}
+
+$(document).ready(function() {
+  // DEBUG: Check element types
+  console.log('=== FORM ELEMENT CHECK ===');
+  const hargaField = document.getElementById('id_harga');
+  const transportField = document.getElementById('id_biaya_transport');
+  console.log('Harga field type:', hargaField?.type, 'Element:', hargaField);
+  console.log('Transport field type:', transportField?.type, 'Element:', transportField);
+  console.log('Jenis Terapi select:', document.getElementById('id_jenis_terapi'));
+  console.log('Terapis select:', document.getElementById('id_terapis'));
+  console.log('==========================');
+
+  // Apply to harga and biaya_transport fields
+  const currencyFields = ['id_harga', 'id_biaya_transport'];
+  
+  currencyFields.forEach(function(fieldId) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    
+    // Format on page load if has value
+    if (field.value) {
+      field.value = formatNumber(field.value);
+    }
+    
+    // Format on input and recalculate total
+    field.addEventListener('input', function(e) {
+      let cursorPos = this.selectionStart;
+      let oldValue = this.value;
+      let oldLength = oldValue.length;
+      
+      let unformatted = unformatNumber(this.value);
+      let formatted = formatNumber(unformatted);
+      
+      this.value = formatted;
+      
+      // Adjust cursor position
+      let newLength = this.value.length;
+      let diff = newLength - oldLength;
+      this.setSelectionRange(cursorPos + diff, cursorPos + diff);
+      
+      // Recalculate total
+      calculateTotal();
+    });
+  });
+
+  // Format currency inputs in modals
+  document.querySelectorAll('.currency-input').forEach(function(field) {
+    // Format on input
+    field.addEventListener('input', function(e) {
+      let cursorPos = this.selectionStart;
+      let oldValue = this.value;
+      let oldLength = oldValue.length;
+      
+      let unformatted = unformatNumber(this.value);
+      let formatted = formatNumber(unformatted);
+      
+      this.value = formatted;
+      
+      // Adjust cursor position
+      let newLength = this.value.length;
+      let diff = newLength - oldLength;
+      this.setSelectionRange(cursorPos + diff, cursorPos + diff);
+    });
+  });
+
+  // Auto-fill harga when jenis terapi changes (Support Select2)
+  $('#id_jenis_terapi').on('change select2:select', function() {
+    const jenisTerapiId = $(this).val();
+    console.log('Jenis Terapi changed to ID:', jenisTerapiId);
+    if (jenisTerapiId) {
+      console.log('Fetching price for jenis terapi:', jenisTerapiId);
+      fetch(`/ajax/jenis-terapi/${jenisTerapiId}/price/`)
+        .then(response => {
+          console.log('Price response status:', response.status);
+          return response.json();
+        })
+        .then(data => {
+          console.log('Price data received:', data);
+          if (data.success) {
+            const hargaField = document.getElementById('id_harga');
+            hargaField.value = formatNumber(data.harga);
+            console.log('Harga set to:', hargaField.value);
+            calculateTotal();
+          } else {
+            console.error('Price fetch failed:', data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching price:', error);
+        });
+    } else {
+      // Clear harga if no jenis terapi selected
+      document.getElementById('id_harga').value = '';
+      calculateTotal();
+    }
+  });
+
+  // Handle is_transport checkbox change
+  const isTransportCheckbox = document.getElementById('id_is_transport');
+  if (isTransportCheckbox) {
+    // Initial check: if is_transport is unchecked, ensure transport is 0
+    if (!isTransportCheckbox.checked) {
+      const transportField = document.getElementById('id_biaya_transport');
+      if (transportField.value) {
+        transportField.value = '0';
+      }
+    }
+    
+    isTransportCheckbox.addEventListener('change', function() {
+      const transportField = document.getElementById('id_biaya_transport');
+      const terapisSelect = document.getElementById('id_terapis');
+      
+      if (!this.checked) {
+        // Uncheck: set transport to 0
+        transportField.value = '0';
+        calculateTotal();
+      } else {
+        // Check: restore transport from terapis if selected
+        if (terapisSelect.value) {
+          const terapisId = terapisSelect.value;
+          fetch(`/ajax/terapis/${terapisId}/transport/`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                transportField.value = formatNumber(data.biaya_transport);
+                calculateTotal();
+              }
+            })
+            .catch(error => console.error('Error fetching transport:', error));
+        } else {
+          transportField.value = '';
+          calculateTotal();
+        }
+      }
+    });
+  }
+
+  // Auto-fill biaya transport when terapis changes (Support Select2)
+  $('#id_terapis').on('change select2:select', function() {
+    const terapisId = $(this).val();
+    const isTransportCheckbox = document.getElementById('id_is_transport');
+    
+    console.log('Terapis changed to ID:', terapisId);
+    if (terapisId && isTransportCheckbox && isTransportCheckbox.checked) {
+      // Only fetch transport if is_transport is checked
+      console.log('Fetching transport for terapis:', terapisId);
+      fetch(`/ajax/terapis/${terapisId}/transport/`)
+        .then(response => {
+          console.log('Transport response status:', response.status);
+          return response.json();
+        })
+        .then(data => {
+          console.log('Transport data received:', data);
+          if (data.success) {
+            const transportField = document.getElementById('id_biaya_transport');
+            transportField.value = formatNumber(data.biaya_transport);
+            console.log('Transport set to:', transportField.value);
+            calculateTotal();
+          } else {
+            console.error('Transport fetch failed:', data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching transport:', error);
+        });
+    } else if (!isTransportCheckbox || !isTransportCheckbox.checked) {
+      // If is_transport is unchecked, don't update transport
+      console.log('is_transport is unchecked, skipping transport fetch');
+      calculateTotal();
+    } else {
+      // Clear transport if no terapis selected
+      document.getElementById('id_biaya_transport').value = '';
+      calculateTotal();
+    }
+  });
+
+  // Preview button handler
+  document.getElementById('btnPreview').addEventListener('click', function() {
+    // Get form values
+    const pasien = document.getElementById('id_pasien');
+    const jenisTerapi = document.getElementById('id_jenis_terapi');
+    const terapis = document.getElementById('id_terapis');
+    const tanggal = document.getElementById('id_tanggal_kunjungan');
+    const harga = document.getElementById('id_harga');
+    const transport = document.getElementById('id_biaya_transport');
+    const cabang = document.getElementById('id_cabang');
+    const status = document.getElementById('id_status');
+    const catatan = document.getElementById('id_catatan');
+
+    // Validate required fields
+    if (!pasien.value || !jenisTerapi.value || !tanggal.value || !harga.value || !status.value) {
+      showToast('⚠️ Mohon isi semua field yang bertanda bintang (*)');
+      return;
+    }
+
+    // Fill preview modal
+    document.getElementById('previewPasien').textContent = pasien.options[pasien.selectedIndex]?.text || '-';
+    document.getElementById('previewJenisTerapi').textContent = jenisTerapi.options[jenisTerapi.selectedIndex]?.text || '-';
+    document.getElementById('previewTerapis').textContent = terapis.value ? terapis.options[terapis.selectedIndex]?.text : 'Tidak ada';
+    document.getElementById('previewTanggal').textContent = tanggal.value || '-';
+    document.getElementById('previewHarga').textContent = formatCurrency(unformatNumber(harga.value));
+    document.getElementById('previewTransport').textContent = formatCurrency(unformatNumber(transport.value));
+    
+    const totalHarga = parseInt(unformatNumber(harga.value)) || 0;
+    const totalTransport = parseInt(unformatNumber(transport.value)) || 0;
+    document.getElementById('previewTotal').textContent = formatCurrency(totalHarga + totalTransport);
+    
+    document.getElementById('previewCabang').textContent = cabang.value ? cabang.options[cabang.selectedIndex]?.text : 'Tidak ada';
+    document.getElementById('previewStatus').textContent = status.options[status.selectedIndex]?.text || '-';
+    document.getElementById('previewCatatan').textContent = catatan.value || 'Tidak ada catatan';
+
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('modalKonfirmasi'));
+    modal.show();
+  });
+
+  // Initial calculation
+  calculateTotal();
+});
+
+// AJAX Functions for Quick Create
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+function showToast(message) {
+  const toastElement = document.getElementById('successToast');
+  const toastMessage = document.getElementById('toastMessage');
+  toastMessage.textContent = message;
+  
+  const toast = new bootstrap.Toast(toastElement, {
+    autohide: true,
+    delay: 3000
+  });
+  toast.show();
+}
+
+function savePasien() {
+  const form = document.getElementById('formPasien');
+  const formData = new FormData(form);
+  const errorDiv = document.getElementById('errorPasien');
+  
+  // Hide previous errors
+  errorDiv.style.display = 'none';
+  
+  fetch('/ajax/pasien/create/', {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Add new option to select
+      const select = document.getElementById('id_pasien');
+      const option = new Option(data.pasien.text, data.pasien.id, true, true);
+      select.add(option);
+      
+      // Close modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalPasien'));
+      modal.hide();
+      
+      // Reset form
+      form.reset();
+      
+      // Show success toast
+      showToast('Pasien berhasil ditambahkan!');
+    } else {
+      errorDiv.textContent = data.error || 'Terjadi kesalahan saat menyimpan data';
+      errorDiv.style.display = 'block';
+    }
+  })
+  .catch(error => {
+    errorDiv.textContent = 'Terjadi kesalahan: ' + error;
+    errorDiv.style.display = 'block';
+  });
+}
+
+function saveTerapis() {
+  const form = document.getElementById('formTerapis');
+  const formData = new FormData(form);
+  const errorDiv = document.getElementById('errorTerapis');
+  
+  // Hide previous errors
+  errorDiv.style.display = 'none';
+  
+  fetch('/ajax/terapis/create/', {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Add new option to select
+
+function submitRegistrasi() {
+  // Unformat currency fields before submit
+  const hargaField = document.getElementById('id_harga');
+  const transportField = document.getElementById('id_biaya_transport');
+  
+  hargaField.value = unformatNumber(hargaField.value);
+  transportField.value = unformatNumber(transportField.value);
+  
+  // Close confirmation modal
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalKonfirmasi'));
+  modal.hide();
+  
+  // Submit the form
+  document.querySelector('form').submit();
+}
+      const select = document.getElementById('id_terapis');
+      const option = new Option(data.terapis.text, data.terapis.id, true, true);
+      select.add(option);
+      
+      // Close modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalTerapis'));
+      modal.hide();
+      
+      // Reset form
+      form.reset();
+      
+      // Show success toast
+      showToast('Terapis berhasil ditambahkan!');
+    } else {
+      errorDiv.textContent = data.error || 'Terjadi kesalahan saat menyimpan data';
+      errorDiv.style.display = 'block';
+    }
+  })
+  .catch(error => {
+    errorDiv.textContent = 'Terjadi kesalahan: ' + error;
+    errorDiv.style.display = 'block';
+  });
+}
+
+function saveJenisTerapi() {
+  const form = document.getElementById('formJenisTerapi');
+  const formData = new FormData(form);
+  const errorDiv = document.getElementById('errorJenisTerapi');
+  
+  // Hide previous errors
+  errorDiv.style.display = 'none';
+  
+  fetch('/ajax/jenis-terapi/create/', {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Add new option to select
+      const select = document.getElementById('id_jenis_terapi');
+      const option = new Option(data.jenis_terapi.text, data.jenis_terapi.id, true, true);
+      select.add(option);
+      
+      // Close modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalJenisTerapi'));
+      modal.hide();
+      
+      // Reset form
+      form.reset();
+      
+      // Show success toast
+      showToast('Jenis Terapi berhasil ditambahkan!');
+    } else {
+      errorDiv.textContent = data.error || 'Terjadi kesalahan saat menyimpan data';
+      errorDiv.style.display = 'block';
+    }
+  })
+  .catch(error => {
+    errorDiv.textContent = 'Terjadi kesalahan: ' + error;
+    errorDiv.style.display = 'block';
+  });
+}
+
+function submitRegistrasi() {
+  // Unformat currency fields before submit
+  const hargaField = document.getElementById('id_harga');
+  const transportField = document.getElementById('id_biaya_transport');
+  
+  hargaField.value = unformatNumber(hargaField.value);
+  transportField.value = unformatNumber(transportField.value);
+  
+  // Close confirmation modal
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalKonfirmasi'));
+  modal.hide();
+  
+  // Submit the form
+  document.querySelector('form').submit();
+}
+</script>
+{% endblock %}

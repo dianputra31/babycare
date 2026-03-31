@@ -5,6 +5,15 @@
     <button class="btn btn-link d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar">
       <i class="bi bi-list fs-3 text-dark"></i>
     </button>
+
+    <button id="sidebarCollapseToggle" class="sidebar-toggle-btn d-none d-md-inline-flex" type="button" aria-label="Minimize sidebar" aria-pressed="false" title="Minimize sidebar">
+      <span class="sidebar-toggle-glyph" aria-hidden="true">
+        <span class="sidebar-toggle-rail"></span>
+        <span class="sidebar-toggle-icon-wrap">
+          <i class="bi bi-chevron-left" id="sidebarCollapseIcon"></i>
+        </span>
+      </span>
+    </button>
     
     <a class="navbar-brand" href="/">
       {% if logo_url %}
@@ -19,6 +28,19 @@
 
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav ms-auto">
+        <li class="nav-item me-2">
+          <button id="installAppButton" class="btn btn-link nav-link install-app-btn" type="button" title="Install aplikasi Babycare">
+            <i class="bi bi-phone"></i>
+            <span>Install App</span>
+          </button>
+        </li>
+        <!-- Dark Mode Toggle -->
+        <li class="nav-item">
+          <button id="darkModeToggle" class="btn btn-link nav-link" title="Toggle Dark Mode (Alt+T)" style="border: none; background: none;">
+            <i class="bi bi-moon-stars-fill" id="darkModeIcon"></i>
+          </button>
+        </li>
+        {% if request.is_superadmin_user or 'notifikasi_view' in request.user_permissions %}
         <li class="nav-item">
           <a class="nav-link position-relative" href="/notifikasi/">
             <i class="bi bi-bell"></i>
@@ -27,6 +49,12 @@
               {{ unread_notifikasi_count }}
             </span>
             {% endif %}
+          </a>
+        </li>
+        {% endif %}
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'change_own_password' %}">
+            <i class="bi bi-key"></i> Ganti Password
           </a>
         </li>
         <li class="nav-item">

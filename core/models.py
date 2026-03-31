@@ -1,9 +1,51 @@
 ﻿# e:/projects/python/django/teguh/babycare/core/models.py
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.core.exceptions import ValidationError
 from decimal import Decimal
 from .services.registration_service import calculate_total_bayar
+
+
+def progress_upload_path(instance, filename):
+    return f'progress/{instance.registrasi_id}/{filename}'
+
+
+NOTIFICATION_TYPE_CHOICES = [
+    ('BIRTHDAY', '🎂 Ulang Tahun'),
+    ('INACTIVE_30D', '⏰ Pasien Tidak Aktif (1 bulan)'),
+    ('INACTIVE_90D', '⏰ Pasien Tidak Aktif (3 bulan)'),
+    ('INACTIVE_180D', '⏰ Pasien Tidak Aktif (6 bulan)'),
+    ('FOLLOWUP', '📋 Follow-up'),
+    ('HIGH_POTENTIAL', '⭐ High Potential'),
+    ('APPOINTMENT_REMINDER', '📅 Reminder Jadwal'),
+]
+
+DEFAULT_MESSAGE_TEMPLATES = {
+    'BIRTHDAY': 'Hi #pasien, selamat ulang tahun ya! Semoga sehat selalu dan tumbuh makin hebat bersama Babycare.',
+    'INACTIVE_30D': 'Hi #pasien, sudah 1 bulan kita nggak ketemu, lho! Bulan ini kami ada penawaran paket special buatmu!',
+    'INACTIVE_90D': 'Hi #pasien, sudah 3 bulan kita tidak bertemu. Kalau mau mulai lagi, kami siap bantu dengan program yang sesuai kebutuhanmu.',
+    'INACTIVE_180D': 'Hi #pasien, sudah 6 bulan sejak sesi terakhir. Yuk lanjutkan lagi bersama Babycare, kami punya penawaran khusus untukmu.',
+    'FOLLOWUP': 'Hi #orang_tua, bagaimana kabar #pasien setelah sesi terakhir? Kami siap bantu follow-up atau atur jadwal berikutnya.',
+    'HIGH_POTENTIAL': 'Hi #orang_tua, terima kasih sudah rutin bersama Babycare untuk #pasien. Saat ini ada paket spesial yang mungkin cocok untuk lanjutan terapinya.',
+    'APPOINTMENT_REMINDER': 'Hi #orang_tua, ini reminder ya. #pasien dijadwalkan terapi pada #tanggal. Sampai bertemu di Babycare.',
+}
+
+
+def render_notification_message(template_text, notification=None):
+    pasien = getattr(notification, 'pasien', None)
+    registrasi = getattr(notification, 'registrasi', None)
+    replacements = {
+        '#pasien': getattr(pasien, 'nama_anak', '') or '',
+        '#orang_tua': getattr(pasien, 'nama_orang_tua', '') or 'Bapak/Ibu',
+        '#tanggal': registrasi.tanggal_kunjungan.strftime('%d %b %Y') if registrasi and registrasi.tanggal_kunjungan else '',
+        '#kode_registrasi': getattr(registrasi, 'kode_registrasi', '') or '',
+        '#jenis_notifikasi': getattr(notification, 'jenis_notifikasi', '') or '',
+    }
+
+    rendered = template_text or ''
+    for placeholder, value in replacements.items():
+        rendered = rendered.replace(placeholder, value)
+    return rendered.strip()
 
 class UserManager(BaseUserManager):
     def create_user(self, username, password=None, **extra_fields):
@@ -100,12 +142,24 @@ class User(AbstractBaseUser, PermissionsMixin):
     def get_roles(self):
         return Role.objects.filter(userrole__user=self)
 
+    @property
+    def role_names(self):
+        return {role.nama_role.strip().lower() for role in self.get_roles() if role.nama_role}
+
+    @property
+    def is_superadmin_role(self):
+        return self.is_superuser or bool({'superadmin', 'owner'} & self.role_names)
+
     def get_permissions(self):
+        if self.is_superadmin_role:
+            return Permission.objects.all()
         return Permission.objects.filter(rolepermission__role__userrole__user=self).distinct()
 
     def has_permission(self, code: str) -> bool:
         if not self.is_authenticated:
             return False
+        if self.is_superadmin_role:
+            return True
         return Permission.objects.filter(code=code, rolepermission__role__userrole__user=self).exists()
 
 class Pasien(models.Model):
@@ -117,6 +171,7 @@ class Pasien(models.Model):
     nama_orang_tua = models.CharField(max_length=150, db_column='nama_orang_tua', null=True, blank=True)
     alamat = models.TextField(db_column='alamat', null=True, blank=True)
     no_wa = models.CharField(max_length=20, db_column='no_wa', null=True, blank=True)
+    has_whatsapp = models.BooleanField(db_column='has_whatsapp', default=False, help_text='Nomor terdaftar di WhatsApp')
     cabang = models.ForeignKey(Cabang, db_column='cabang_id', null=True, blank=True, on_delete=models.DO_NOTHING)
     created_at = models.DateTimeField(db_column='created_at', auto_now_add=True)
     updated_at = models.DateTimeField(db_column='updated_at', auto_now=True)
@@ -195,6 +250,45 @@ class Registrasi(models.Model):
         self.total_bayar = calculate_total_bayar(self.harga, self.biaya_transport)
         super().save(*args, **kwargs)
 
+class RegistrasiDetail(models.Model):
+    """Detail terapi dalam satu registrasi (multi-terapi support)"""
+    id = models.BigAutoField(primary_key=True)
+    registrasi = models.ForeignKey(Registrasi, db_column='registrasi_id', on_delete=models.CASCADE, related_name='details')
+    kode_registrasi = models.CharField(max_length=255, db_column='kode_registrasi', null=True, blank=True)
+    jenis_terapi = models.ForeignKey(JenisTerapi, db_column='id_terapi', on_delete=models.DO_NOTHING)
+    nama_terapi = models.CharField(max_length=255, db_column='nama_terapi', null=True, blank=True)
+    harga_terapi = models.DecimalField(max_digits=12, decimal_places=0, db_column='harga_terapi', null=True, blank=True)
+    remark = models.CharField(max_length=255, db_column='remark', null=True, blank=True)
+    created_date = models.DateTimeField(db_column='created_date', auto_now_add=True)
+    remark2 = models.CharField(max_length=255, db_column='remark2', null=True, blank=True)
+    remark3 = models.CharField(max_length=255, db_column='remark3', null=True, blank=True)
+
+    class Meta:
+        db_table = 'registrasi_detail'
+        managed = True  # Changed to True since this is our own table
+
+    def __str__(self):
+        return f"{self.kode_registrasi} - {self.nama_terapi}"
+
+
+class ProgressTracking(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    registrasi = models.ForeignKey(Registrasi, db_column='registrasi_id', on_delete=models.CASCADE, related_name='progress_entries')
+    judul = models.CharField(max_length=150, db_column='judul')
+    catatan = models.TextField(db_column='catatan', null=True, blank=True)
+    foto_sebelum = models.ImageField(db_column='foto_sebelum', upload_to=progress_upload_path, null=True, blank=True)
+    foto_sesudah = models.ImageField(db_column='foto_sesudah', upload_to=progress_upload_path, null=True, blank=True)
+    created_by = models.ForeignKey('User', db_column='created_by', null=True, blank=True, on_delete=models.DO_NOTHING, related_name='progress_created')
+    created_at = models.DateTimeField(db_column='created_at', auto_now_add=True)
+
+    class Meta:
+        db_table = 'progress_tracking'
+        managed = True
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.registrasi.kode_registrasi} - {self.judul}"
+
 class Pemasukan(models.Model):
     id = models.BigAutoField(primary_key=True)
     registrasi = models.ForeignKey(Registrasi, db_column='registrasi_id', null=True, blank=True, on_delete=models.DO_NOTHING)
@@ -255,6 +349,41 @@ class Notifikasi(models.Model):
 
     def __str__(self):
         return f"{self.jenis_notifikasi} - {self.pesan[:50] if self.pesan else ''}"
+
+
+class TemplatePesan(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    tipe_pesan = models.CharField(max_length=255, db_column='tipe_pesan')
+    template_pesan = models.CharField(max_length=255, db_column='template_pesan')
+
+    class Meta:
+        db_table = 'template_pesan'
+        managed = False
+
+    def __str__(self):
+        return self.tipe_pesan or f'Template #{self.pk}'
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            with transaction.atomic():
+                max_id = TemplatePesan.objects.aggregate(max_id=models.Max('id'))['max_id'] or 0
+                self.id = max_id + 1
+                return super().save(*args, **kwargs)
+        return super().save(*args, **kwargs)
+
+    @classmethod
+    def get_template_for_type(cls, tipe_pesan):
+        return cls.objects.filter(tipe_pesan=tipe_pesan).first()
+
+    @classmethod
+    def build_message_for_notification(cls, notification):
+        tipe_pesan = getattr(notification, 'jenis_notifikasi', None)
+        template = cls.get_template_for_type(tipe_pesan)
+        if template and template.template_pesan:
+            return render_notification_message(template.template_pesan, notification)
+        if tipe_pesan in DEFAULT_MESSAGE_TEMPLATES:
+            return render_notification_message(DEFAULT_MESSAGE_TEMPLATES[tipe_pesan], notification)
+        return getattr(notification, 'pesan', '') or ''
 
 
 class AppSettings(models.Model):

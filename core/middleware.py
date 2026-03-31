@@ -1,6 +1,8 @@
 from django.utils.deprecation import MiddlewareMixin
 from django.db import OperationalError
 
+from .rbac import can_manage_roles
+
 
 class RBACMiddleware(MiddlewareMixin):
     """Inject user roles & permissions into request and expose cabang filter helper.
@@ -16,17 +18,23 @@ class RBACMiddleware(MiddlewareMixin):
         request.user_roles = set()
         request.user_permissions = set()
         request.cabang_id = None
+        request.can_manage_roles = False
+        request.is_superadmin_user = False
 
         if user and user.is_authenticated:
             try:
                 from .models import Role, Permission
                 roles = Role.objects.filter(userrole__user=user)
                 request.user_roles = set(r.nama_role.lower() for r in roles)
-                perms = Permission.objects.filter(rolepermission__role__in=roles).values_list('code', flat=True)
+                request.is_superadmin_user = getattr(user, 'is_superadmin_role', False)
+                if request.is_superadmin_user:
+                    perms = Permission.objects.values_list('code', flat=True)
+                else:
+                    perms = Permission.objects.filter(rolepermission__role__in=roles).values_list('code', flat=True)
                 request.user_permissions = set(p for p in perms if p)
 
                 # determine cabang scoping
-                if 'owner' in request.user_roles:
+                if request.is_superadmin_user:
                     request.cabang_id = None  # owner sees all
                 else:
                     # admin and others limited to their cabang
@@ -34,6 +42,8 @@ class RBACMiddleware(MiddlewareMixin):
             except (OperationalError, Exception):
                 # Tables may not exist or user has no roles during development
                 pass
+
+            request.can_manage_roles = can_manage_roles(user)
 
         def _filter_by_cabang(qs):
             if request.cabang_id is None:
