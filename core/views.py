@@ -1608,6 +1608,7 @@ class ImportPasienView(PermissionRequiredViewMixin, View):
 
     def post(self, request):
         import re
+        import difflib
         import openpyxl
         from django.db.models import Max
 
@@ -1617,6 +1618,14 @@ class ImportPasienView(PermissionRequiredViewMixin, View):
             'SEPTEMBER': 9, 'OKTOBER': 10, 'NOVEMBER': 11, 'DESEMBER': 12,
         }
 
+        def _resolve_bulan(raw):
+            """Return month number for raw string, with fuzzy fallback (cutoff 0.7)."""
+            exact = BULAN_ID.get(raw)
+            if exact:
+                return exact
+            matches = difflib.get_close_matches(raw, BULAN_ID.keys(), n=1, cutoff=0.7)
+            return BULAN_ID[matches[0]] if matches else None
+
         def parse_tanggal(val):
             if not val:
                 return None
@@ -1625,7 +1634,7 @@ class ImportPasienView(PermissionRequiredViewMixin, View):
             if match:
                 try:
                     day = int(match.group(1))
-                    month = BULAN_ID.get(match.group(2))
+                    month = _resolve_bulan(match.group(2))
                     year = int(match.group(3))
                     if month:
                         from datetime import date as date_cls
