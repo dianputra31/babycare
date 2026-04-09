@@ -5,7 +5,11 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.validators import RegexValidator
 from decimal import Decimal
-from .models import Registrasi, RegistrasiDetail, Pemasukan, Pengeluaran, AppSettings, User, ProgressTracking, Role, Permission, RolePermission, UserRole, TemplatePesan, NOTIFICATION_TYPE_CHOICES
+from .models import (
+    Registrasi, RegistrasiDetail, Pemasukan, Pengeluaran, AppSettings, User, 
+    ProgressTracking, Role, Permission, RolePermission, UserRole, TemplatePesan, 
+    NOTIFICATION_TYPE_CHOICES, KategoriBarang, BarangInventory, StokMasuk, PemakaianBarang
+)
 from .rbac import RESERVED_SUPERADMIN_ROLES, can_manage_roles, get_permission_groups_for_display, normalize_role_name, replace_role_permissions, replace_user_roles, sync_permission_catalog
 from .services.registration_service import validate_age_for_terapi
 
@@ -105,21 +109,78 @@ class PengeluaranForm(forms.ModelForm):
         ('Lainnya', 'Lainnya'),
     ]
     
+    # Checkbox untuk menandai apakah ini pembelian barang inventory
+    is_pembelian_barang = forms.BooleanField(
+        required=False,
+        label='Pembelian Barang Inventory',
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'id_is_pembelian_barang'})
+    )
+    
     kategori = forms.ChoiceField(
         choices=KATEGORI_CHOICES,
         widget=forms.Select(attrs={'class': 'form-select'}),
-        required=True
+        required=False  # Changed to False karena bisa auto-fill dari barang
     )
     
     class Meta:
         model = Pengeluaran
-        fields = ['tanggal', 'kategori', 'jumlah', 'keterangan', 'cabang']
+        fields = ['tanggal', 'kategori', 'jumlah', 'keterangan', 'cabang', 
+                  'barang', 'jumlah_barang', 'harga_satuan_beli', 'supplier', 'no_faktur']
         widgets = {
             'tanggal': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'jumlah': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0'}),
+            'jumlah': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0', 'readonly': 'readonly'}),
             'keterangan': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Keterangan...'}),
             'cabang': forms.Select(attrs={'class': 'form-select'}),
+            'barang': forms.Select(attrs={'class': 'form-select', 'id': 'id_barang'}),
+            'jumlah_barang': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Jumlah', 'id': 'id_jumlah_barang'}),
+            'harga_satuan_beli': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Harga per satuan', 'id': 'id_harga_satuan_beli'}),
+            'supplier': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nama supplier'}),
+            'no_faktur': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'No. Faktur/Invoice'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set initial value untuk checkbox
+        if self.instance and self.instance.pk and self.instance.barang:
+            self.fields['is_pembelian_barang'].initial = True
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        is_pembelian_barang = cleaned_data.get('is_pembelian_barang')
+        barang = cleaned_data.get('barang')
+        jumlah_barang = cleaned_data.get('jumlah_barang')
+        harga_satuan_beli = cleaned_data.get('harga_satuan_beli')
+        kategori = cleaned_data.get('kategori')
+        
+        # Jika pembelian barang, validasi field inventory
+        if is_pembelian_barang:
+            if not barang:
+                raise forms.ValidationError('Pilih barang yang akan dibeli!')
+            if not jumlah_barang or jumlah_barang <= 0:
+                raise forms.ValidationError('Jumlah barang harus lebih dari 0!')
+            if not harga_satuan_beli or harga_satuan_beli <= 0:
+                raise forms.ValidationError('Harga satuan beli harus lebih dari 0!')
+            
+            # Auto-calculate total jumlah pengeluaran
+            total = jumlah_barang * harga_satuan_beli
+            cleaned_data['jumlah'] = total
+            
+            # Auto-fill kategori dari barang jika ada
+            if barang and barang.kategori:
+                cleaned_data['kategori'] = barang.kategori.nama_kategori
+        else:
+            # Jika bukan pembelian barang, clear inventory fields
+            cleaned_data['barang'] = None
+            cleaned_data['jumlah_barang'] = None
+            cleaned_data['harga_satuan_beli'] = None
+            cleaned_data['supplier'] = None
+            cleaned_data['no_faktur'] = None
+            
+            # Validasi kategori harus diisi
+            if not kategori:
+                raise forms.ValidationError('Pilih kategori pengeluaran!')
+        
+        return cleaned_data
 
 
 class AppSettingsForm(forms.ModelForm):
@@ -475,3 +536,100 @@ RegistrasiDetailFormSet = inlineformset_factory(
     validate_min=True,
     can_delete_extra=False
 )
+
+
+# ============================================================================
+# INVENTORY FORMS
+# ============================================================================
+
+class KategoriBarangForm(forms.ModelForm):
+    """Form untuk kategori barang"""
+    class Meta:
+        model = KategoriBarang
+        fields = ['nama_kategori', 'deskripsi']
+        widgets = {
+            'nama_kategori': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nama kategori barang'}),
+            'deskripsi': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Deskripsi kategori...'}),
+        }
+
+
+class BarangInventoryForm(forms.ModelForm):
+    """Form untuk master data barang inventory"""
+    class Meta:
+        model = BarangInventory
+        fields = [
+            'kode_barang', 'nama_barang', 'kategori', 'satuan', 
+            'stok_minimum', 'harga_satuan', 'lokasi_penyimpanan', 
+            'cabang', 'catatan', 'is_active'
+        ]
+        widgets = {
+            'kode_barang': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Kode barang (opsional)'}),
+            'nama_barang': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nama barang'}),
+            'kategori': forms.Select(attrs={'class': 'form-select'}),
+            'satuan': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'pcs, box, set, dll'}),
+            'stok_minimum': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Minimum stok'}),
+            'harga_satuan': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0', 'step': '0.01'}),
+            'lokasi_penyimpanan': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Lokasi penyimpanan'}),
+            'cabang': forms.Select(attrs={'class': 'form-select'}),
+            'catatan': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Catatan...'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+class StokMasukForm(forms.ModelForm):
+    """Form untuk restock/stok masuk"""
+    class Meta:
+        model = StokMasuk
+        fields = [
+            'barang', 'tanggal_masuk', 'jumlah', 'harga_beli_satuan', 
+            'supplier', 'no_faktur', 'cabang', 'catatan'
+        ]
+        widgets = {
+            'barang': forms.Select(attrs={'class': 'form-select'}),
+            'tanggal_masuk': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'jumlah': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Jumlah barang masuk'}),
+            'harga_beli_satuan': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0', 'step': '0.01'}),
+            'supplier': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nama supplier'}),
+            'no_faktur': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'No. faktur/invoice'}),
+            'cabang': forms.Select(attrs={'class': 'form-select'}),
+            'catatan': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Catatan...'}),
+        }
+
+
+class PemakaianBarangForm(forms.ModelForm):
+    """Form untuk catat pemakaian barang"""
+    class Meta:
+        model = PemakaianBarang
+        fields = [
+            'barang', 'tanggal_pakai', 'jumlah', 'tujuan', 
+            'registrasi', 'cabang', 'catatan'
+        ]
+        widgets = {
+            'barang': forms.Select(attrs={'class': 'form-select', 'id': 'id_barang'}),
+            'tanggal_pakai': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'jumlah': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Jumlah dipakai'}),
+            'tujuan': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Untuk apa barang ini dipakai'}),
+            'registrasi': forms.Select(attrs={'class': 'form-select', 'placeholder': 'Pilih registrasi (opsional)'}),
+            'cabang': forms.Select(attrs={'class': 'form-select'}),
+            'catatan': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Catatan...'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make registrasi optional
+        self.fields['registrasi'].required = False
+        
+    def clean(self):
+        cleaned = super().clean()
+        barang = cleaned.get('barang')
+        jumlah = cleaned.get('jumlah')
+        
+        if barang and jumlah:
+            # Cek stok tersedia
+            if barang.stok_tersedia < jumlah:
+                raise ValidationError(
+                    f'Stok {barang.nama_barang} tidak mencukupi. '
+                    f'Tersedia: {barang.stok_tersedia} {barang.satuan}'
+                )
+        
+        return cleaned

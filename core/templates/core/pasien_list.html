@@ -24,6 +24,9 @@
           <a href="{% url 'export_pasien_excel' %}?{{ request.GET.urlencode }}" class="btn btn-success btn-sm">
             <i class="bi bi-file-earmark-excel"></i> Export Excel
           </a>
+          <button type="button" class="btn btn-warning btn-sm" id="btnImportPasien">
+            <i class="bi bi-upload"></i> Import Excel
+          </button>
           <a href="/pasien/new/" class="btn btn-primary btn-sm">
             <i class="bi bi-plus-lg"></i> Pasien Baru
           </a>
@@ -152,4 +155,213 @@
     </div>
   </div>
 </div>
+
+<!-- Modal Import Pasien -->
+<div class="modal fade" id="modalImportPasien" tabindex="-1" aria-labelledby="modalImportPasienLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%); border-bottom: 2px solid #667eea;">
+        <h5 class="modal-title fw-bold" id="modalImportPasienLabel">
+          <i class="bi bi-upload"></i> Import Data Pasien dari Excel
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Format Info -->
+        <div class="alert alert-info" style="font-size: 0.85rem;">
+          <strong><i class="bi bi-info-circle"></i> Format Header Excel yang Diterima</strong><br>
+          Header bisa berada di baris ke-1, ke-2, atau ke-3.
+        </div>
+        <div class="table-responsive mb-3">
+          <table class="table table-bordered table-sm text-center" style="font-size: 0.82rem;">
+            <thead class="table-light">
+              <tr>
+                <th>NO</th>
+                <th>NAMA PASIEN</th>
+                <th>NAMA BUNDA</th>
+                <th>TEMPAT TANGGAL LAHIR</th>
+                <th>JENIS KELAMIN</th>
+                <th>NOMOR TELP</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="text-muted">
+                <td>1</td>
+                <td>Nama lengkap anak</td>
+                <td>Nama ibu/orang tua</td>
+                <td>Jakarta, 26 Agustus 2019</td>
+                <td>LAKI-LAKI / PEREMPUAN</td>
+                <td>+62 812 0000 1829</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ul class="small text-muted mb-3">
+          <li>Kolom <strong>JENIS KELAMIN</strong>: isi dengan <code>LAKI-LAKI</code>, <code>LAKI - LAKI</code>, atau <code>PEREMPUAN</code>.</li>
+          <li>Kolom <strong>TEMPAT TANGGAL LAHIR</strong>: tanggal harus dalam format <code>DD BULAN YYYY</code> (contoh: <code>26 AGUSTUS 2019</code>).</li>
+          <li>Kolom <strong>NOMOR TELP</strong>: spasi dan strip akan dihapus otomatis.</li>
+          <li>Kode pasien akan di-generate otomatis.</li>
+        </ul>
+
+        <hr>
+
+        <form id="formImportPasien" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Cabang <span class="text-muted fw-normal">(opsional)</span></label>
+              <select class="form-select form-select-sm" name="cabang_id" id="importCabangSelect">
+                <option value="">-- Tanpa Cabang --</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Pilih File Excel <span class="text-danger">*</span></label>
+              <input type="file" class="form-control form-control-sm" name="excel_file" id="importExcelFile"
+                accept=".xlsx,.xls" required>
+              <div class="form-text">Format: .xlsx atau .xls</div>
+            </div>
+          </div>
+
+          <!-- Progress Bar (hidden by default) -->
+          <div id="importProgressContainer" class="mt-3" style="display:none;">
+            <label class="form-label fw-bold small">Sedang mengimpor data...</label>
+            <div class="progress" style="height: 20px; border-radius: 10px;">
+              <div id="importProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                0%
+              </div>
+            </div>
+          </div>
+
+          <!-- Result area -->
+          <div id="importResult" class="mt-3" style="display:none;"></div>
+        </form>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" id="btnModalTutup">Tutup</button>
+        <button type="button" class="btn btn-warning btn-sm" id="btnMulaiImport">
+          <i class="bi bi-upload"></i> Mulai Import
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const importUrl = "{% url 'import_pasien' %}";
+  const pasienListUrl = "{% url 'pasien_list' %}";
+
+  // Load cabangs when modal opens
+  document.getElementById('btnImportPasien').addEventListener('click', function () {
+    fetch(importUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(r => r.json())
+      .then(data => {
+        const sel = document.getElementById('importCabangSelect');
+        // Clear existing dynamic options (keep first "Tanpa Cabang")
+        while (sel.options.length > 1) sel.remove(1);
+        (data.cabangs || []).forEach(function (c) {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.textContent = c.nama_cabang;
+          sel.appendChild(opt);
+        });
+      })
+      .catch(function () { /* silently ignore */ });
+
+    // Reset form state
+    document.getElementById('formImportPasien').reset();
+    document.getElementById('importProgressContainer').style.display = 'none';
+    document.getElementById('importResult').style.display = 'none';
+    document.getElementById('btnMulaiImport').disabled = false;
+
+    new bootstrap.Modal(document.getElementById('modalImportPasien')).show();
+  });
+
+  // Handle import submit
+  document.getElementById('btnMulaiImport').addEventListener('click', function () {
+    const fileInput = document.getElementById('importExcelFile');
+    if (!fileInput.files.length) {
+      fileInput.classList.add('is-invalid');
+      return;
+    }
+    fileInput.classList.remove('is-invalid');
+
+    const formData = new FormData(document.getElementById('formImportPasien'));
+    const progressContainer = document.getElementById('importProgressContainer');
+    const progressBar = document.getElementById('importProgressBar');
+    const resultDiv = document.getElementById('importResult');
+    const btn = document.getElementById('btnMulaiImport');
+    const btnTutup = document.getElementById('btnModalTutup');
+
+    btn.disabled = true;
+    btnTutup.disabled = true;
+    resultDiv.style.display = 'none';
+    progressContainer.style.display = 'block';
+
+    // Animate progress bar (indeterminate feel, then fill on done)
+    let fakeProgress = 0;
+    const fakeTimer = setInterval(function () {
+      if (fakeProgress < 85) {
+        fakeProgress += Math.random() * 8;
+        fakeProgress = Math.min(fakeProgress, 85);
+        progressBar.style.width = fakeProgress.toFixed(0) + '%';
+        progressBar.textContent = fakeProgress.toFixed(0) + '%';
+        progressBar.setAttribute('aria-valuenow', fakeProgress.toFixed(0));
+      }
+    }, 300);
+
+    fetch(importUrl, {
+      method: 'POST',
+      body: formData,
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+      .then(r => r.json())
+      .then(function (data) {
+        clearInterval(fakeTimer);
+        progressBar.style.width = '100%';
+        progressBar.textContent = '100%';
+        progressBar.setAttribute('aria-valuenow', '100');
+
+        btnTutup.disabled = false;
+
+        if (data.success) {
+          let html = '<div class="alert alert-success mb-0"><strong><i class="bi bi-check-circle"></i> Berhasil!</strong><br>' +
+            data.saved + ' data pasien berhasil diimpor.';
+          if (data.errors && data.errors.length) {
+            html += '<hr><strong>Baris yang dilewati (' + data.errors.length + '):</strong><ul class="mb-0 mt-1">';
+            data.errors.forEach(function (e) { html += '<li>' + e + '</li>'; });
+            html += '</ul>';
+          }
+          html += '</div>';
+          resultDiv.innerHTML = html;
+          resultDiv.style.display = 'block';
+
+          // Redirect after short delay so user can see the result
+          setTimeout(function () {
+            window.location.href = pasienListUrl;
+          }, 2500);
+        } else {
+          progressBar.classList.remove('bg-primary');
+          progressBar.classList.add('bg-danger');
+          resultDiv.innerHTML = '<div class="alert alert-danger mb-0"><strong><i class="bi bi-x-circle"></i> Gagal:</strong> ' + (data.error || 'Terjadi kesalahan.') + '</div>';
+          resultDiv.style.display = 'block';
+          btn.disabled = false;
+        }
+      })
+      .catch(function (err) {
+        clearInterval(fakeTimer);
+        progressBar.classList.remove('bg-primary');
+        progressBar.classList.add('bg-danger');
+        progressBar.style.width = '100%';
+        resultDiv.innerHTML = '<div class="alert alert-danger mb-0"><strong>Koneksi gagal.</strong> Silakan coba lagi.</div>';
+        resultDiv.style.display = 'block';
+        btn.disabled = false;
+        btnTutup.disabled = false;
+      });
+  });
+})();
+</script>
 {% endblock %}

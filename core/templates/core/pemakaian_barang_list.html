@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block title %}History Pemakaian Barang{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content p-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-arrow-down-circle"></i> History Pemakaian Barang</h2>
+    <a href="{% url 'pemakaian_barang_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Catat Pemakaian
+    </a>
+</div>
+
+<!-- Filter Form -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Barang</label>
+                <select name="barang" class="form-select">
+                    <option value="">Semua Barang</option>
+                    {% for br in barang_list %}
+                    <option value="{{ br.id }}" {% if request.GET.barang == br.id|stringformat:"s" %}selected{% endif %}>
+                        {{ br.nama_barang }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Tanggal Dari</label>
+                <input type="date" name="tanggal_dari" class="form-control" value="{{ request.GET.tanggal_dari }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Tanggal Sampai</label>
+                <input type="date" name="tanggal_sampai" class="form-control" value="{{ request.GET.tanggal_sampai }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Cabang</label>
+                <select name="cabang" class="form-select">
+                    <option value="">Semua Cabang</option>
+                    {% for cb in cabang_list %}
+                    <option value="{{ cb.id }}" {% if request.GET.cabang == cb.id|stringformat:"s" %}selected{% endif %}>
+                        {{ cb.nama_cabang }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="alert alert-info">
+    <strong>Total Nilai Pemakaian:</strong> Rp {{ total_nilai_pemakaian|floatformat:0 }}
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Barang</th>
+                        <th>Jumlah</th>
+                        <th>Tujuan</th>
+                        <th>Sesi Terapi</th>
+                        <th>Nilai</th>
+                        <th>Dicatat Oleh</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pemakaian in pemakaian_list %}
+                    <tr>
+                        <td>{{ pemakaian.tanggal_pakai|date:"d M Y" }}</td>
+                        <td><strong>{{ pemakaian.barang.nama_barang }}</strong></td>
+                        <td>{{ pemakaian.jumlah }} {{ pemakaian.barang.satuan }}</td>
+                        <td>{{ pemakaian.tujuan }}</td>
+                        <td>
+                            {% if pemakaian.registrasi %}
+                                <small>
+                                    {{ pemakaian.registrasi.pasien.nama_anak }}<br>
+                                    {{ pemakaian.registrasi.kode_registrasi }}
+                                </small>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>Rp {{ pemakaian.nilai_pemakaian|floatformat:0 }}</td>
+                        <td>
+                            <small>{{ pemakaian.created_by.full_name|default:pemakaian.created_by.username }}</small>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center">Belum ada data pemakaian barang</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }}</span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

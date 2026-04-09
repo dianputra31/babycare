@@ -99,6 +99,34 @@ PERMISSION_GROUPS = [
         ],
     },
     {
+        'key': 'inventory',
+        'label': 'Inventory',
+        'permissions': [
+            {'action': 'kategori_view', 'code': 'kategori_barang_view', 'label': 'Lihat kategori barang'},
+            {'action': 'kategori_create', 'code': 'kategori_barang_create', 'label': 'Tambah kategori barang'},
+            {'action': 'kategori_edit', 'code': 'kategori_barang_edit', 'label': 'Ubah kategori barang'},
+            {'action': 'kategori_delete', 'code': 'kategori_barang_delete', 'label': 'Hapus kategori barang'},
+            
+            {'action': 'barang_view', 'code': 'barang_inventory_view', 'label': 'Lihat data barang inventory'},
+            {'action': 'barang_create', 'code': 'barang_inventory_create', 'label': 'Tambah barang inventory'},
+            {'action': 'barang_edit', 'code': 'barang_inventory_edit', 'label': 'Ubah data barang inventory'},
+            {'action': 'barang_delete', 'code': 'barang_inventory_delete', 'label': 'Hapus barang inventory'},
+            
+            {'action': 'stok_masuk_view', 'code': 'stok_masuk_view', 'label': 'Lihat stok masuk'},
+            {'action': 'stok_masuk_create', 'code': 'stok_masuk_create', 'label': 'Tambah stok masuk'},
+            {'action': 'stok_masuk_edit', 'code': 'stok_masuk_edit', 'label': 'Ubah stok masuk'},
+            {'action': 'stok_masuk_delete', 'code': 'stok_masuk_delete', 'label': 'Hapus stok masuk'},
+            
+            {'action': 'pemakaian_view', 'code': 'pemakaian_barang_view', 'label': 'Lihat pemakaian barang'},
+            {'action': 'pemakaian_create', 'code': 'pemakaian_barang_create', 'label': 'Tambah pemakaian barang'},
+            {'action': 'pemakaian_edit', 'code': 'pemakaian_barang_edit', 'label': 'Ubah pemakaian barang'},
+            {'action': 'pemakaian_delete', 'code': 'pemakaian_barang_delete', 'label': 'Hapus pemakaian barang'},
+            
+            {'action': 'stok_opname_view', 'code': 'stok_opname_view', 'label': 'Lihat stok opname'},
+            {'action': 'stok_opname_create', 'code': 'stok_opname_create', 'label': 'Lakukan stok opname'},
+        ],
+    },
+    {
         'key': 'laporan',
         'label': 'Laporan & Pembukuan',
         'permissions': [
@@ -156,6 +184,12 @@ DEFAULT_ROLE_BLUEPRINTS = [
             'pasien_view', 'pasien_create', 'pasien_edit',
             'terapis_view', 'terapis_create', 'terapis_edit',
             'jenis_terapi_view', 'jenis_terapi_create', 'jenis_terapi_edit',
+            # Inventory permissions
+            'kategori_barang_view', 'kategori_barang_create', 'kategori_barang_edit',
+            'barang_inventory_view', 'barang_inventory_create', 'barang_inventory_edit',
+            'stok_masuk_view', 'stok_masuk_create', 'stok_masuk_edit',
+            'pemakaian_barang_view', 'pemakaian_barang_create', 'pemakaian_barang_edit',
+            'stok_opname_view', 'stok_opname_create',
         ],
     },
     {
@@ -180,6 +214,10 @@ DEFAULT_ROLE_BLUEPRINTS = [
             'dashboard_view', 'pemasukan_view', 'pemasukan_create', 'pemasukan_edit',
             'pengeluaran_view', 'pengeluaran_create', 'pengeluaran_edit',
             'rekap_view', 'pembukuan_view', 'notifikasi_view',
+            # Inventory permissions (finance usually manages purchasing)
+            'kategori_barang_view', 'barang_inventory_view',
+            'stok_masuk_view', 'stok_masuk_create', 'stok_masuk_edit',
+            'pemakaian_barang_view', 'stok_opname_view',
         ],
     },
     {
@@ -200,6 +238,9 @@ DEFAULT_ROLE_BLUEPRINTS = [
         'permissions': [
             'dashboard_view', 'registrasi_view', 'pasien_view', 'terapis_view', 'jenis_terapi_view',
             'notifikasi_view', 'template_pesan_view', 'rekap_view', 'pembukuan_view',
+            # Inventory view-only
+            'kategori_barang_view', 'barang_inventory_view', 'stok_masuk_view', 
+            'pemakaian_barang_view', 'stok_opname_view',
         ],
     },
 ]

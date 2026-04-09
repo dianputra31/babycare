@@ -317,10 +317,17 @@ class Pengeluaran(models.Model):
     keterangan = models.TextField(db_column='keterangan', null=True, blank=True)
     created_by = models.ForeignKey(User, db_column='created_by', null=True, blank=True, on_delete=models.DO_NOTHING, related_name='pengeluaran_created')
     created_at = models.DateTimeField(db_column='created_at', auto_now_add=True)
+    
+    # Inventory Integration Fields
+    barang = models.ForeignKey('BarangInventory', db_column='barang_id', null=True, blank=True, on_delete=models.DO_NOTHING, related_name='pengeluaran_set', verbose_name='Barang Inventory')
+    jumlah_barang = models.IntegerField(db_column='jumlah_barang', null=True, blank=True, verbose_name='Jumlah Barang')
+    harga_satuan_beli = models.DecimalField(max_digits=12, decimal_places=2, db_column='harga_satuan_beli', null=True, blank=True, verbose_name='Harga Beli/Satuan')
+    supplier = models.CharField(max_length=200, db_column='supplier', null=True, blank=True, verbose_name='Supplier')
+    no_faktur = models.CharField(max_length=100, db_column='no_faktur', null=True, blank=True, verbose_name='No. Faktur')
 
     class Meta:
         db_table = 'pengeluaran'
-        managed = False
+        managed = True
 
 class TransportTerapis(models.Model):
     id = models.BigAutoField(primary_key=True)
@@ -415,3 +422,144 @@ class AppSettings(models.Model):
         """Get or create settings singleton."""
         settings, created = cls.objects.get_or_create(pk=1)
         return settings
+
+
+# ============================================================================
+# INVENTORY MANAGEMENT MODELS
+# ============================================================================
+
+class KategoriBarang(models.Model):
+    """Kategori untuk barang inventory (alat terapi, mainan, supplies, dll)"""
+    id = models.BigAutoField(primary_key=True)
+    nama_kategori = models.CharField(max_length=100, db_column='nama_kategori')
+    deskripsi = models.TextField(db_column='deskripsi', null=True, blank=True)
+    created_at = models.DateTimeField(db_column='created_at', auto_now_add=True)
+    updated_at = models.DateTimeField(db_column='updated_at', auto_now=True)
+
+    class Meta:
+        db_table = 'kategori_barang'
+        managed = True
+
+    def __str__(self):
+        return self.nama_kategori
+
+
+class BarangInventory(models.Model):
+    """Master data barang inventory"""
+    id = models.BigAutoField(primary_key=True)
+    kode_barang = models.CharField(max_length=20, db_column='kode_barang', null=True, blank=True, unique=True)
+    nama_barang = models.CharField(max_length=200, db_column='nama_barang')
+    kategori = models.ForeignKey(KategoriBarang, db_column='kategori_id', null=True, blank=True, on_delete=models.SET_NULL)
+    satuan = models.CharField(max_length=20, db_column='satuan', help_text='pcs, box, set, dll')
+    stok_minimum = models.IntegerField(db_column='stok_minimum', default=5, help_text='Alert jika stok dibawah nilai ini')
+    stok_tersedia = models.IntegerField(db_column='stok_tersedia', default=0)
+    harga_satuan = models.DecimalField(max_digits=12, decimal_places=2, db_column='harga_satuan', default=0, help_text='Harga per satuan')
+    lokasi_penyimpanan = models.CharField(max_length=100, db_column='lokasi_penyimpanan', null=True, blank=True)
+    cabang = models.ForeignKey(Cabang, db_column='cabang_id', null=True, blank=True, on_delete=models.CASCADE)
+    catatan = models.TextField(db_column='catatan', null=True, blank=True)
+    is_active = models.BooleanField(db_column='is_active', default=True)
+    created_by = models.ForeignKey(User, db_column='created_by', null=True, blank=True, on_delete=models.SET_NULL, related_name='barang_created')
+    created_at = models.DateTimeField(db_column='created_at', auto_now_add=True)
+    updated_at = models.DateTimeField(db_column='updated_at', auto_now=True)
+
+    class Meta:
+        db_table = 'barang_inventory'
+        managed = True
+
+    def __str__(self):
+        return f"{self.kode_barang or self.id} - {self.nama_barang}"
+
+    @property
+    def is_stok_rendah(self):
+        """Cek apakah stok sudah dibawah minimum"""
+        return self.stok_tersedia <= self.stok_minimum
+
+    @property
+    def status_stok(self):
+        """Status stok untuk display"""
+        if self.stok_tersedia == 0:
+            return 'HABIS'
+        elif self.is_stok_rendah:
+            return 'RENDAH'
+        return 'AMAN'
+
+
+class StokMasuk(models.Model):
+    """Transaksi stok masuk (pembelian/restock)"""
+    id = models.BigAutoField(primary_key=True)
+    barang = models.ForeignKey(BarangInventory, db_column='barang_id', on_delete=models.CASCADE, related_name='stok_masuk_entries')
+    tanggal_masuk = models.DateField(db_column='tanggal_masuk')
+    jumlah = models.IntegerField(db_column='jumlah')
+    harga_beli_satuan = models.DecimalField(max_digits=12, decimal_places=2, db_column='harga_beli_satuan', null=True, blank=True)
+    supplier = models.CharField(max_length=200, db_column='supplier', null=True, blank=True)
+    no_faktur = models.CharField(max_length=50, db_column='no_faktur', null=True, blank=True)
+    cabang = models.ForeignKey(Cabang, db_column='cabang_id', null=True, blank=True, on_delete=models.CASCADE)
+    catatan = models.TextField(db_column='catatan', null=True, blank=True)
+    created_by = models.ForeignKey(User, db_column='created_by', null=True, blank=True, on_delete=models.SET_NULL, related_name='stok_masuk_created')
+    created_at = models.DateTimeField(db_column='created_at', auto_now_add=True)
+
+    class Meta:
+        db_table = 'stok_masuk'
+        managed = True
+        ordering = ['-tanggal_masuk', '-created_at']
+
+    def __str__(self):
+        return f"Stok Masuk {self.barang.nama_barang} - {self.jumlah} {self.barang.satuan}"
+
+    @property
+    def total_harga(self):
+        """Total harga pembelian"""
+        if self.harga_beli_satuan:
+            return self.jumlah * self.harga_beli_satuan
+        return Decimal('0.00')
+
+    def save(self, *args, **kwargs):
+        """Override save untuk update stok barang"""
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new:
+            # Tambahkan stok ke barang
+            self.barang.stok_tersedia += self.jumlah
+            self.barang.save()
+
+
+class PemakaianBarang(models.Model):
+    """Transaksi pemakaian barang"""
+    id = models.BigAutoField(primary_key=True)
+    barang = models.ForeignKey(BarangInventory, db_column='barang_id', on_delete=models.CASCADE, related_name='pemakaian_entries')
+    tanggal_pakai = models.DateField(db_column='tanggal_pakai')
+    jumlah = models.IntegerField(db_column='jumlah')
+    tujuan = models.CharField(max_length=200, db_column='tujuan', help_text='Untuk apa barang dipakai')
+    registrasi = models.ForeignKey(Registrasi, db_column='registrasi_id', null=True, blank=True, on_delete=models.SET_NULL, related_name='barang_dipakai', help_text='Jika pemakaian terkait sesi terapi')
+    cabang = models.ForeignKey(Cabang, db_column='cabang_id', null=True, blank=True, on_delete=models.CASCADE)
+    catatan = models.TextField(db_column='catatan', null=True, blank=True)
+    created_by = models.ForeignKey(User, db_column='created_by', null=True, blank=True, on_delete=models.SET_NULL, related_name='pemakaian_barang_created')
+    created_at = models.DateTimeField(db_column='created_at', auto_now_add=True)
+
+    class Meta:
+        db_table = 'pemakaian_barang'
+        managed = True
+        ordering = ['-tanggal_pakai', '-created_at']
+
+    def __str__(self):
+        return f"Pemakaian {self.barang.nama_barang} - {self.jumlah} {self.barang.satuan}"
+
+    @property
+    def nilai_pemakaian(self):
+        """Nilai pemakaian berdasarkan harga satuan barang"""
+        return self.jumlah * self.barang.harga_satuan
+
+    def save(self, *args, **kwargs):
+        """Override save untuk update stok barang"""
+        is_new = self.pk is None
+        if is_new:
+            # Validasi stok mencukupi
+            if self.barang.stok_tersedia < self.jumlah:
+                raise ValidationError(f'Stok {self.barang.nama_barang} tidak mencukupi. Tersedia: {self.barang.stok_tersedia}')
+        
+        super().save(*args, **kwargs)
+        
+        if is_new:
+            # Kurangi stok barang
+            self.barang.stok_tersedia -= self.jumlah
+            self.barang.save()

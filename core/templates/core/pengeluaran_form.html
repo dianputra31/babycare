@@ -49,6 +49,33 @@
                 {% endif %}
               </div>
 
+              <!-- Cabang -->
+              <div class="col-md-6">
+                <label for="{{ form.cabang.id_for_label }}" class="form-label">
+                  Cabang
+                </label>
+                {{ form.cabang }}
+                {% if form.cabang.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.cabang.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Checkbox Pembelian Barang -->
+              <div class="col-12">
+                <div class="form-check">
+                  {{ form.is_pembelian_barang }}
+                  <label class="form-check-label" for="id_is_pembelian_barang">
+                    <strong>Pembelian Barang Inventory</strong>
+                    <small class="text-muted">(Centang jika pengeluaran ini untuk pembelian barang yang akan masuk ke inventory)</small>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section: Manual Pengeluaran (show when checkbox not checked) -->
+            <div id="manual-section" class="row g-3 mt-3">
               <!-- Kategori -->
               <div class="col-md-6">
                 <label for="{{ form.kategori.id_for_label }}" class="form-label">
@@ -74,21 +101,96 @@
                   </div>
                 {% endif %}
               </div>
+            </div>
 
-              <!-- Cabang -->
+            <!-- Section: Inventory Purchase (show when checkbox checked) -->
+            <div id="inventory-section" class="row g-3 mt-3" style="display:none;">
+              <div class="col-12">
+                <div class="alert alert-info">
+                  <i class="bi bi-info-circle"></i> Data pembelian barang akan otomatis tercatat ke Inventory sebagai Stok Masuk.
+                </div>
+              </div>
+
+              <!-- Barang -->
               <div class="col-md-6">
-                <label for="{{ form.cabang.id_for_label }}" class="form-label">
-                  Cabang
+                <label for="{{ form.barang.id_for_label }}" class="form-label">
+                  Barang <span class="text-danger">*</span>
                 </label>
-                {{ form.cabang }}
-                {% if form.cabang.errors %}
+                {{ form.barang }}
+                {% if form.barang.errors %}
                   <div class="invalid-feedback d-block">
-                    {{ form.cabang.errors.0 }}
+                    {{ form.barang.errors.0 }}
+                  </div>
+                {% endif %}
+                <small class="form-text text-muted">
+                  <a href="{% url 'barang_inventory_list' %}" target="_blank">Lihat daftar barang</a>
+                </small>
+              </div>
+
+              <!-- Jumlah Barang -->
+              <div class="col-md-6">
+                <label for="{{ form.jumlah_barang.id_for_label }}" class="form-label">
+                  Jumlah Barang <span class="text-danger">*</span>
+                </label>
+                {{ form.jumlah_barang }}
+                {% if form.jumlah_barang.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.jumlah_barang.errors.0 }}
                   </div>
                 {% endif %}
               </div>
 
-              <!-- Keterangan -->
+              <!-- Harga Satuan Beli -->
+              <div class="col-md-6">
+                <label for="{{ form.harga_satuan_beli.id_for_label }}" class="form-label">
+                  Harga Beli/Satuan <span class="text-danger">*</span>
+                </label>
+                {{ form.harga_satuan_beli }}
+                {% if form.harga_satuan_beli.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.harga_satuan_beli.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Total (Auto Calculate, Readonly) -->
+              <div class="col-md-6">
+                <label class="form-label">
+                  Total Pengeluaran
+                </label>
+                <input type="text" id="total_display" class="form-control bg-light" readonly value="Rp 0">
+                <small class="form-text text-muted">Auto-calculate dari Jumlah × Harga Satuan</small>
+              </div>
+
+              <!-- Supplier -->
+              <div class="col-md-6">
+                <label for="{{ form.supplier.id_for_label }}" class="form-label">
+                  Supplier
+                </label>
+                {{ form.supplier }}
+                {% if form.supplier.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.supplier.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- No Faktur -->
+              <div class="col-md-6">
+                <label for="{{ form.no_faktur.id_for_label }}" class="form-label">
+                  No. Faktur/Invoice
+                </label>
+                {{ form.no_faktur }}
+                {% if form.no_faktur.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.no_faktur.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Keterangan (Always visible) -->
+            <div class="row g-3 mt-3">
               <div class="col-12">
                 <label for="{{ form.keterangan.id_for_label }}" class="form-label">
                   Keterangan
@@ -173,12 +275,64 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-  // Initialize Select2 for kategori
+  // Initialize Select2 for kategori and barang
   $('#id_kategori').select2({
     placeholder: '-- Pilih Kategori --',
     allowClear: true,
     width: '100%'
   });
+  
+  $('#id_barang').select2({
+    placeholder: '-- Pilih Barang --',
+    allowClear: true,
+    width: '100%'
+  });
+  
+  // Toggle sections based on checkbox
+  function toggleSections() {
+    const isInventory = $('#id_is_pembelian_barang').is(':checked');
+    
+    if (isInventory) {
+      $('#manual-section').hide();
+      $('#inventory-section').show();
+      // Make inventory fields required
+      $('#id_barang').prop('required', true);
+      $('#id_jumlah_barang').prop('required', true);
+      $('#id_harga_satuan_beli').prop('required', true);
+      // Make manual fields not required
+      $('#id_kategori').prop('required', false);
+      $('#id_jumlah').prop('required', false);
+    } else {
+      $('#manual-section').show();
+      $('#inventory-section').hide();
+      // Make manual fields required
+      $('#id_kategori').prop('required', true);
+      $('#id_jumlah').prop('required', true);
+      // Make inventory fields not required
+      $('#id_barang').prop('required', false);
+      $('#id_jumlah_barang').prop('required', false);
+      $('#id_harga_satuan_beli').prop('required', false);
+    }
+  }
+  
+  // Run on page load
+  toggleSections();
+  
+  // Run when checkbox changes
+  $('#id_is_pembelian_barang').on('change', toggleSections);
+  
+  // Auto-calculate total for inventory purchase
+  function calculateTotal() {
+    const qty = parseFloat($('#id_jumlah_barang').val()) || 0;
+    const price = parseFloat(unformatNumber($('#id_harga_satuan_beli').val())) || 0;
+    const total = qty * price;
+    
+    $('#total_display').val(formatRupiah(total));
+    // Also update the hidden jumlah field
+    $('#id_jumlah').val(total);
+  }
+  
+  $('#id_jumlah_barang, #id_harga_satuan_beli').on('input change', calculateTotal);
   
   // Auto format number for currency inputs (Indonesian style with dots)
   function formatNumber(value) {
@@ -201,8 +355,8 @@ $(document).ready(function() {
     return 'Rp ' + formatNumber(value);
   }
 
-  // Apply to jumlah field
-  const currencyFields = ['id_jumlah'];
+  // Apply to jumlah and harga_satuan_beli field
+  const currencyFields = ['id_jumlah', 'id_harga_satuan_beli'];
   
   currencyFields.forEach(function(fieldId) {
     const field = document.getElementById(fieldId);
@@ -236,8 +390,16 @@ $(document).ready(function() {
       let newLength = this.value.length;
       let diff = newLength - oldLength;
       this.setSelectionRange(cursorPos + diff, cursorPos + diff);
+      
+      // Recalculate total if this is harga_satuan_beli
+      if (fieldId === 'id_harga_satuan_beli') {
+        calculateTotal();
+      }
     });
   });
+  
+  // Calculate on page load if editing
+  calculateTotal();
   
   // Handle preview button click
   $('#btnPreview').on('click', function() {
@@ -248,38 +410,96 @@ $(document).ready(function() {
       return;
     }
     
+    const isInventory = $('#id_is_pembelian_barang').is(':checked');
+    
     // Get form values
     const tanggal = $('#id_tanggal').val();
-    const kategori = $('#id_kategori option:selected').text();
-    const jumlahRaw = unformatNumber($('#id_jumlah').val());
     const cabangText = $('#id_cabang option:selected').text() || '-';
     const keterangan = $('#id_keterangan').val() || '-';
     
-    // Validate kategori selected
-    if (!$('#id_kategori').val()) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Kategori Belum Dipilih',
-        text: 'Silakan pilih kategori pengeluaran terlebih dahulu!',
-        confirmButtonColor: '#dc3545'
-      });
-      return;
-    }
+    let kategori, jumlahRaw;
     
-    // Validate jumlah
-    if (!jumlahRaw || jumlahRaw === '0') {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Jumlah Belum Diisi',
-        text: 'Silakan masukkan jumlah pengeluaran terlebih dahulu!',
-        confirmButtonColor: '#dc3545'
-      });
-      return;
+    if (isInventory) {
+      // Inventory purchase
+      const barangText = $('#id_barang option:selected').text();
+      const qty = $('#id_jumlah_barang').val();
+      const price = unformatNumber($('#id_harga_satuan_beli').val());
+      const supplier = $('#id_supplier').val() || '-';
+      const noFaktur = $('#id_no_faktur').val() || '-';
+      
+      // Validate
+      if (!$('#id_barang').val()) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Barang Belum Dipilih',
+          text: 'Silakan pilih barang yang akan dibeli!',
+          confirmButtonColor: '#dc3545'
+        });
+        return;
+      }
+      
+      if (!qty || qty === '0') {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Jumlah Belum Diisi',
+          text: 'Silakan masukkan jumlah barang!',
+          confirmButtonColor: '#dc3545'
+        });
+        return;
+      }
+      
+      if (!price || price === '0') {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Harga Belum Diisi',
+          text: 'Silakan masukkan harga satuan beli!',
+          confirmButtonColor: '#dc3545'
+        });
+        return;
+      }
+      
+      kategori = 'Pembelian Barang: ' + barangText;
+      jumlahRaw = parseInt(qty) * parseInt(price);
+      
+      // Update preview with inventory info
+      $('#previewKategori').html('<strong>Pembelian Barang Inventory</strong><br>' + 
+                                  barangText + '<br>' +
+                                  '<small class="text-muted">' + qty + ' unit × Rp ' + formatNumber(price) + '</small>');
+      if (supplier !== '-' || noFaktur !== '-') {
+        $('#previewKategori').append('<br><small class="text-muted">Supplier: ' + supplier + ' | Faktur: ' + noFaktur + '</small>');
+      }
+    } else {
+      // Manual expense
+      kategori = $('#id_kategori option:selected').text();
+      jumlahRaw = unformatNumber($('#id_jumlah').val());
+      
+      // Validate kategori selected
+      if (!$('#id_kategori').val()) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Kategori Belum Dipilih',
+          text: 'Silakan pilih kategori pengeluaran terlebih dahulu!',
+          confirmButtonColor: '#dc3545'
+        });
+        return;
+      }
+      
+      // Validate jumlah
+      if (!jumlahRaw || jumlahRaw === '0') {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Jumlah Belum Diisi',
+          text: 'Silakan masukkan jumlah pengeluaran terlebih dahulu!',
+          confirmButtonColor: '#dc3545'
+        });
+        return;
+      }
+      
+      $('#previewKategori').text(kategori);
     }
     
     // Fill preview modal
     $('#previewTanggal').text(tanggal || '-');
-    $('#previewKategori').text(kategori);
     $('#previewJumlah').text(formatRupiah(jumlahRaw));
     $('#previewCabang').text(cabangText);
     $('#previewKeterangan').text(keterangan);

@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}Kategori Barang{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content p-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-tag"></i> Kategori Barang</h2>
+    <a href="{% url 'kategori_barang_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Tambah Kategori
+    </a>
+</div>
+
+<!-- Search -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-10">
+                <input type="text" name="q" class="form-control" placeholder="Cari kategori..." value="{{ request.GET.q }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Cari
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Nama Kategori</th>
+                        <th>Deskripsi</th>
+                        <th>Dibuat</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for kat in kategori_list %}
+                    <tr>
+                        <td><strong>{{ kat.nama_kategori }}</strong></td>
+                        <td>{{ kat.deskripsi|truncatewords:10|default:'-' }}</td>
+                        <td>{{ kat.created_at|date:"d M Y" }}</td>
+                        <td>
+                            <a href="{% url 'kategori_barang_edit' kat.pk %}" class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">Belum ada kategori barang</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

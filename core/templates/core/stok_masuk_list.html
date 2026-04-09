@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}Stok Masuk{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content p-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-arrow-up-circle"></i> Stok Masuk</h2>
+    <a href="{% url 'stok_masuk_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Catat Stok Masuk
+    </a>
+</div>
+
+<!-- Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Barang</label>
+                <select name="barang" class="form-select">
+                    <option value="">Semua Barang</option>
+                    {% for brg in barang_list %}
+                    <option value="{{ brg.id }}" {% if request.GET.barang == brg.id|stringformat:"s" %}selected{% endif %}>
+                        {{ brg.nama_barang }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Dari Tanggal</label>
+                <input type="date" name="tanggal_dari" class="form-control" value="{{ request.GET.tanggal_dari }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Sampai Tanggal</label>
+                <input type="date" name="tanggal_sampai" class="form-control" value="{{ request.GET.tanggal_sampai }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Barang</th>
+                        <th>Jumlah</th>
+                        <th>Harga Beli</th>
+                        <th>Total</th>
+                        <th>Supplier</th>
+                        <th>No. Faktur</th>
+                        <th>Dicatat Oleh</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stok in stok_masuk_list %}
+                    <tr>
+                        <td>{{ stok.tanggal_masuk }}</td>
+                        <td><strong>{{ stok.barang.nama_barang }}</strong></td>
+                        <td>{{ stok.jumlah }} {{ stok.barang.satuan }}</td>
+                        <td>Rp {{ stok.harga_beli_satuan|floatformat:0|default:'-' }}</td>
+                        <td><strong>Rp {{ stok.total_harga|floatformat:0 }}</strong></td>
+                        <td>{{ stok.supplier|default:'-' }}</td>
+                        <td>{{ stok.no_faktur|default:'-' }}</td>
+                        <td>{{ stok.created_by.username|default:'-' }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center">Tidak ada data stok masuk</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }}</span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

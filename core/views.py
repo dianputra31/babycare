@@ -19,8 +19,18 @@ from datetime import datetime, timedelta
 from functools import wraps
 from urllib.parse import quote
 
-from .models import Pasien, Registrasi, RegistrasiDetail, Pemasukan, Pengeluaran, Notifikasi, Terapis, JenisTerapi, Cabang, User, ProgressTracking, Role, UserRole, TemplatePesan, NOTIFICATION_TYPE_CHOICES
-from .forms import RegistrasiForm, RegistrasiDetailFormSet, PemasukanForm, PengeluaranForm, ProgressTrackingForm, UserPasswordChangeForm, UserCreateForm, UserForm, RoleForm, TemplatePesanForm
+from .models import (
+    Pasien, Registrasi, RegistrasiDetail, Pemasukan, Pengeluaran, Notifikasi, 
+    Terapis, JenisTerapi, Cabang, User, ProgressTracking, Role, UserRole, 
+    TemplatePesan, NOTIFICATION_TYPE_CHOICES, KategoriBarang, BarangInventory, 
+    StokMasuk, PemakaianBarang
+)
+from .forms import (
+    RegistrasiForm, RegistrasiDetailFormSet, PemasukanForm, PengeluaranForm, 
+    ProgressTrackingForm, UserPasswordChangeForm, UserCreateForm, UserForm, 
+    RoleForm, TemplatePesanForm, KategoriBarangForm, BarangInventoryForm, 
+    StokMasukForm, PemakaianBarangForm
+)
 from django.db import transaction
 from decimal import Decimal
 from datetime import date
@@ -1234,7 +1244,7 @@ class PengeluaranCreateView(PermissionRequiredViewMixin, CreateView):
     model = Pengeluaran
     form_class = PengeluaranForm
     template_name = 'core/pengeluaran_form.html'
-    success_url = reverse_lazy('dashboard')
+    success_url = reverse_lazy('pengeluaran_list')
     permission_required = 'pengeluaran_create'
 
     def get_initial(self):
@@ -1254,7 +1264,25 @@ class PengeluaranCreateView(PermissionRequiredViewMixin, CreateView):
             obj.created_by = self.request.user
             obj.save()
             self.object = obj
-            messages.success(self.request, 'Data pengeluaran berhasil disimpan!')
+            
+            # Jika pembelian barang inventory, create StokMasuk otomatis
+            if obj.barang and obj.jumlah_barang and obj.harga_satuan_beli:
+                from .models import StokMasuk
+                stok_masuk = StokMasuk.objects.create(
+                    barang=obj.barang,
+                    tanggal_masuk=obj.tanggal,
+                    jumlah=obj.jumlah_barang,
+                    harga_beli_satuan=obj.harga_satuan_beli,
+                    supplier=obj.supplier or '-',
+                    no_faktur=obj.no_faktur or '-',
+                    cabang=obj.cabang,
+                    catatan=f'Auto dari Pengeluaran ID: {obj.id}',
+                    created_by=self.request.user
+                )
+                messages.success(self.request, f'Data pengeluaran berhasil disimpan! Stok {obj.barang.nama_barang} bertambah {obj.jumlah_barang} {obj.barang.satuan}.')
+            else:
+                messages.success(self.request, 'Data pengeluaran berhasil disimpan!')
+            
             return redirect(self.get_success_url())
         except Exception as e:
             print(f"Exception in form_valid: {type(e).__name__}: {e}")
@@ -1295,7 +1323,43 @@ class PengeluaranEditView(PermissionRequiredViewMixin, UpdateView):
 
     def form_valid(self, form):
         obj = form.save()
-        messages.success(self.request, '✅ Data pengeluaran berhasil diupdate!')
+        
+        # Jika pembelian barang inventory, create StokMasuk otomatis
+        if obj.barang and obj.jumlah_barang and obj.harga_satuan_beli:
+            from .models import StokMasuk
+            # Cek apakah sudah ada stok masuk dari pengeluaran ini
+            existing = StokMasuk.objects.filter(
+                catatan__contains=f'Auto dari Pengeluaran ID: {obj.id}'
+            ).first()
+            
+            if existing:
+                # Update existing
+                existing.barang = obj.barang
+                existing.tanggal_masuk = obj.tanggal
+                existing.jumlah = obj.jumlah_barang
+                existing.harga_beli_satuan = obj.harga_satuan_beli
+                existing.supplier = obj.supplier or '-'
+                existing.no_faktur = obj.no_faktur or '-'
+                existing.cabang = obj.cabang
+                existing.save()
+                messages.success(self.request, f'✅ Data pengeluaran berhasil diupdate! Stok {obj.barang.nama_barang} diupdate.')
+            else:
+                # Create new
+                StokMasuk.objects.create(
+                    barang=obj.barang,
+                    tanggal_masuk=obj.tanggal,
+                    jumlah=obj.jumlah_barang,
+                    harga_beli_satuan=obj.harga_satuan_beli,
+                    supplier=obj.supplier or '-',
+                    no_faktur=obj.no_faktur or '-',
+                    cabang=obj.cabang,
+                    catatan=f'Auto dari Pengeluaran ID: {obj.id}',
+                    created_by=self.request.user
+                )
+                messages.success(self.request, f'✅ Data pengeluaran berhasil diupdate! Stok {obj.barang.nama_barang} bertambah {obj.jumlah_barang} {obj.barang.satuan}.')
+        else:
+            messages.success(self.request, '✅ Data pengeluaran berhasil diupdate!')
+        
         return super().form_valid(form)
     
     def form_invalid(self, form):
@@ -1531,6 +1595,146 @@ def export_pasien_excel(request):
     
     wb.save(response)
     return response
+
+
+class ImportPasienView(PermissionRequiredViewMixin, View):
+    """Import pasien data from Excel file."""
+    permission_required = 'pasien_create'
+
+    def get(self, request):
+        """Return list of cabangs for the modal dropdown."""
+        cabangs = list(Cabang.objects.values('id', 'nama_cabang').order_by('nama_cabang'))
+        return JsonResponse({'cabangs': cabangs})
+
+    def post(self, request):
+        import re
+        import openpyxl
+        from django.db.models import Max
+
+        BULAN_ID = {
+            'JANUARI': 1, 'FEBRUARI': 2, 'MARET': 3, 'APRIL': 4,
+            'MEI': 5, 'JUNI': 6, 'JULI': 7, 'AGUSTUS': 8,
+            'SEPTEMBER': 9, 'OKTOBER': 10, 'NOVEMBER': 11, 'DESEMBER': 12,
+        }
+
+        def parse_tanggal(val):
+            if not val:
+                return None
+            val_str = str(val).strip().upper()
+            match = re.search(r'(\d{1,2})\s+([A-Z]+)\s+(\d{4})', val_str)
+            if match:
+                try:
+                    day = int(match.group(1))
+                    month = BULAN_ID.get(match.group(2))
+                    year = int(match.group(3))
+                    if month:
+                        from datetime import date as date_cls
+                        return date_cls(year, month, day)
+                except (ValueError, TypeError):
+                    pass
+            return None
+
+        def parse_jenis_kelamin(val):
+            if not val:
+                return None
+            v = re.sub(r'[\s\-]', '', str(val).strip().upper())
+            if v == 'LAKILAKI':
+                return 'L'
+            if v == 'PEREMPUAN':
+                return 'P'
+            return None
+
+        def parse_no_wa(val):
+            if not val:
+                return None
+            v = re.sub(r'[\s\-]', '', str(val).strip())
+            return v if v else None
+
+        excel_file = request.FILES.get('excel_file')
+        if not excel_file:
+            return JsonResponse({'success': False, 'error': 'File tidak ditemukan.'})
+
+        cabang_id = request.POST.get('cabang_id') or None
+        cabang = None
+        if cabang_id:
+            try:
+                cabang = Cabang.objects.get(id=cabang_id)
+            except Cabang.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Cabang tidak ditemukan.'})
+
+        try:
+            wb = openpyxl.load_workbook(excel_file, data_only=True)
+            ws = wb.active
+
+            # Detect header row in first 3 rows
+            header_row_idx = None
+            col_map = {}
+            for row_idx, row in enumerate(ws.iter_rows(max_row=3, values_only=True), start=1):
+                row_upper = [str(c).strip().upper() if c is not None else '' for c in row]
+                if 'NAMA PASIEN' in row_upper:
+                    header_row_idx = row_idx
+                    for col_idx, cell_val in enumerate(row_upper):
+                        col_map[cell_val] = col_idx
+                    break
+
+            if header_row_idx is None:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Header tidak ditemukan. Pastikan baris header berisi kolom "NAMA PASIEN" dalam 3 baris pertama.'
+                })
+
+            saved = 0
+            errors = []
+
+            for row_num, row in enumerate(
+                ws.iter_rows(min_row=header_row_idx + 1, values_only=True),
+                start=header_row_idx + 1
+            ):
+                # Skip fully empty rows
+                if all(c is None or str(c).strip() == '' for c in row):
+                    continue
+
+                def get_col(name):
+                    idx = col_map.get(name)
+                    if idx is not None and idx < len(row):
+                        v = row[idx]
+                        return str(v).strip() if v is not None else ''
+                    return ''
+
+                nama_anak = get_col('NAMA PASIEN')
+                if not nama_anak:
+                    continue
+
+                tanggal_lahir_val = parse_tanggal(get_col('TEMPAT TANGGAL LAHIR'))
+                if tanggal_lahir_val is None:
+                    errors.append(f'Baris {row_num} ("{nama_anak}"): format tanggal lahir tidak dikenali.')
+                    continue
+
+                try:
+                    pasien = Pasien.objects.create(
+                        nama_anak=nama_anak,
+                        tanggal_lahir=tanggal_lahir_val,
+                        jenis_kelamin=parse_jenis_kelamin(get_col('JENIS KELAMIN')),
+                        nama_orang_tua=get_col('NAMA BUNDA') or None,
+                        no_wa=parse_no_wa(get_col('NOMOR TELP')) or None,
+                        cabang=cabang,
+                        is_deleted=False,
+                    )
+                    pasien.kode_pasien = f'P{pasien.id:04d}'
+                    pasien.save(update_fields=['kode_pasien'])
+                    saved += 1
+                except Exception as e:
+                    errors.append(f'Baris {row_num} ("{nama_anak}"): {str(e)}')
+
+            return JsonResponse({
+                'success': True,
+                'saved': saved,
+                'errors': errors,
+            })
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': f'Gagal membaca file: {str(e)}'})
+
 
 @require_permission('registrasi_export')
 def export_registrasi_excel(request):

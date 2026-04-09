@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}Daftar Barang Inventory{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content p-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-box-seam"></i> Daftar Barang Inventory</h2>
+    <a href="{% url 'barang_inventory_create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Tambah Barang
+    </a>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h5>Total Barang</h5>
+                <h2>{{ total_barang }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <h5>Stok Rendah</h5>
+                <h2>{{ stok_rendah_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <h5>Stok Habis</h5>
+                <h2>{{ stok_habis_count }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Form -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <input type="text" name="q" class="form-control" placeholder="Cari nama/kode barang..." value="{{ request.GET.q }}">
+            </div>
+            <div class="col-md-3">
+                <select name="kategori" class="form-select">
+                    <option value="">Semua Kategori</option>
+                    {% for kat in kategori_list %}
+                    <option value="{{ kat.id }}" {% if request.GET.kategori == kat.id|stringformat:"s" %}selected{% endif %}>
+                        {{ kat.nama_kategori }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="cabang" class="form-select">
+                    <option value="">Semua Cabang</option>
+                    {% for cb in cabang_list %}
+                    <option value="{{ cb.id }}" {% if request.GET.cabang == cb.id|stringformat:"s" %}selected{% endif %}>
+                        {{ cb.nama_cabang }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Kode</th>
+                        <th>Nama Barang</th>
+                        <th>Kategori</th>
+                        <th>Stok</th>
+                        <th>Status</th>
+                        <th>Harga Satuan</th>
+                        <th>Lokasi</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for barang in barang_list %}
+                    <tr>
+                        <td>{{ barang.kode_barang|default:'-' }}</td>
+                        <td><strong>{{ barang.nama_barang }}</strong></td>
+                        <td>{{ barang.kategori.nama_kategori|default:'-' }}</td>
+                        <td>
+                            <strong>{{ barang.stok_tersedia }}</strong> {{ barang.satuan }}
+                            <br>
+                            <small class="text-muted">Min: {{ barang.stok_minimum }}</small>
+                        </td>
+                        <td>
+                            {% if barang.stok_tersedia == 0 %}
+                                <span class="badge bg-danger">HABIS</span>
+                            {% elif barang.is_stok_rendah %}
+                                <span class="badge bg-warning">RENDAH</span>
+                            {% else %}
+                                <span class="badge bg-success">AMAN</span>
+                            {% endif %}
+                        </td>
+                        <td>Rp {{ barang.harga_satuan|floatformat:0 }}</td>
+                        <td>{{ barang.lokasi_penyimpanan|default:'-' }}</td>
+                        <td>
+                            <a href="{% url 'barang_inventory_edit' barang.pk %}" class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center">Tidak ada data barang</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }}</span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

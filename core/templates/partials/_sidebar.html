@@ -76,6 +76,20 @@
         <i class="bi bi-calculator"></i> Saldo Akhir
       </a>
       {% endif %}
+      <hr class="border-secondary my-3">
+      <h6 class="text-white text-uppercase mb-3 small">Inventory</h6>
+      <a class="nav-link {% if '/inventory/barang/' in request.path %}active{% endif %}" href="{% url 'barang_inventory_list' %}">
+        <i class="bi bi-box-seam"></i> Daftar Barang
+      </a>
+      <a class="nav-link {% if '/inventory/stok-masuk/' in request.path %}active{% endif %}" href="{% url 'stok_masuk_list' %}">
+        <i class="bi bi-arrow-up-circle"></i> Stok Masuk
+      </a>
+      <a class="nav-link {% if '/inventory/pemakaian/' in request.path %}active{% endif %}" href="{% url 'pemakaian_barang_list' %}">
+        <i class="bi bi-arrow-down-circle"></i> Pemakaian Barang
+      </a>
+      <a class="nav-link {% if '/inventory/laporan/' in request.path %}active{% endif %}" href="{% url 'laporan_inventory' %}">
+        <i class="bi bi-file-earmark-bar-graph"></i> Laporan Inventory
+      </a>
       {% if request.is_superadmin_user or 'cabang_view' in request.user_permissions or 'pasien_view' in request.user_permissions or 'terapis_view' in request.user_permissions or 'jenis_terapi_view' in request.user_permissions or 'user_view' in request.user_permissions or request.can_manage_roles %}
       <hr class="border-secondary my-3">
       <h6 class="text-white text-uppercase mb-3 small">Master Data</h6>
@@ -194,6 +208,20 @@
         <i class="bi bi-calculator"></i> Saldo Akhir
       </a>
       {% endif %}
+      <hr class="border-secondary my-3">
+      <h6 class="text-white text-uppercase mb-3 small">Inventory</h6>
+      <a class="nav-link {% if '/inventory/barang/' in request.path %}active{% endif %}" href="{% url 'barang_inventory_list' %}">
+        <i class="bi bi-box-seam"></i> Daftar Barang
+      </a>
+      <a class="nav-link {% if '/inventory/stok-masuk/' in request.path %}active{% endif %}" href="{% url 'stok_masuk_list' %}">
+        <i class="bi bi-arrow-up-circle"></i> Stok Masuk
+      </a>
+      <a class="nav-link {% if '/inventory/pemakaian/' in request.path %}active{% endif %}" href="{% url 'pemakaian_barang_list' %}">
+        <i class="bi bi-arrow-down-circle"></i> Pemakaian Barang
+      </a>
+      <a class="nav-link {% if '/inventory/laporan/' in request.path %}active{% endif %}" href="{% url 'laporan_inventory' %}">
+        <i class="bi bi-file-earmark-bar-graph"></i> Laporan Inventory
+      </a>
       {% if request.is_superadmin_user or 'cabang_view' in request.user_permissions or 'pasien_view' in request.user_permissions or 'terapis_view' in request.user_permissions or 'jenis_terapi_view' in request.user_permissions or 'user_view' in request.user_permissions or request.can_manage_roles %}
       <hr class="border-secondary my-3">
       <h6 class="text-white text-uppercase mb-3 small">Master Data</h6>

@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_inventory
 
 urlpatterns = [
     path('', views.IndexView.as_view(), name='index'),
@@ -42,6 +43,7 @@ urlpatterns = [
     path('pasien/new/', views.PasienCreateView.as_view(), name='pasien_create'),
     path('pasien/<int:pk>/edit/', views.PasienEditView.as_view(), name='pasien_edit'),
     path('pasien/export/excel/', views.export_pasien_excel, name='export_pasien_excel'),
+    path('pasien/import/', views.ImportPasienView.as_view(), name='import_pasien'),
     path('terapis/', views.TerapisListView.as_view(), name='terapis_list'),
     path('terapis/new/', views.TerapisCreateView.as_view(), name='terapis_create'),
     path('terapis/<int:pk>/edit/', views.TerapisUpdateView.as_view(), name='terapis_edit'),
@@ -83,4 +85,24 @@ urlpatterns = [
     path('pengaturan/', views.AppSettingsView.as_view(), name='app_settings'),
     # Notification Generation
     path('notifikasi/generate/', views.GenerateNotificationsView.as_view(), name='generate_notifications'),
+    
+    # ============================================================================
+    # INVENTORY MANAGEMENT
+    # ============================================================================
+    # Kategori Barang
+    path('inventory/kategori/', views_inventory.KategoriBarangListView.as_view(), name='kategori_barang_list'),
+    path('inventory/kategori/new/', views_inventory.KategoriBarangCreateView.as_view(), name='kategori_barang_create'),
+    path('inventory/kategori/<int:pk>/edit/', views_inventory.KategoriBarangUpdateView.as_view(), name='kategori_barang_edit'),
+    # Master Barang
+    path('inventory/barang/', views_inventory.BarangInventoryListView.as_view(), name='barang_inventory_list'),
+    path('inventory/barang/new/', views_inventory.BarangInventoryCreateView.as_view(), name='barang_inventory_create'),
+    path('inventory/barang/<int:pk>/edit/', views_inventory.BarangInventoryUpdateView.as_view(), name='barang_inventory_edit'),
+    # Stok Masuk
+    path('inventory/stok-masuk/', views_inventory.StokMasukListView.as_view(), name='stok_masuk_list'),
+    path('inventory/stok-masuk/new/', views_inventory.StokMasukCreateView.as_view(), name='stok_masuk_create'),
+    # Pemakaian Barang
+    path('inventory/pemakaian/', views_inventory.PemakaianBarangListView.as_view(), name='pemakaian_barang_list'),
+    path('inventory/pemakaian/new/', views_inventory.PemakaianBarangCreateView.as_view(), name='pemakaian_barang_create'),
+    # Laporan Inventory
+    path('inventory/laporan/', views_inventory.LaporanInventoryView.as_view(), name='laporan_inventory'),
 ]

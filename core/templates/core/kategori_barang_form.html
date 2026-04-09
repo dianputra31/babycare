@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ object|yesno:"Edit,Tambah" }} Kategori Barang{% endblock %}
+
+{% block content %}
+{% include 'partials/_navbar.html' %}
+
+<div class="container-fluid">
+  <div class="row g-0 min-vh-100">
+    {% include 'partials/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10 main-content p-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="bi bi-tag"></i> 
+        {% if object %}Edit{% else %}Tambah{% endif %} Kategori Barang
+    </h2>
+    <a href="{% url 'kategori_barang_list' %}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Kembali
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+                <label class="form-label">Nama Kategori <span class="text-danger">*</span></label>
+                {{ form.nama_kategori }}
+                {% if form.nama_kategori.errors %}
+                    <div class="text-danger">{{ form.nama_kategori.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Deskripsi</label>
+                {{ form.deskripsi }}
+                {% if form.deskripsi.errors %}
+                    <div class="text-danger">{{ form.deskripsi.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'kategori_barang_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Batal
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Simpan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
