@@ -466,6 +466,38 @@ class BarangInventory(models.Model):
         db_table = 'barang_inventory'
         managed = True
 
+
+# ============================================================================
+# BACKUP SYSTEM MODELS
+# ============================================================================
+
+class BackupLog(models.Model):
+    """Track database backup progress and history"""
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('COMPLETED', 'Completed'),
+        ('FAILED', 'Failed'),
+    ]
+    
+    id = models.BigAutoField(primary_key=True)
+    filename = models.CharField(max_length=255, db_column='filename')
+    status = models.CharField(max_length=20, db_column='status', choices=STATUS_CHOICES, default='PENDING')
+    progress = models.IntegerField(db_column='progress', default=0, help_text='Progress percentage 0-100')
+    file_size = models.BigIntegerField(db_column='file_size', null=True, blank=True, help_text='Size in bytes')
+    error_message = models.TextField(db_column='error_message', null=True, blank=True)
+    started_at = models.DateTimeField(db_column='started_at', auto_now_add=True)
+    completed_at = models.DateTimeField(db_column='completed_at', null=True, blank=True)
+    created_by = models.ForeignKey(User, db_column='created_by', null=True, blank=True, on_delete=models.SET_NULL, related_name='backups_created')
+    
+    class Meta:
+        db_table = 'backup_log'
+        managed = True
+        ordering = ['-started_at']
+    
+    def __str__(self):
+        return f"Backup {self.filename} - {self.status}"
+
     def __str__(self):
         return f"{self.kode_barang or self.id} - {self.nama_barang}"
 

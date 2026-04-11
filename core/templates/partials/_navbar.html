@@ -1,5 +1,8 @@
 <!-- Top Navbar -->
 <nav class="navbar navbar-expand-lg navbar-light">
+  <!-- Hidden CSRF token for AJAX requests -->
+  <form style="display:none;">{% csrf_token %}</form>
+  
   <div class="container-fluid">
     <!-- Sidebar Toggle Button (Mobile Only) -->
     <button class="btn btn-link d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar" aria-controls="mobileSidebar">
@@ -34,6 +37,14 @@
             <span>Install App</span>
           </button>
         </li>
+        <!-- Backup Button (Superadmin Only) -->
+        {% if user.is_superuser %}
+        <li class="nav-item">
+          <button id="backupButton" class="btn btn-link nav-link" title="Backup Database" style="border: none; background: none;">
+            <i class="bi bi-database"></i>
+          </button>
+        </li>
+        {% endif %}
         <!-- Dark Mode Toggle -->
         <li class="nav-item">
           <button id="darkModeToggle" class="btn btn-link nav-link" title="Toggle Dark Mode (Alt+T)" style="border: none; background: none;">
@@ -71,3 +82,20 @@
     </div>
   </div>
 </nav>
+
+<!-- Backup Progress Bar (Fixed Position) -->
+<div id="backupProgressContainer" style="display: none; position: fixed; top: 60px; left: 0; right: 0; z-index: 1040; background: var(--card-bg); border-bottom: 1px solid var(--border-color); padding: 10px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <div class="d-flex align-items-center">
+      <div class="spinner-border spinner-border-sm text-primary me-2" role="status" id="backupSpinner">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <strong id="backupStatusText">Mempersiapkan backup...</strong>
+    </div>
+    <button type="button" class="btn-close" id="closeBackupProgress" style="display: none;"></button>
+  </div>
+  <div class="progress" style="height: 8px;">
+    <div id="backupProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+  </div>
+  <small class="text-muted" id="backupFilename">-</small>
+</div>

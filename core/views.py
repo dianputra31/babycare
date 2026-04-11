@@ -3479,3 +3479,180 @@ def update_registrasi_date_api(request, registrasi_id):
         return JsonResponse({'success': False, 'message': f'Format tanggal invalid: {str(e)}'}, status=400)
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'Error: {str(e)}'}, status=500)
+
+# ============================================================================
+# BACKUP SYSTEM VIEWS
+# ============================================================================
+
+@login_required
+@require_http_methods(['POST'])
+def start_backup(request):
+    """Start database backup process"""
+    from .models import BackupLog
+    import threading
+    from django.core.management import call_command
+    
+    # Check if user has permission (superadmin only)
+    if not request.user.is_superuser:
+        return JsonResponse({
+            'success': False,
+            'message': 'Only superadmin can perform backup'
+        }, status=403)
+    
+    # Check if there's already a backup in progress
+    in_progress = BackupLog.objects.filter(status='IN_PROGRESS').exists()
+    if in_progress:
+        return JsonResponse({
+            'success': False,
+            'message': 'Backup sedang berjalan, mohon tunggu hingga selesai'
+        }, status=400)
+    
+    try:
+        compress = request.POST.get('compress', 'true').lower() == 'true'
+        
+        # Create backup log entry
+        backup_log = BackupLog.objects.create(
+            filename='pending',
+            status='PENDING',
+            progress=0,
+            created_by=request.user
+        )
+        
+        # Start backup in background thread
+        def run_backup():
+            call_command('backup_database', backup_id=backup_log.id, compress=compress)
+        
+        thread = threading.Thread(target=run_backup)
+        thread.daemon = True
+        thread.start()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Backup dimulai',
+            'backup_id': backup_log.id
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error: {str(e)}'
+        }, status=500)
+
+
+@login_required
+@require_http_methods(['GET'])
+def backup_progress(request, backup_id):
+    """Check backup progress"""
+    from .models import BackupLog
+    
+    try:
+        backup_log = BackupLog.objects.get(id=backup_id)
+        
+        data = {
+            'id': backup_log.id,
+            'filename': backup_log.filename,
+            'status': backup_log.status,
+            'progress': backup_log.progress,
+            'file_size': backup_log.file_size,
+            'error_message': backup_log.error_message,
+            'started_at': backup_log.started_at.isoformat() if backup_log.started_at else None,
+            'completed_at': backup_log.completed_at.isoformat() if backup_log.completed_at else None,
+        }
+        
+        return JsonResponse(data)
+        
+    except BackupLog.DoesNotExist:
+        return JsonResponse({
+            'error': 'Backup not found'
+        }, status=404)
+
+
+@login_required
+def backup_list(request):
+    """List all backups"""
+    from .models import BackupLog
+    import os
+    
+    # Check if user has permission
+    if not request.user.is_superuser:
+        messages.error(request, 'Only superadmin can view backup list')
+        return redirect('dashboard')
+    
+    backups = BackupLog.objects.all()
+    
+    # Add download URL for completed backups
+    backup_data = []
+    backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+    
+    for backup in backups:
+        backup_info = {
+            'id': backup.id,
+            'filename': backup.filename,
+            'status': backup.status,
+            'progress': backup.progress,
+            'file_size': backup.file_size,
+            'started_at': backup.started_at,
+            'completed_at': backup.completed_at,
+            'created_by': backup.created_by,
+            'has_file': False,
+        }
+        
+        if backup.status == 'COMPLETED':
+            file_path = os.path.join(backup_dir, backup.filename)
+            backup_info['has_file'] = os.path.exists(file_path)
+        
+        backup_data.append(backup_info)
+    
+    context = {
+        'backups': backup_data,
+    }
+    
+    return render(request, 'core/backup_list.html', context)
+
+
+@login_required
+def download_backup(request, backup_id):
+    """Download backup file"""
+    from .models import BackupLog
+    import os
+    from django.http import FileResponse, HttpResponse
+    
+    # Check if user has permission
+    if not request.user.is_superuser:
+        messages.error(request, 'Only superadmin can download backups')
+        return redirect('dashboard')
+    
+    try:
+        backup_log = BackupLog.objects.get(id=backup_id)
+        
+        if backup_log.status != 'COMPLETED':
+            messages.error(request, 'Backup belum selesai atau gagal')
+            return redirect('backup_list')
+        
+        backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+        file_path = os.path.join(backup_dir, backup_log.filename)
+        
+        if not os.path.exists(file_path):
+            messages.error(request, 'File backup tidak ditemukan')
+            return redirect('backup_list')
+        
+        # Open file and create response
+        response = FileResponse(
+            open(file_path, 'rb'),
+            as_attachment=True,
+            filename=backup_log.filename
+        )
+        
+        # Set proper headers for download
+        response['Content-Type'] = 'application/gzip'
+        response['Content-Disposition'] = f'attachment; filename="{backup_log.filename}"'
+        response['Content-Length'] = os.path.getsize(file_path)
+        
+        return response
+        
+    except BackupLog.DoesNotExist:
+        messages.error(request, 'Backup tidak ditemukan')
+        return redirect('backup_list')
+    except Exception as e:
+        messages.error(request, f'Error: {str(e)}')
+        return redirect('backup_list')

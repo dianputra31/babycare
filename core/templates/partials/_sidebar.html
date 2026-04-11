@@ -130,6 +130,11 @@
       <a class="nav-link {% if '/pengaturan/' in request.path %}active{% endif %}" href="/pengaturan/">
         <i class="bi bi-gear"></i> Pengaturan
       </a>
+      {% if user.is_superuser %}
+      <a class="nav-link {% if '/backup/' in request.path %}active{% endif %}" href="{% url 'backup_list' %}">
+        <i class="bi bi-database"></i> Backup Database
+      </a>
+      {% endif %}
       {% endif %}
     </nav>
   </div>
@@ -262,6 +267,11 @@
       <a class="nav-link {% if '/pengaturan/' in request.path %}active{% endif %}" href="/pengaturan/">
         <i class="bi bi-gear"></i> Pengaturan
       </a>
+      {% if user.is_superuser %}
+      <a class="nav-link {% if '/backup/' in request.path %}active{% endif %}" href="{% url 'backup_list' %}">
+        <i class="bi bi-database"></i> Backup Database
+      </a>
+      {% endif %}
       {% endif %}
     </nav>
   </div>

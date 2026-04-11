@@ -105,4 +105,12 @@ urlpatterns = [
     path('inventory/pemakaian/new/', views_inventory.PemakaianBarangCreateView.as_view(), name='pemakaian_barang_create'),
     # Laporan Inventory
     path('inventory/laporan/', views_inventory.LaporanInventoryView.as_view(), name='laporan_inventory'),
+    
+    # ============================================================================
+    # BACKUP SYSTEM
+    # ============================================================================
+    path('backup/start/', views.start_backup, name='start_backup'),
+    path('backup/progress/<int:backup_id>/', views.backup_progress, name='backup_progress'),
+    path('backup/list/', views.backup_list, name='backup_list'),
+    path('backup/download/<int:backup_id>/', views.download_backup, name='download_backup'),
 ]

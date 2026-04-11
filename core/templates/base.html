@@ -1479,6 +1479,220 @@
       showToast('PWA Babycare sudah terpasang.', 'success');
     });
 
+    // ===== DATABASE BACKUP SYSTEM =====
+    let backupPollInterval = null;
+    let currentBackupId = null;
+
+    // Helper function to get CSRF token from cookie
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
+    function getCSRFToken() {
+      return getCookie('csrftoken') || 
+             document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+             document.querySelector('meta[name="csrf-token"]')?.content || '';
+    }
+
+    // Backup button click handler
+    const backupButton = document.getElementById('backupButton');
+    if (backupButton) {
+      backupButton.addEventListener('click', function() {
+        // Confirm backup with options
+        Swal.fire({
+          title: 'Backup Database',
+          html: `
+            <p>Backup akan dimulai dan file akan otomatis didownload setelah selesai.</p>
+            <p class="text-muted small">Anda bisa memilih lokasi penyimpanan saat dialog download muncul.</p>
+          `,
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: '<i class="bi bi-download"></i> Mulai Backup',
+          cancelButtonText: 'Batal',
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#d33',
+        }).then((result) => {
+          if (result.isConfirmed) {
+            startBackup();
+          }
+        });
+      });
+    }
+
+    function startBackup() {
+      const csrfToken = getCSRFToken();
+
+      // Show progress container
+      const progressContainer = document.getElementById('backupProgressContainer');
+      const progressBar = document.getElementById('backupProgressBar');
+      const statusText = document.getElementById('backupStatusText');
+      const spinner = document.getElementById('backupSpinner');
+      const closeBtn = document.getElementById('closeBackupProgress');
+      const filenameEl = document.getElementById('backupFilename');
+
+      progressContainer.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressBar.textContent = '0%';
+      statusText.textContent = 'Mempersiapkan backup...';
+      spinner.style.display = 'inline-block';
+      closeBtn.style.display = 'none';
+      filenameEl.textContent = '-';
+
+      // Start backup via AJAX
+      fetch('/backup/start/', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrfToken,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'compress=true&auto_download=true',
+        credentials: 'same-origin',
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          currentBackupId = data.backup_id;
+          showToast('Backup dimulai...', 'info');
+          // Start polling for progress
+          startProgressPolling();
+        } else {
+          showToast(data.message || 'Gagal memulai backup', 'error');
+          progressContainer.style.display = 'none';
+        }
+      })
+      .catch(error => {
+        console.error('Backup error:', error);
+        showToast('Error: ' + error.message, 'error');
+        progressContainer.style.display = 'none';
+      });
+    }
+
+    function startProgressPolling() {
+      if (backupPollInterval) {
+        clearInterval(backupPollInterval);
+      }
+
+      backupPollInterval = setInterval(function() {
+        if (currentBackupId) {
+          checkBackupProgress(currentBackupId);
+        }
+      }, 1000); // Poll every second
+    }
+
+    function checkBackupProgress(backupId) {
+      fetch('/backup/progress/' + backupId + '/')
+        .then(response => response.json())
+        .then(data => {
+          const progressBar = document.getElementById('backupProgressBar');
+          const statusText = document.getElementById('backupStatusText');
+          const spinner = document.getElementById('backupSpinner');
+          const closeBtn = document.getElementById('closeBackupProgress');
+          const filenameEl = document.getElementById('backupFilename');
+
+          // Update progress bar
+          const progress = data.progress || 0;
+          progressBar.style.width = progress + '%';
+          progressBar.textContent = progress + '%';
+
+          // Update filename
+          if (data.filename && data.filename !== 'pending') {
+            filenameEl.textContent = data.filename;
+          }
+
+          // Update status
+          if (data.status === 'IN_PROGRESS') {
+            statusText.textContent = 'Backup sedang berjalan...';
+            spinner.style.display = 'inline-block';
+          } else if (data.status === 'COMPLETED') {
+            statusText.textContent = '✓ Backup selesai! Mengunduh file...';
+            spinner.style.display = 'none';
+            closeBtn.style.display = 'inline-block';
+            progressBar.classList.remove('progress-bar-animated');
+            progressBar.classList.add('bg-success');
+            
+            // Stop polling
+            if (backupPollInterval) {
+              clearInterval(backupPollInterval);
+              backupPollInterval = null;
+            }
+
+            showToast('Backup berhasil! File akan didownload...', 'success');
+
+            // Auto-download file
+            setTimeout(function() {
+              const downloadUrl = '/backup/download/' + backupId + '/';
+              const link = document.createElement('a');
+              link.href = downloadUrl;
+              link.download = data.filename || 'backup.sql.gz';
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              
+              statusText.textContent = '✓ Backup selesai & didownload!';
+              
+              // Show success message with file location
+              Swal.fire({
+                icon: 'success',
+                title: 'Backup Berhasil!',
+                html: `
+                  <p>File backup telah didownload:</p>
+                  <p class="text-muted"><code>${data.filename}</code></p>
+                  <p class="small">Silakan pilih lokasi penyimpanan di browser Anda.</p>
+                `,
+                confirmButtonText: 'OK'
+              });
+            }, 500);
+
+            // Auto-hide progress bar after download
+            setTimeout(function() {
+              document.getElementById('backupProgressContainer').style.display = 'none';
+            }, 8000);
+
+          } else if (data.status === 'FAILED') {
+            statusText.textContent = '✗ Backup gagal!';
+            spinner.style.display = 'none';
+            closeBtn.style.display = 'inline-block';
+            progressBar.classList.remove('progress-bar-animated');
+            progressBar.classList.add('bg-danger');
+
+            // Stop polling
+            if (backupPollInterval) {
+              clearInterval(backupPollInterval);
+              backupPollInterval = null;
+            }
+
+            const errorMsg = data.error_message || 'Unknown error';
+            showToast('Backup gagal: ' + errorMsg, 'error');
+          }
+        })
+        .catch(error => {
+          console.error('Error checking backup progress:', error);
+        });
+    }
+
+    // Close button handler
+    const closeBackupProgress = document.getElementById('closeBackupProgress');
+    if (closeBackupProgress) {
+      closeBackupProgress.addEventListener('click', function() {
+        document.getElementById('backupProgressContainer').style.display = 'none';
+        if (backupPollInterval) {
+          clearInterval(backupPollInterval);
+          backupPollInterval = null;
+        }
+      });
+    }
+
     // ===== DESKTOP SIDEBAR COLLAPSE =====
     $(document).ready(function() {
       const storageKey = 'babycare.sidebarCollapsed';
