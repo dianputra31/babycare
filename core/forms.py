@@ -8,13 +8,51 @@ from decimal import Decimal
 from .models import (
     Registrasi, RegistrasiDetail, Pemasukan, Pengeluaran, AppSettings, User, 
     ProgressTracking, Role, Permission, RolePermission, UserRole, TemplatePesan, 
-    NOTIFICATION_TYPE_CHOICES, KategoriBarang, BarangInventory, StokMasuk, PemakaianBarang
+    NOTIFICATION_TYPE_CHOICES, KategoriBarang, BarangInventory, StokMasuk, PemakaianBarang,
+    Terapis
 )
 from .rbac import RESERVED_SUPERADMIN_ROLES, can_manage_roles, get_permission_groups_for_display, normalize_role_name, replace_role_permissions, replace_user_roles, sync_permission_catalog
 from .services.registration_service import validate_age_for_terapi
 
 
+class TerapisForm(forms.ModelForm):
+    # Use CharField so Django's DecimalField validator doesn't reject
+    # Indonesian-formatted numbers like "15.000" (dot as thousands separator)
+    biaya_transport_default = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '0'}),
+    )
+
+    class Meta:
+        model = Terapis
+        fields = ['nama_terapis', 'no_hp', 'alamat', 'cabang', 'biaya_transport_default', 'is_active']
+        widgets = {
+            'nama_terapis': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nama terapis'}),
+            'no_hp': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '08xx-xxxx-xxxx'}),
+            'alamat': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Alamat lengkap'}),
+            'cabang': forms.Select(attrs={'class': 'form-select'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+    def clean_biaya_transport_default(self):
+        value = self.cleaned_data.get('biaya_transport_default', '') or ''
+        # Strip Indonesian thousands separator (dot) and comma
+        cleaned = value.replace('.', '').replace(',', '')
+        if not cleaned:
+            cleaned = '0'
+        try:
+            return Decimal(cleaned)
+        except Exception:
+            raise ValidationError('Masukkan angka yang valid untuk biaya transport.')
+
+
 class RegistrasiForm(forms.ModelForm):
+    # Override with CharField so Indonesian-formatted values like '15.000' pass through
+    biaya_transport = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '0', 'readonly': 'readonly'}),
+    )
+
     class Meta:
         model = Registrasi
         fields = ['pasien', 'terapis', 'tanggal_kunjungan', 'biaya_transport', 'is_transport', 'cabang', 'status', 'catatan']
@@ -22,8 +60,7 @@ class RegistrasiForm(forms.ModelForm):
             'pasien': forms.Select(attrs={'class': 'form-select'}),
             'terapis': forms.Select(attrs={'class': 'form-select'}),
             'tanggal_kunjungan': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'biaya_transport': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '0', 'readonly': 'readonly'}),
-            'is_transport': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_transport': forms.CheckboxInput(attrs={'class': 'form-check-input'}),  # biaya_transport widget defined above
             'cabang': forms.Select(attrs={'class': 'form-select'}),
             'status': forms.Select(attrs={'class': 'form-select'}, choices=[
                 ('', '-- Pilih Status --'),
@@ -34,6 +71,17 @@ class RegistrasiForm(forms.ModelForm):
             ]),
             'catatan': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Catatan tambahan...'}),
         }
+
+    def clean_biaya_transport(self):
+        value = self.cleaned_data.get('biaya_transport', '') or ''
+        # Strip Indonesian thousands separator (dots) and commas
+        cleaned = value.replace('.', '').replace(',', '')
+        if not cleaned:
+            cleaned = '0'
+        try:
+            return Decimal(cleaned)
+        except Exception:
+            raise ValidationError('Masukkan angka yang valid untuk biaya transport.')
 
     def clean(self):
         cleaned = super().clean()

@@ -27,11 +27,19 @@
           <form method="post" novalidate>
             {% csrf_token %}
 
-            {% if form.non_field_errors %}
+            {% if form.errors %}
               <div class="alert alert-danger" role="alert">
-                {% for error in form.non_field_errors %}
-                  {{ error }}
-                {% endfor %}
+                <strong><i class="bi bi-exclamation-triangle-fill me-1"></i>Terdapat kesalahan pada form:</strong>
+                <ul class="mb-0 mt-1">
+                  {% for field in form %}
+                    {% for error in field.errors %}
+                      <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                    {% endfor %}
+                  {% endfor %}
+                  {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                  {% endfor %}
+                </ul>
               </div>
             {% endif %}
 
@@ -962,22 +970,6 @@ function saveTerapis() {
   .then(data => {
     if (data.success) {
       // Add new option to select
-
-function submitRegistrasi() {
-  // Unformat currency fields before submit
-  const hargaField = document.getElementById('id_harga');
-  const transportField = document.getElementById('id_biaya_transport');
-  
-  hargaField.value = unformatNumber(hargaField.value);
-  transportField.value = unformatNumber(transportField.value);
-  
-  // Close confirmation modal
-  const modal = bootstrap.Modal.getInstance(document.getElementById('modalKonfirmasi'));
-  modal.hide();
-  
-  // Submit the form
-  document.querySelector('form').submit();
-}
       const select = document.getElementById('id_terapis');
       const option = new Option(data.terapis.text, data.terapis.id, true, true);
       select.add(option);
@@ -1046,16 +1038,28 @@ function saveJenisTerapi() {
 }
 
 function submitRegistrasi() {
-  // Unformat currency fields before submit
-  const transportField = document.getElementById('id_biaya_transport');
-  transportField.value = unformatNumber(transportField.value);
-  
-  // Close confirmation modal
-  const modal = bootstrap.Modal.getInstance(document.getElementById('modalKonfirmasi'));
-  modal.hide();
-  
-  // Submit the form
-  document.querySelector('form').submit();
+  try {
+    // Unformat currency fields before submit
+    const transportField = document.getElementById('id_biaya_transport');
+    if (transportField) {
+      const rawVal = unformatNumber(transportField.value);
+      console.log('biaya_transport before submit:', transportField.value, '→', rawVal);
+      transportField.value = rawVal || '0';
+    }
+
+    // Close confirmation modal (safe — getInstance may return null on first render)
+    const modalEl = document.getElementById('modalKonfirmasi');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+
+    // Submit the main registration form
+    const mainForm = document.querySelector('form[method="post"]');
+    console.log('Submitting form:', mainForm);
+    mainForm.submit();
+  } catch (err) {
+    console.error('submitRegistrasi error:', err);
+    alert('Terjadi kesalahan saat submit: ' + err.message);
+  }
 }
 
 // ========================================

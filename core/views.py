@@ -29,7 +29,7 @@ from .forms import (
     RegistrasiForm, RegistrasiDetailFormSet, PemasukanForm, PengeluaranForm, 
     ProgressTrackingForm, UserPasswordChangeForm, UserCreateForm, UserForm, 
     RoleForm, TemplatePesanForm, KategoriBarangForm, BarangInventoryForm, 
-    StokMasukForm, PemakaianBarangForm
+    StokMasukForm, PemakaianBarangForm, TerapisForm
 )
 from django.db import transaction
 from decimal import Decimal
@@ -1914,22 +1914,9 @@ class TerapisListView(LoginRequiredMixin, ListView):
 class TerapisCreateView(LoginRequiredMixin, CreateView):
     """Create new terapis."""
     model = Terapis
-    fields = ['nama_terapis', 'no_hp', 'alamat', 'cabang', 'biaya_transport_default', 'is_active']
+    form_class = TerapisForm
     template_name = 'core/terapis_form.html'
     success_url = reverse_lazy('terapis_list')
-    
-    def get_form(self, form_class=None):
-        from django import forms
-        form = super().get_form(form_class)
-        form.fields['nama_terapis'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Nama terapis'})
-        form.fields['no_hp'].widget.attrs.update({'class': 'form-control', 'placeholder': '08xx-xxxx-xxxx'})
-        form.fields['alamat'].widget = forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Alamat lengkap'})
-        form.fields['cabang'].widget.attrs.update({'class': 'form-select'})
-        form.fields['biaya_transport_default'].widget = forms.TextInput(attrs={'class': 'form-control', 'placeholder': '0'})
-        form.fields['is_active'].widget.attrs.update({'class': 'form-check-input', 'checked': 'checked'})
-        form.fields['is_active'].initial = True
-        form.fields['biaya_transport_default'].initial = 0
-        return form
     
     def form_valid(self, form):
         messages.success(self.request, f'Data terapis {form.instance.nama_terapis} berhasil disimpan!')
@@ -1942,20 +1929,9 @@ class TerapisCreateView(LoginRequiredMixin, CreateView):
 class TerapisUpdateView(LoginRequiredMixin, UpdateView):
     """Update terapis."""
     model = Terapis
-    fields = ['nama_terapis', 'no_hp', 'alamat', 'cabang', 'biaya_transport_default', 'is_active']
+    form_class = TerapisForm
     template_name = 'core/terapis_form.html'
     success_url = reverse_lazy('terapis_list')
-    
-    def get_form(self, form_class=None):
-        from django import forms
-        form = super().get_form(form_class)
-        form.fields['nama_terapis'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Nama terapis'})
-        form.fields['no_hp'].widget.attrs.update({'class': 'form-control', 'placeholder': '08xx-xxxx-xxxx'})
-        form.fields['alamat'].widget = forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Alamat lengkap'})
-        form.fields['cabang'].widget.attrs.update({'class': 'form-select'})
-        form.fields['biaya_transport_default'].widget = forms.TextInput(attrs={'class': 'form-control', 'placeholder': '0'})
-        form.fields['is_active'].widget.attrs.update({'class': 'form-check-input'})
-        return form
     
     def form_valid(self, form):
         messages.success(self.request, f'Data terapis {form.instance.nama_terapis} berhasil diperbarui!')
