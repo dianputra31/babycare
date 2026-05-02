@@ -50,7 +50,7 @@ class RegistrasiForm(forms.ModelForm):
     # Override with CharField so Indonesian-formatted values like '15.000' pass through
     biaya_transport = forms.CharField(
         required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '0', 'readonly': 'readonly'}),
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '0'}),
     )
 
     class Meta:
