@@ -395,9 +395,20 @@ class TemplatePesan(models.Model):
 
 class AppSettings(models.Model):
     """Global application settings like font size and logo."""
+    
+    THEME_CHOICES = [
+        ('light', 'Light Mode'),
+        ('dark', 'Dark Mode'),
+        ('blue', 'Blue Theme'),
+        ('green', 'Green Theme'),
+        ('purple', 'Purple Theme'),
+        ('orange', 'Orange Theme'),
+    ]
+    
     id = models.AutoField(primary_key=True)
     font_size = models.IntegerField(default=14, help_text='Font size in pixels (default: 14)')
     logo = models.ImageField(upload_to='logos/', null=True, blank=True, help_text='Upload logo image')
+    theme = models.CharField(max_length=20, choices=THEME_CHOICES, default='light', help_text='Color theme aplikasi')
     
     # Notification settings
     birthday_notif_days_before = models.IntegerField(default=1, help_text='Hari sebelum ulang tahun untuk notifikasi (1=H-1, 2=H-2)')

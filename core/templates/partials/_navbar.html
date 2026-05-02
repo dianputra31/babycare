@@ -47,9 +47,50 @@
         {% endif %}
         <!-- Dark Mode Toggle -->
         <li class="nav-item">
-          <button id="darkModeToggle" class="btn btn-link nav-link" title="Toggle Dark Mode (Alt+T)" style="border: none; background: none;">
+          <button id="darkModeToggle" class="btn btn-link nav-link" title="Toggle Dark Mode (Alt+T)" style="border: none; background: none; display: none;">
             <i class="bi bi-moon-stars-fill" id="darkModeIcon"></i>
           </button>
+        </li>
+        <!-- Theme Switcher -->
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="themeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Ganti Tema">
+            <i class="bi bi-palette-fill"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="themeDropdown" style="min-width: 200px;">
+            <li><h6 class="dropdown-header"><i class="bi bi-palette"></i> Pilih Tema</h6></li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a class="dropdown-item theme-option {% if app_theme == 'light' %}active{% endif %}" href="#" data-theme="light">
+                <i class="bi bi-sun-fill text-warning"></i> Light Mode
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item theme-option {% if app_theme == 'dark' %}active{% endif %}" href="#" data-theme="dark">
+                <i class="bi bi-moon-stars-fill text-primary"></i> Dark Mode
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a class="dropdown-item theme-option {% if app_theme == 'blue' %}active{% endif %}" href="#" data-theme="blue">
+                <i class="bi bi-circle-fill text-primary"></i> Blue Theme
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item theme-option {% if app_theme == 'green' %}active{% endif %}" href="#" data-theme="green">
+                <i class="bi bi-circle-fill text-success"></i> Green Theme
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item theme-option {% if app_theme == 'purple' %}active{% endif %}" href="#" data-theme="purple">
+                <i class="bi bi-circle-fill" style="color: #7B1FA2;"></i> Purple Theme
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item theme-option {% if app_theme == 'orange' %}active{% endif %}" href="#" data-theme="orange">
+                <i class="bi bi-circle-fill text-warning"></i> Orange Theme
+              </a>
+            </li>
+          </ul>
         </li>
         {% if request.is_superadmin_user or 'notifikasi_view' in request.user_permissions %}
         <li class="nav-item">

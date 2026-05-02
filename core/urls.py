@@ -83,6 +83,7 @@ urlpatterns = [
     path('pembukuan/saldo-akhir/', views.SaldoAkhirView.as_view(), name='saldo_akhir'),
     # Pengaturan (Settings)
     path('pengaturan/', views.AppSettingsView.as_view(), name='app_settings'),
+    path('update-theme/', views.update_theme, name='update_theme'),
     # Notification Generation
     path('notifikasi/generate/', views.GenerateNotificationsView.as_view(), name='generate_notifications'),
     

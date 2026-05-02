@@ -3064,6 +3064,29 @@ class AppSettingsView(PermissionRequiredViewMixin, View):
         return render(request, self.template_name, context)
 
 
+@require_http_methods(["POST"])
+@login_required(login_url='/login/')
+def update_theme(request):
+    """AJAX endpoint to update theme preference."""
+    from .models import AppSettings
+    from django.http import JsonResponse
+    
+    theme = request.POST.get('theme', 'light')
+    
+    # Validate theme choice
+    valid_themes = ['light', 'dark', 'blue', 'green', 'purple', 'orange']
+    if theme not in valid_themes:
+        return JsonResponse({'error': 'Invalid theme'}, status=400)
+    
+    # Update settings
+    settings = AppSettings.get_settings()
+    settings.theme = theme
+    settings.updated_by = request.user
+    settings.save()
+    
+    return JsonResponse({'success': True, 'theme': theme})
+
+
 # ============================================
 # USER MANAGEMENT
 # ============================================

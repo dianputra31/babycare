@@ -184,11 +184,11 @@ class PengeluaranForm(forms.ModelForm):
 
 
 class AppSettingsForm(forms.ModelForm):
-    """Form for app settings (font size, logo, and notification settings)."""
+    """Form for app settings (font size, logo, theme, and notification settings)."""
     class Meta:
         model = AppSettings
         fields = [
-            'font_size', 'logo',
+            'font_size', 'logo', 'theme',
             'enable_birthday_notif', 'birthday_notif_days_before',
             'enable_inactive_notif', 'inactive_threshold_days',
             'enable_followup_notif'
@@ -205,6 +205,9 @@ class AppSettingsForm(forms.ModelForm):
             'logo': forms.FileInput(attrs={
                 'class': 'form-control',
                 'accept': 'image/*'
+            }),
+            'theme': forms.Select(attrs={
+                'class': 'form-select'
             }),
             'enable_birthday_notif': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
@@ -230,6 +233,7 @@ class AppSettingsForm(forms.ModelForm):
         labels = {
             'font_size': 'Ukuran Font',
             'logo': 'Logo Aplikasi',
+            'theme': 'Tema Warna',
             'enable_birthday_notif': 'Aktifkan Notifikasi Ulang Tahun',
             'birthday_notif_days_before': 'Hari sebelum ulang tahun (H-1, H-2, dst)',
             'enable_inactive_notif': 'Aktifkan Notifikasi Pasien Tidak Aktif',

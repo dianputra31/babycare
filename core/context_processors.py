@@ -21,6 +21,7 @@ def app_settings(request):
     return {
         'app_settings': app_config,
         'font_size': app_config.font_size,
+        'app_theme': app_config.theme,
         'logo_url': app_config.logo.url if app_config.logo else None,
         'pwa_app_name': settings.PWA_APP_NAME,
         'pwa_app_description': settings.PWA_APP_DESCRIPTION,
