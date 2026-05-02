@@ -52,6 +52,17 @@ class RegistrasiForm(forms.ModelForm):
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '0'}),
     )
+    # Override jam_kunjungan: model allows null but form requires it
+    jam_kunjungan = forms.TimeField(
+        required=True,
+        input_formats=['%H:%M', '%H:%M:%S'],
+        widget=forms.TextInput(attrs={
+            'class': 'form-control jam-kunjungan-input',
+            'placeholder': 'cth: 09:30',
+            'maxlength': '5',
+            'autocomplete': 'off',
+        }),
+    )
 
     class Meta:
         model = Registrasi
@@ -60,7 +71,6 @@ class RegistrasiForm(forms.ModelForm):
             'pasien': forms.Select(attrs={'class': 'form-select'}),
             'terapis': forms.Select(attrs={'class': 'form-select'}),
             'tanggal_kunjungan': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'jam_kunjungan': forms.TimeInput(attrs={'class': 'form-control', 'type': 'text', 'placeholder': 'HH:MM', 'maxlength': '5', 'pattern': '[0-2][0-9]:[0-5][0-9]'}),
             'is_transport': forms.CheckboxInput(attrs={'class': 'form-check-input'}),  # biaya_transport widget defined above
             'cabang': forms.Select(attrs={'class': 'form-select'}),
             'status': forms.Select(attrs={'class': 'form-select'}, choices=[

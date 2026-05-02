@@ -1371,9 +1371,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     confirmButtonColor: '#1565C0',
                     cancelButtonColor: '#6b7280',
                     didOpen: () => {
-                        // Focus time input
                         const jamInput = document.getElementById('swal-jam');
-                        if (jamInput) jamInput.focus();
+                        if (jamInput) {
+                            jamInput.focus();
+                            jamInput.addEventListener('input', function() {
+                                const digits = this.value.replace(/\D/g, '').slice(0, 4);
+                                if (digits.length >= 3) {
+                                    this.value = digits.slice(0, 2) + ':' + digits.slice(2);
+                                } else {
+                                    this.value = digits;
+                                }
+                            });
+                        }
                     },
                     preConfirm: () => {
                         return document.getElementById('swal-jam').value;

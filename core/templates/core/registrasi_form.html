@@ -94,7 +94,7 @@
               </div>
               <div class="col-md-2">
                 <label for="{{ form.jam_kunjungan.id_for_label }}" class="form-label">
-                  Jam
+                  Jam <span class="text-danger">*</span>
                 </label>
                 {{ form.jam_kunjungan }}
                 {% if form.jam_kunjungan.errors %}
@@ -102,7 +102,7 @@
                     {{ form.jam_kunjungan.errors.0 }}
                   </div>
                 {% endif %}
-                <small class="text-muted">Format 24 jam, cth: 09:30</small>
+                <small class="text-muted">Ketik 4 angka, cth: 0930</small>
               </div>
 
               <!-- Biaya Transport + Include Transport Checkbox -->
@@ -892,6 +892,41 @@ $(document).ready(function() {
   });
 
   // Initial calculation handled by calculateTotalTerapi() in multi-terapi section
+
+  // ===== AUTO-FORMAT JAM KUNJUNGAN =====
+  (function() {
+    function autoFormatJam(input) {
+      const digits = input.value.replace(/\D/g, '').slice(0, 4);
+      if (digits.length >= 3) {
+        input.value = digits.slice(0, 2) + ':' + digits.slice(2);
+      } else {
+        input.value = digits;
+      }
+    }
+    function validateJam(input) {
+      const val = input.value;
+      if (!val) return;
+      if (/^\d{2}:\d{2}$/.test(val)) {
+        const h = parseInt(val.slice(0, 2), 10);
+        const m = parseInt(val.slice(3, 5), 10);
+        if (h > 23 || m > 59) {
+          input.classList.add('is-invalid');
+          input.setCustomValidity('Jam tidak valid (00:00 – 23:59)');
+        } else {
+          input.classList.remove('is-invalid');
+          input.setCustomValidity('');
+        }
+      } else if (val.length > 0) {
+        input.classList.add('is-invalid');
+        input.setCustomValidity('Format jam: HH:MM');
+      }
+    }
+    const jamInput = document.getElementById('id_jam_kunjungan');
+    if (jamInput) {
+      jamInput.addEventListener('input', function() { autoFormatJam(this); });
+      jamInput.addEventListener('blur',  function() { validateJam(this); });
+    }
+  })();
 });
 
 // AJAX Functions for Quick Create
