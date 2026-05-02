@@ -1925,7 +1925,7 @@ class TerapisCreateView(LoginRequiredMixin, CreateView):
         form.fields['no_hp'].widget.attrs.update({'class': 'form-control', 'placeholder': '08xx-xxxx-xxxx'})
         form.fields['alamat'].widget = forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Alamat lengkap'})
         form.fields['cabang'].widget.attrs.update({'class': 'form-select'})
-        form.fields['biaya_transport_default'].widget.attrs.update({'class': 'form-control', 'placeholder': '0'})
+        form.fields['biaya_transport_default'].widget = forms.TextInput(attrs={'class': 'form-control', 'placeholder': '0'})
         form.fields['is_active'].widget.attrs.update({'class': 'form-check-input', 'checked': 'checked'})
         form.fields['is_active'].initial = True
         form.fields['biaya_transport_default'].initial = 0
@@ -1953,7 +1953,7 @@ class TerapisUpdateView(LoginRequiredMixin, UpdateView):
         form.fields['no_hp'].widget.attrs.update({'class': 'form-control', 'placeholder': '08xx-xxxx-xxxx'})
         form.fields['alamat'].widget = forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Alamat lengkap'})
         form.fields['cabang'].widget.attrs.update({'class': 'form-select'})
-        form.fields['biaya_transport_default'].widget.attrs.update({'class': 'form-control', 'placeholder': '0'})
+        form.fields['biaya_transport_default'].widget = forms.TextInput(attrs={'class': 'form-control', 'placeholder': '0'})
         form.fields['is_active'].widget.attrs.update({'class': 'form-check-input'})
         return form
     

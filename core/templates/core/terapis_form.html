@@ -161,15 +161,17 @@ $(document).ready(function() {
     if (!field) return;
     
     // Format on page load if has value
+    // Use parseFloat to handle values like '15000.00' from Django DecimalField
     if (field.value) {
-      field.value = formatNumber(field.value);
+      let intVal = Math.round(parseFloat(field.value) || 0);
+      field.value = intVal > 0 ? formatNumber(intVal.toString()) : '';
     }
     
     // Format on input
     field.addEventListener('input', function(e) {
-      let cursorPos = this.selectionStart;
       let oldValue = this.value;
       let oldLength = oldValue.length;
+      let cursorPos = this.selectionStart || oldLength;
       
       let unformatted = unformatNumber(this.value);
       let formatted = formatNumber(unformatted);
@@ -179,7 +181,9 @@ $(document).ready(function() {
       // Adjust cursor position
       let newLength = this.value.length;
       let diff = newLength - oldLength;
-      this.setSelectionRange(cursorPos + diff, cursorPos + diff);
+      try {
+        this.setSelectionRange(cursorPos + diff, cursorPos + diff);
+      } catch(e) { /* ignore on unsupported input types */ }
     });
   });
   
