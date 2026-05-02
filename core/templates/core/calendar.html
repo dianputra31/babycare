@@ -1066,6 +1066,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             day: 'numeric'
                         })}</div>
                     </div>
+                    ${props.jam_kunjungan ? `
+                    <div class="mb-3">
+                        <strong>Jam</strong>
+                        <div style="font-size: 15px; color: #374151;">${props.jam_kunjungan} WIB</div>
+                    </div>` : ''}
                     <div class="mb-3">
                         <strong>Status</strong>
                         <div>
@@ -1332,42 +1337,87 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // Format date in LOCAL timezone (not UTC) to avoid date shift
-                const start = event.start;
-                const newDate = formatDateForApi(start);
+                // Revert drag immediately — we'll confirm via modal
+                info.revert();
                 
-                // Check for conflicts
-                const terapisId = event.extendedProps.terapis_id;
-                const overlappingEvents = calendar.getEvents().filter(e => {
-                    return e.id !== event.id && 
-                           e.extendedProps.terapis_id === terapisId &&
-                           e.start.toDateString() === event.start.toDateString();
+                // Format date in LOCAL timezone (not UTC) to avoid date shift
+                const newDate = formatDateForApi(targetDate);
+                const currentJam = event.extendedProps.jam_kunjungan || '';
+                const targetDateFormatted = targetDate.toLocaleDateString('id-ID', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
                 });
                 
-                if (overlappingEvents.length > 0) {
-                    // Conflict detected!
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Konflik Jadwal!',
-                        html: `Terapis <strong>${event.extendedProps.terapis}</strong> sudah memiliki ${overlappingEvents.length} appointment lain di tanggal ini:<br><br>` +
-                              overlappingEvents.map(e => `• ${e.title} (${e.extendedProps.status})`).join('<br>'),
-                        showCancelButton: true,
-                        confirmButtonText: 'Tetap Pindahkan',
-                        cancelButtonText: 'Batalkan',
-                        confirmButtonColor: '#f59e0b',
-                        cancelButtonColor: '#6b7280'
-                    }).then((result) => {
-                        if (!result.isConfirmed) {
-                            info.revert(); // Revert the drag
+                // Show reschedule confirmation modal with time picker
+                Swal.fire({
+                    title: 'Konfirmasi Pindah Jadwal',
+                    html: `
+                        <div class="text-start">
+                            <p class="mb-3">Pindahkan appointment <strong>${event.title}</strong> ke:</p>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Tanggal Baru</label>
+                                <div class="form-control bg-light">${targetDateFormatted}</div>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label fw-semibold" for="swal-jam">
+                                    Jam <small class="text-muted fw-normal">(kosongkan jika belum ditentukan)</small>
+                                </label>
+                                <input id="swal-jam" type="text" class="form-control" value="${currentJam}" placeholder="HH:MM (cth: 09:30)" maxlength="5" pattern="[0-2][0-9]:[0-5][0-9]">
+                            </div>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Pindahkan',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#1565C0',
+                    cancelButtonColor: '#6b7280',
+                    didOpen: () => {
+                        // Focus time input
+                        const jamInput = document.getElementById('swal-jam');
+                        if (jamInput) jamInput.focus();
+                    },
+                    preConfirm: () => {
+                        return document.getElementById('swal-jam').value;
+                    }
+                }).then((result) => {
+                    if (!result.isConfirmed) return;
+                    
+                    const selectedJam = result.value || '';
+                    const terapisId = event.extendedProps.terapis_id;
+                    
+                    // Client-side overlap check: same terapis, same date, same jam
+                    if (selectedJam) {
+                        const overlapping = calendar.getEvents().filter(e => {
+                            if (e.id === event.id) return false;
+                            if (e.extendedProps.terapis_id !== terapisId) return false;
+                            const eDate = formatDateForApi(normalizeLocalDate(e.start));
+                            if (eDate !== newDate) return false;
+                            return e.extendedProps.jam_kunjungan === selectedJam;
+                        });
+                        
+                        if (overlapping.length > 0) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Konflik Jam!',
+                                html: `Terapis <strong>${event.extendedProps.terapis}</strong> sudah ada appointment jam <strong>${selectedJam}</strong> di tanggal ini:<br><br>` +
+                                      overlapping.map(e => `• ${e.title}`).join('<br>'),
+                                showCancelButton: true,
+                                confirmButtonText: 'Ganti Jam',
+                                cancelButtonText: 'Batalkan',
+                                confirmButtonColor: '#f59e0b',
+                                cancelButtonColor: '#6b7280'
+                            }).then(r2 => {
+                                if (r2.isConfirmed) {
+                                    // Re-open the modal so user can pick different time
+                                    // Simulate re-drop by calling same logic manually
+                                    doReschedule(registrasiId, newDate, selectedJam, event, info);
+                                }
+                            });
                             return;
                         }
-                        // Proceed with update
-                        updateEventDate(registrasiId, newDate, info);
-                    });
-                } else {
-                    // No conflict, proceed
-                    updateEventDate(registrasiId, newDate, info);
-                }
+                    }
+                    
+                    doReschedule(registrasiId, newDate, selectedJam, event, info);
+                });
             },
             eventResize: function(info) {
                 // Prevent resizing - revert immediately
@@ -1389,8 +1439,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // ===== RESCHEDULE HELPER (called after confirmation modal) =====
+    function doReschedule(registrasiId, newDate, jam, event, info) {
+        updateEventDate(registrasiId, newDate, jam);
+    }
+    
     // ===== UPDATE EVENT DATE (DRAG & DROP HANDLER) =====
-    function updateEventDate(registrasiId, newDate, dragInfo) {
+    function updateEventDate(registrasiId, newDate, jam) {
         // Get CSRF token
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
                          '{{ csrf_token }}';
@@ -1405,6 +1460,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
+        const payload = { tanggal_kunjungan: newDate };
+        if (jam) payload.jam_kunjungan = jam;
+        
         // Send AJAX request to update date
         fetch(`/api/registrasi/${registrasiId}/update-date/`, {
             method: 'POST',
@@ -1412,28 +1470,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken
             },
-            body: JSON.stringify({
-                tanggal_kunjungan: newDate
-            })
+            body: JSON.stringify(payload)
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                const formattedDate = new Date(newDate + 'T00:00:00').toLocaleDateString('id-ID', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                });
                 Swal.fire({
                     icon: 'success',
                     title: 'Berhasil!',
-                    text: 'Appointment berhasil dipindahkan ke ' + new Date(newDate).toLocaleDateString('id-ID', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    }),
+                    text: 'Appointment dipindahkan ke ' + formattedDate + (jam ? ' jam ' + jam : ''),
                     timer: 2000,
                     showConfirmButton: false
                 });
                 
                 // Refresh calendar to show updated data
                 calendar.refetchEvents();
+            } else if (data.conflict) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Konflik Jadwal!',
+                    html: data.message + '<br><br>' +
+                          (data.conflicts || []).map(c => `• ${c.kode} — ${c.pasien}`).join('<br>'),
+                    confirmButtonColor: '#dc3545'
+                });
             } else {
                 throw new Error(data.message || 'Gagal memindahkan appointment');
             }
@@ -1446,7 +1508,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 text: error.message || 'Terjadi kesalahan saat memindahkan appointment',
                 confirmButtonColor: '#dc3545'
             });
-            dragInfo.revert(); // Revert the drag
         });
     }
     

@@ -80,8 +80,8 @@
                 {% endif %}
               </div>
 
-              <!-- Tanggal -->
-              <div class="col-md-6">
+              <!-- Tanggal & Jam -->
+              <div class="col-md-4">
                 <label for="{{ form.tanggal_kunjungan.id_for_label }}" class="form-label">
                   Tanggal <span class="text-danger">*</span>
                 </label>
@@ -91,6 +91,18 @@
                     {{ form.tanggal_kunjungan.errors.0 }}
                   </div>
                 {% endif %}
+              </div>
+              <div class="col-md-2">
+                <label for="{{ form.jam_kunjungan.id_for_label }}" class="form-label">
+                  Jam
+                </label>
+                {{ form.jam_kunjungan }}
+                {% if form.jam_kunjungan.errors %}
+                  <div class="invalid-feedback d-block">
+                    {{ form.jam_kunjungan.errors.0 }}
+                  </div>
+                {% endif %}
+                <small class="text-muted">Format 24 jam, cth: 09:30</small>
               </div>
 
               <!-- Biaya Transport + Include Transport Checkbox -->
@@ -416,7 +428,7 @@
           <div class="col-md-6">
             <div class="card border-0 bg-light">
               <div class="card-body">
-                <small class="text-muted d-block mb-1">Tanggal Kunjungan</small>
+                <small class="text-muted d-block mb-1">Tanggal &amp; Jam Kunjungan</small>
                 <strong id="previewTanggal">-</strong>
               </div>
             </div>
@@ -861,7 +873,9 @@ $(document).ready(function() {
     document.getElementById('previewJenisTerapi').textContent = terapiList.join(', ') || '-';
     
     document.getElementById('previewTerapis').textContent = terapis.value ? terapis.options[terapis.selectedIndex]?.text : 'Tidak ada';
-    document.getElementById('previewTanggal').textContent = tanggal.value || '-';
+    const jamField = document.getElementById('id_jam_kunjungan');
+    const jamVal = jamField ? jamField.value : '';
+    document.getElementById('previewTanggal').textContent = (tanggal.value || '-') + (jamVal ? ' · ' + jamVal : '');
     document.getElementById('previewHarga').textContent = formatCurrency(totalHargaTerapi);
     document.getElementById('previewTransport').textContent = formatCurrency(unformatNumber(transport.value));
     

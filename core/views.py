@@ -3408,7 +3408,10 @@ def calendar_events_api(request):
         events.append({
             'id': reg.id,
             'title': f"{reg.pasien.nama_anak} - {reg.jenis_terapi.nama_terapi}",
-            'start': reg.tanggal_kunjungan.isoformat(),
+            'start': (
+                f"{reg.tanggal_kunjungan.isoformat()}T{reg.jam_kunjungan.strftime('%H:%M:%S')}"
+                if reg.jam_kunjungan else reg.tanggal_kunjungan.isoformat()
+            ),
             'backgroundColor': color,
             'borderColor': color,
             'extendedProps': {
@@ -3419,6 +3422,7 @@ def calendar_events_api(request):
                 'status': reg.status,
                 'cabang': reg.cabang.nama_cabang if reg.cabang else '-',
                 'kode_registrasi': reg.kode_registrasi or '-',
+                'jam_kunjungan': reg.jam_kunjungan.strftime('%H:%M') if reg.jam_kunjungan else '',
             }
         })
     
@@ -3444,7 +3448,7 @@ def update_registrasi_date_api(request, registrasi_id):
         # Get registrasi
         registrasi = Registrasi.objects.get(id=registrasi_id, is_deleted=False)
         old_date = registrasi.tanggal_kunjungan
-        today = timezone.localdate()
+        today = date.today()
 
         if old_date < today:
             return JsonResponse({
@@ -3461,15 +3465,49 @@ def update_registrasi_date_api(request, registrasi_id):
                 'message': 'Jadwal hanya bisa dipindah ke hari mendatang (H+).'
             }, status=400)
         
-        # Update tanggal_kunjungan
+        # Parse jam_kunjungan (optional)
+        new_jam_str = data.get('jam_kunjungan')  # "HH:MM" or empty
+        new_jam = None
+        if new_jam_str:
+            try:
+                from datetime import time as time_type
+                parts = new_jam_str.split(':')
+                new_jam = time_type(int(parts[0]), int(parts[1]))
+            except (ValueError, IndexError):
+                return JsonResponse({'success': False, 'message': 'Format jam tidak valid (HH:MM)'}, status=400)
+        
+        # Conflict check: same terapis, same new_date, same hour
+        if registrasi.terapis and new_jam:
+            conflict_qs = Registrasi.objects.filter(
+                tanggal_kunjungan=new_date,
+                terapis=registrasi.terapis,
+                jam_kunjungan=new_jam,
+                is_deleted=False,
+            ).exclude(id=registrasi_id)
+            if conflict_qs.exists():
+                conflicts = [
+                    {'kode': r.kode_registrasi or str(r.id), 'pasien': r.pasien.nama_anak}
+                    for r in conflict_qs.select_related('pasien')[:5]
+                ]
+                return JsonResponse({
+                    'success': False,
+                    'conflict': True,
+                    'message': f'Terapis {registrasi.terapis.nama_terapis} sudah ada jadwal jam {new_jam_str} di tanggal tersebut.',
+                    'conflicts': conflicts,
+                }, status=409)
+        
+        # Update tanggal_kunjungan and jam_kunjungan
         registrasi.tanggal_kunjungan = new_date
+        if new_jam is not None:
+            registrasi.jam_kunjungan = new_jam
         registrasi.save()
         
         return JsonResponse({
             'success': True,
-            'message': f'Appointment berhasil dipindahkan dari {old_date.strftime("%d %b %Y")} ke {new_date.strftime("%d %b %Y")}',
+            'message': f'Appointment berhasil dipindahkan ke {new_date.strftime("%d %b %Y")}' + (f' jam {new_jam_str}' if new_jam_str else ''),
             'old_date': old_date.isoformat(),
-            'new_date': new_date.isoformat()
+            'new_date': new_date.isoformat(),
+            'jam_kunjungan': new_jam_str or '',
         })
         
     except Registrasi.DoesNotExist:

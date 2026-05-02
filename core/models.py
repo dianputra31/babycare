@@ -228,6 +228,7 @@ class Registrasi(models.Model):
     terapis = models.ForeignKey(Terapis, db_column='terapis_id', null=True, blank=True, on_delete=models.DO_NOTHING)
     cabang = models.ForeignKey(Cabang, db_column='cabang_id', null=True, blank=True, on_delete=models.DO_NOTHING)
     tanggal_kunjungan = models.DateField(db_column='tanggal_kunjungan')
+    jam_kunjungan = models.TimeField(db_column='jam_kunjungan', null=True, blank=True)
     status = models.CharField(max_length=20, db_column='status', default='BOOKED')
     harga = models.DecimalField(db_column='harga', max_digits=12, decimal_places=2)
     biaya_transport = models.DecimalField(db_column='biaya_transport', max_digits=12, decimal_places=2, default=Decimal('0.00'))
@@ -477,6 +478,23 @@ class BarangInventory(models.Model):
         db_table = 'barang_inventory'
         managed = True
 
+    def __str__(self):
+        return f"{self.kode_barang or self.id} - {self.nama_barang}"
+
+    @property
+    def is_stok_rendah(self):
+        """Cek apakah stok sudah dibawah minimum"""
+        return self.stok_tersedia <= self.stok_minimum
+
+    @property
+    def status_stok(self):
+        """Status stok untuk display"""
+        if self.stok_tersedia == 0:
+            return 'HABIS'
+        elif self.is_stok_rendah:
+            return 'RENDAH'
+        return 'AMAN'
+
 
 # ============================================================================
 # BACKUP SYSTEM MODELS
@@ -508,23 +526,6 @@ class BackupLog(models.Model):
     
     def __str__(self):
         return f"Backup {self.filename} - {self.status}"
-
-    def __str__(self):
-        return f"{self.kode_barang or self.id} - {self.nama_barang}"
-
-    @property
-    def is_stok_rendah(self):
-        """Cek apakah stok sudah dibawah minimum"""
-        return self.stok_tersedia <= self.stok_minimum
-
-    @property
-    def status_stok(self):
-        """Status stok untuk display"""
-        if self.stok_tersedia == 0:
-            return 'HABIS'
-        elif self.is_stok_rendah:
-            return 'RENDAH'
-        return 'AMAN'
 
 
 class StokMasuk(models.Model):
