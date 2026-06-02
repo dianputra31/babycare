@@ -1,28 +1,241 @@
 {% load static %}
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Login - Babycare</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  </head>
-  <body class="d-flex align-items-center vh-100">
-    <div class="container">
-      <div class="row justify-content-center">
-        <div class="col-md-4">
-          <div class="card shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title mb-4">Sign in</h5>
-              <form method="post" novalidate>
-                {% csrf_token %}
-                {{ form.as_p }}
-                <button class="btn btn-primary w-100" type="submit">Login</button>
-              </form>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login - Rumah Panda Babycare</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #e8f5e9 0%, #f3e5f5 50%, #e3f2fd 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    .login-wrapper {
+      width: 100%;
+      max-width: 440px;
+      padding: 16px;
+    }
+
+    .login-card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.10);
+      overflow: hidden;
+    }
+
+    .login-header {
+      background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+      padding: 36px 40px 28px;
+      text-align: center;
+      color: #fff;
+    }
+
+    .login-header .brand-icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .login-header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 4px;
+      letter-spacing: -0.3px;
+    }
+
+    .login-header p {
+      font-size: 0.85rem;
+      margin: 0;
+      opacity: 0.85;
+    }
+
+    .login-body {
+      padding: 36px 40px 40px;
+    }
+
+    .login-body h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #222;
+      margin-bottom: 24px;
+    }
+
+    .form-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 6px;
+    }
+
+    .form-control {
+      border-radius: 10px;
+      border: 1.5px solid #e0e0e0;
+      font-size: 0.95rem;
+      padding: 10px 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-control:focus {
+      border-color: #66bb6a;
+      box-shadow: 0 0 0 3px rgba(102,187,106,0.15);
+    }
+
+    .input-group-text {
+      border-radius: 10px 0 0 10px;
+      border: 1.5px solid #e0e0e0;
+      border-right: none;
+      background: #f9f9f9;
+      color: #888;
+    }
+
+    .input-group .form-control {
+      border-radius: 0 10px 10px 0;
+      border-left: none;
+    }
+
+    .input-group:focus-within .input-group-text {
+      border-color: #66bb6a;
+    }
+
+    .input-group:focus-within .form-control {
+      border-color: #66bb6a;
+      box-shadow: 0 0 0 3px rgba(102,187,106,0.15);
+    }
+
+    .btn-login {
+      background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 12px;
+      width: 100%;
+      transition: opacity 0.2s, transform 0.1s;
+      margin-top: 8px;
+    }
+
+    .btn-login:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+      color: #fff;
+    }
+
+    .btn-login:active {
+      transform: translateY(0);
+    }
+
+    .alert-danger {
+      border-radius: 10px;
+      font-size: 0.875rem;
+    }
+
+    .login-footer {
+      text-align: center;
+      padding: 16px 40px 24px;
+      font-size: 0.8rem;
+      color: #aaa;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    @media (max-width: 480px) {
+      .login-header { padding: 28px 24px 22px; }
+      .login-body { padding: 28px 24px 32px; }
+      .login-footer { padding: 14px 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-wrapper">
+    <div class="login-card">
+
+      <!-- Header -->
+      <div class="login-header">
+        <span class="brand-icon">🐼</span>
+        <h1>Rumah Panda Babycare</h1>
+        <p>Sistem Manajemen Klinik</p>
+      </div>
+
+      <!-- Form -->
+      <div class="login-body">
+        <h2>Masuk ke akun Anda</h2>
+
+        {% if form.errors %}
+        <div class="alert alert-danger mb-4" role="alert">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          Username atau password salah. Silakan coba lagi.
+        </div>
+        {% endif %}
+
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} mb-4" role="alert">
+          {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label for="id_username" class="form-label">Username</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-person"></i></span>
+              <input type="text"
+                     name="username"
+                     id="id_username"
+                     class="form-control"
+                     placeholder="Masukkan username"
+                     autocomplete="username"
+                     autofocus
+                     required>
             </div>
           </div>
-        </div>
+
+          <div class="mb-4">
+            <label for="id_password" class="form-label">Password</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-lock"></i></span>
+              <input type="password"
+                     name="password"
+                     id="id_password"
+                     class="form-control"
+                     placeholder="Masukkan password"
+                     autocomplete="current-password"
+                     required>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-login">
+            <i class="bi bi-box-arrow-in-right me-2"></i>Masuk
+          </button>
+        </form>
       </div>
+
+      <!-- Footer -->
+      <div class="login-footer">
+        &copy; {{ year }} Rumah Panda Babycare. All rights reserved.
+      </div>
+
     </div>
-  </body>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Isi tahun di footer
+    document.querySelector('.login-footer').innerHTML =
+      document.querySelector('.login-footer').innerHTML.replace('{{ year }}', new Date().getFullYear());
+  </script>
+</body>
 </html>

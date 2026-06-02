@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panduan Pengguna - Babycare Management System</title>
+<style>
+  /* =========================================================
+     GENERAL / PRINT STYLES
+     ========================================================= */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.65;
+    color: #1a1a2e;
+    background: #f0f4f8;
+  }
+
+  /* Page wrapper */
+  .page {
+    max-width: 210mm;
+    margin: 20px auto;
+    background: #fff;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+    padding: 20mm 22mm 20mm 22mm;
+  }
+
+  /* =========================================================
+     COVER PAGE
+     ========================================================= */
+  .cover {
+    height: 250mm;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border-bottom: 3px solid #4f8ef7;
+    page-break-after: always;
+    background: linear-gradient(135deg, #f8faff 0%, #e8f0ff 100%);
+    border-radius: 8px;
+    margin-bottom: 30px;
+    padding: 40px;
+  }
+  .cover .logo-icon {
+    font-size: 72px;
+    margin-bottom: 20px;
+  }
+  .cover h1 {
+    font-size: 28pt;
+    font-weight: 800;
+    color: #1e3a8a;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  .cover .subtitle {
+    font-size: 14pt;
+    color: #4f8ef7;
+    font-weight: 600;
+    margin-bottom: 40px;
+  }
+  .cover .meta {
+    font-size: 10pt;
+    color: #64748b;
+    margin-top: 40px;
+    border-top: 1px solid #cbd5e1;
+    padding-top: 20px;
+    width: 100%;
+  }
+  .cover .badge-list {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+  .cover .badge {
+    background: #4f8ef7;
+    color: #fff;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 9pt;
+    font-weight: 600;
+  }
+
+  /* =========================================================
+     TABLE OF CONTENTS
+     ========================================================= */
+  .toc-section {
+    page-break-after: always;
+    margin-bottom: 30px;
+  }
+  .toc-title {
+    font-size: 18pt;
+    font-weight: 700;
+    color: #1e3a8a;
+    border-bottom: 3px solid #4f8ef7;
+    padding-bottom: 8px;
+    margin-bottom: 20px;
+  }
+  .toc-list { list-style: none; }
+  .toc-list li {
+    padding: 5px 0;
+    border-bottom: 1px dotted #cbd5e1;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .toc-list li a {
+    color: #1e3a8a;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .toc-list li a:hover { color: #4f8ef7; }
+  .toc-list .toc-page { color: #64748b; font-size: 9pt; }
+  .toc-group { margin-bottom: 6px; }
+  .toc-group-title {
+    font-weight: 700;
+    font-size: 10pt;
+    color: #4f8ef7;
+    margin-top: 12px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .toc-sub { padding-left: 20px; font-size: 10pt; }
+
+  /* =========================================================
+     SECTION HEADERS
+     ========================================================= */
+  .chapter {
+    page-break-before: always;
+    margin-top: 0;
+  }
+  .chapter:first-of-type { page-break-before: avoid; }
+
+  h2.section-title {
+    font-size: 18pt;
+    font-weight: 800;
+    color: #1e3a8a;
+    border-left: 6px solid #4f8ef7;
+    padding-left: 14px;
+    margin-bottom: 20px;
+    margin-top: 30px;
+  }
+  h3.sub-title {
+    font-size: 13pt;
+    font-weight: 700;
+    color: #334155;
+    margin-top: 22px;
+    margin-bottom: 10px;
+    padding-bottom: 4px;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  h4.step-title {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #475569;
+    margin-top: 16px;
+    margin-bottom: 6px;
+  }
+
+  /* =========================================================
+     CALLOUT BOXES
+     ========================================================= */
+  .info-box {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+    margin: 12px 0;
+    font-size: 10pt;
+  }
+  .info-box strong { color: #1d4ed8; }
+
+  .warning-box {
+    background: #fffbeb;
+    border-left: 4px solid #f59e0b;
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+    margin: 12px 0;
+    font-size: 10pt;
+  }
+  .warning-box strong { color: #d97706; }
+
+  .success-box {
+    background: #f0fdf4;
+    border-left: 4px solid #22c55e;
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+    margin: 12px 0;
+    font-size: 10pt;
+  }
+  .success-box strong { color: #16a34a; }
+
+  .tip-box {
+    background: #fdf4ff;
+    border-left: 4px solid #a855f7;
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+    margin: 12px 0;
+    font-size: 10pt;
+  }
+  .tip-box strong { color: #7c3aed; }
+
+  /* =========================================================
+     NUMBERED STEPS
+     ========================================================= */
+  .steps { counter-reset: step-counter; list-style: none; margin: 10px 0; }
+  .steps li {
+    counter-increment: step-counter;
+    position: relative;
+    padding-left: 38px;
+    margin-bottom: 10px;
+    font-size: 10.5pt;
+  }
+  .steps li::before {
+    content: counter(step-counter);
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: #4f8ef7;
+    color: #fff;
+    font-weight: 700;
+    font-size: 9pt;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 24px;
+    text-align: center;
+  }
+
+  /* =========================================================
+     BULLET LISTS
+     ========================================================= */
+  ul.bullet { padding-left: 22px; margin: 8px 0; }
+  ul.bullet li { margin-bottom: 5px; font-size: 10.5pt; }
+
+  /* =========================================================
+     STATUS BADGES
+     ========================================================= */
+  .status {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 8.5pt;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .status-booked    { background: #dbeafe; color: #1d4ed8; }
+  .status-confirmed { background: #fef3c7; color: #d97706; }
+  .status-completed { background: #dcfce7; color: #16a34a; }
+  .status-cancelled { background: #fee2e2; color: #dc2626; }
+  .status-aman      { background: #dcfce7; color: #16a34a; }
+  .status-rendah    { background: #fef3c7; color: #d97706; }
+  .status-habis     { background: #fee2e2; color: #dc2626; }
+  .status-lunas     { background: #dcfce7; color: #16a34a; }
+  .status-belum     { background: #fee2e2; color: #dc2626; }
+
+  /* =========================================================
+     TABLES
+     ========================================================= */
+  table.doc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5pt;
+    margin: 12px 0;
+  }
+  table.doc-table th {
+    background: #1e3a8a;
+    color: #fff;
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 9pt;
+  }
+  table.doc-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: top;
+  }
+  table.doc-table tr:nth-child(even) { background: #f8fafc; }
+  table.doc-table tr:hover { background: #eff6ff; }
+
+  /* =========================================================
+     FIELD REFERENCE BOX
+     ========================================================= */
+  .field-list {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 12px 0;
+  }
+  .field-list .field-item {
+    display: flex;
+    gap: 10px;
+    padding: 5px 0;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 10pt;
+  }
+  .field-list .field-item:last-child { border-bottom: none; }
+  .field-list .field-name {
+    font-weight: 700;
+    color: #1e3a8a;
+    min-width: 160px;
+    flex-shrink: 0;
+  }
+  .field-required { color: #dc2626; font-size: 8pt; margin-left: 2px; }
+
+  /* =========================================================
+     CHAPTER NUMBER BADGE
+     ========================================================= */
+  .chapter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .chapter-num {
+    background: #1e3a8a;
+    color: #fff;
+    font-size: 10pt;
+    font-weight: 800;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .chapter-tag {
+    font-size: 9pt;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* =========================================================
+     SCREEN SHORTCUT KEYS
+     ========================================================= */
+  kbd {
+    background: #1e293b;
+    color: #e2e8f0;
+    border-radius: 4px;
+    padding: 1px 7px;
+    font-family: monospace;
+    font-size: 9pt;
+    border: 1px solid #475569;
+  }
+
+  /* =========================================================
+     DIVIDER
+     ========================================================= */
+  .divider {
+    border: none;
+    border-top: 2px solid #e2e8f0;
+    margin: 24px 0;
+  }
+
+  /* =========================================================
+     ICON CIRCLES
+     ========================================================= */
+  .icon-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 18px;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  .ic-blue   { background: #dbeafe; }
+  .ic-green  { background: #dcfce7; }
+  .ic-yellow { background: #fef3c7; }
+  .ic-purple { background: #ede9fe; }
+  .ic-red    { background: #fee2e2; }
+
+  /* =========================================================
+     PRINT OVERRIDES
+     ========================================================= */
+  @media print {
+    body { background: #fff; font-size: 10.5pt; }
+    .page {
+      max-width: 100%;
+      margin: 0;
+      box-shadow: none;
+      padding: 15mm 18mm 15mm 18mm;
+    }
+    .cover { page-break-after: always; height: auto; min-height: 220mm; }
+    .toc-section { page-break-after: always; }
+    .chapter { page-break-before: always; }
+    h2.section-title, h3.sub-title { page-break-after: avoid; }
+    .info-box, .warning-box, .success-box, .tip-box { page-break-inside: avoid; }
+    .field-list { page-break-inside: avoid; }
+    @page {
+      size: A4;
+      margin: 15mm 18mm;
+    }
+  }
+  @page { margin: 0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ============================================================
+     COVER PAGE
+     ============================================================ -->
+<div class="cover">
+  <div class="logo-icon">🍼</div>
+  <h1>Babycare Management System</h1>
+  <div class="subtitle">Panduan Penggunaan Sistem</div>
+  <p style="color:#475569;font-size:11pt;max-width:400px;">Pedoman lengkap tata cara penggunaan semua fitur aplikasi manajemen klinik babycare.</p>
+  <div class="badge-list">
+    <span class="badge">📋 Registrasi</span>
+    <span class="badge">📅 Kalender</span>
+    <span class="badge">💰 Keuangan</span>
+    <span class="badge">📦 Inventory</span>
+    <span class="badge">🔔 Notifikasi</span>
+    <span class="badge">👥 User & Role</span>
+    <span class="badge">📊 Laporan</span>
+  </div>
+  <div class="meta">
+    <strong>Versi Dokumen:</strong> 1.0 &nbsp;|&nbsp;
+    <strong>Tanggal:</strong> Mei 2026 &nbsp;|&nbsp;
+    <strong>Platform:</strong> Desktop & Mobile (PWA)
+  </div>
+</div>
+
+
+<!-- ============================================================
+     DAFTAR ISI
+     ============================================================ -->
+<div class="toc-section">
+  <div class="toc-title">📖 Daftar Isi</div>
+  <div class="toc-group-title">Memulai Sistem</div>
+  <ul class="toc-list">
+    <li><a href="#bab1">1. Login ke Sistem</a></li>
+    <li><a href="#bab2">2. Dashboard &amp; Navigasi</a></li>
+  </ul>
+  <div class="toc-group-title">Manajemen Pasien &amp; Registrasi</div>
+  <ul class="toc-list">
+    <li><a href="#bab3">3. Data Pasien</a></li>
+    <li><a href="#bab4">4. Registrasi &amp; Appointment</a></li>
+    <li><a href="#bab5">5. Kalender Appointment</a></li>
+    <li><a href="#bab6">6. Progress Tracking Terapi</a></li>
+  </ul>
+  <div class="toc-group-title">Keuangan &amp; Laporan</div>
+  <ul class="toc-list">
+    <li><a href="#bab7">7. Pemasukan (Pendapatan)</a></li>
+    <li><a href="#bab8">8. Pengeluaran</a></li>
+    <li><a href="#bab9">9. Rekap Tindakan</a></li>
+    <li><a href="#bab10">10. Pembukuan &amp; Saldo</a></li>
+  </ul>
+  <div class="toc-group-title">Inventory</div>
+  <ul class="toc-list">
+    <li><a href="#bab11">11. Manajemen Inventory</a></li>
+  </ul>
+  <div class="toc-group-title">Notifikasi &amp; Komunikasi</div>
+  <ul class="toc-list">
+    <li><a href="#bab12">12. Notifikasi Otomatis</a></li>
+    <li><a href="#bab13">13. Template Pesan WhatsApp</a></li>
+    <li><a href="#bab14">14. Kirim Reminder WhatsApp</a></li>
+  </ul>
+  <div class="toc-group-title">Master Data</div>
+  <ul class="toc-list">
+    <li><a href="#bab15">15. Data Cabang</a></li>
+    <li><a href="#bab16">16. Data Terapis</a></li>
+    <li><a href="#bab17">17. Jenis Terapi</a></li>
+  </ul>
+  <div class="toc-group-title">Pengaturan Sistem</div>
+  <ul class="toc-list">
+    <li><a href="#bab18">18. Manajemen User</a></li>
+    <li><a href="#bab19">19. Role &amp; Hak Akses</a></li>
+    <li><a href="#bab20">20. Pengaturan Aplikasi</a></li>
+    <li><a href="#bab21">21. Backup Database</a></li>
+    <li><a href="#bab22">22. Ganti Password</a></li>
+  </ul>
+</div>
+
+
+<!-- ============================================================
+     BAB 1 – LOGIN
+     ============================================================ -->
+<div class="chapter" id="bab1">
+  <div class="chapter-badge">
+    <span class="chapter-num">1</span>
+    <span class="chapter-tag">Memulai</span>
+  </div>
+  <h2 class="section-title">Login ke Sistem</h2>
+
+  <p>Sebelum dapat menggunakan fitur apapun, pengguna wajib login terlebih dahulu menggunakan akun yang telah diberikan oleh administrator.</p>
+
+  <h3 class="sub-title">Cara Login</h3>
+  <ol class="steps">
+    <li>Buka browser (Chrome, Edge, atau Firefox) dan ketik alamat aplikasi di address bar.</li>
+    <li>Anda akan diarahkan ke halaman <strong>Login</strong> secara otomatis.</li>
+    <li>Masukkan <strong>Username</strong> dan <strong>Password</strong> yang telah diberikan.</li>
+    <li>Klik tombol <strong>Masuk</strong>.</li>
+    <li>Jika berhasil, Anda akan diarahkan ke halaman <strong>Dashboard</strong>.</li>
+  </ol>
+
+  <div class="warning-box">
+    <strong>⚠️ Perhatian:</strong> Jika login gagal, pastikan username dan password sudah benar (perhatikan huruf kapital). Hubungi administrator jika akun belum aktif.
+  </div>
+
+  <h3 class="sub-title">Logout</h3>
+  <p>Untuk keluar dari sistem, klik nama pengguna di pojok kanan atas, lalu pilih <strong>Logout</strong>. Selalu logout setelah selesai menggunakan sistem, terutama di perangkat bersama.</p>
+</div>
+
+
+<!-- ============================================================
+     BAB 2 – DASHBOARD
+     ============================================================ -->
+<div class="chapter" id="bab2">
+  <div class="chapter-badge">
+    <span class="chapter-num">2</span>
+    <span class="chapter-tag">Navigasi</span>
+  </div>
+  <h2 class="section-title">Dashboard &amp; Navigasi</h2>
+
+  <p>Dashboard adalah halaman utama yang menampilkan ringkasan data klinik secara cepat.</p>
+
+  <h3 class="sub-title">Informasi di Dashboard</h3>
+  <ul class="bullet">
+    <li><strong>Registrasi Hari Ini</strong> – jumlah appointment yang terjadwal hari ini.</li>
+    <li><strong>Total Pasien Aktif</strong> – jumlah pasien yang terdaftar dan tidak dihapus.</li>
+    <li><strong>Pemasukan Bulan Ini</strong> – total pendapatan bulan berjalan.</li>
+    <li><strong>Notifikasi Belum Dibaca</strong> – jumlah notifikasi yang masih perlu ditindaklanjuti.</li>
+    <li><strong>Daftar Registrasi Terbaru</strong> – tabel beberapa registrasi terakhir yang masuk.</li>
+    <li><strong>Notifikasi Terbaru</strong> – ringkasan notifikasi (ulang tahun, pasien tidak aktif, follow-up).</li>
+  </ul>
+
+  <h3 class="sub-title">Navigasi Sidebar</h3>
+  <p>Menu utama ada di <strong>sidebar kiri</strong>. Pada tampilan mobile, klik ikon hamburger (☰) untuk membuka sidebar. Grup menu yang tersedia:</p>
+  <table class="doc-table">
+    <thead>
+      <tr><th>Grup</th><th>Menu yang Tersedia</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Utama</td><td>Dashboard, Notifikasi, Template Pesan, Registrasi, Kalender</td></tr>
+      <tr><td>Laporan Keuangan</td><td>Pemasukan, Pengeluaran</td></tr>
+      <tr><td>Rekap &amp; Statistik</td><td>Rekap Tindakan</td></tr>
+      <tr><td>Pembukuan</td><td>Total Pendapatan, Total Pengeluaran, Rekap Pasien/Terapis, Rekap Transport, Saldo Akhir</td></tr>
+      <tr><td>Inventory</td><td>Daftar Barang, Stok Masuk, Pemakaian Barang, Laporan Inventory</td></tr>
+      <tr><td>Master Data</td><td>Cabang, Pasien, Terapis, Jenis Terapi</td></tr>
+      <tr><td>Pengaturan</td><td>User, Roles, Pengaturan, Backup</td></tr>
+    </tbody>
+  </table>
+
+  <div class="info-box">
+    <strong>ℹ️ Menu yang muncul tergantung hak akses (role) pengguna.</strong> Pengguna dengan role terbatas mungkin hanya melihat sebagian menu.
+  </div>
+
+  <h3 class="sub-title">Ikon Notifikasi (Bel)</h3>
+  <p>Di header atas terdapat ikon 🔔 dengan badge merah yang menunjukkan jumlah notifikasi belum dibaca. Klik ikon tersebut untuk melihat daftar notifikasi terbaru.</p>
+</div>
+
+
+<!-- ============================================================
+     BAB 3 – DATA PASIEN
+     ============================================================ -->
+<div class="chapter" id="bab3">
+  <div class="chapter-badge">
+    <span class="chapter-num">3</span>
+    <span class="chapter-tag">Master Data</span>
+  </div>
+  <h2 class="section-title">Data Pasien</h2>
+
+  <p>Modul Pasien digunakan untuk mengelola data semua pasien yang terdaftar di klinik. Akses melalui menu <strong>Master Data → Pasien</strong>.</p>
+
+  <h3 class="sub-title">Melihat Daftar Pasien</h3>
+  <p>Halaman daftar pasien menampilkan tabel berisi semua pasien aktif. Tersedia fitur:</p>
+  <ul class="bullet">
+    <li><strong>Pencarian</strong> – ketik nama anak atau nama orang tua di kolom pencarian.</li>
+    <li><strong>Filter Cabang</strong> – tampilkan pasien berdasarkan cabang tertentu.</li>
+    <li><strong>Filter Status WhatsApp</strong> – tampilkan pasien yang terdaftar/tidak terdaftar di WhatsApp.</li>
+    <li><strong>Pagination</strong> – navigasi antar halaman jika data banyak.</li>
+  </ul>
+
+  <h3 class="sub-title">Tambah Pasien Baru</h3>
+  <ol class="steps">
+    <li>Klik tombol <strong>+ Tambah Pasien</strong>.</li>
+    <li>Isi formulir data pasien (lihat tabel field di bawah).</li>
+    <li>Klik <strong>Simpan</strong>.</li>
+  </ol>
+  <div class="field-list">
+    <div class="field-item"><span class="field-name">Nama Anak <span class="field-required">*</span></span><span>Nama lengkap bayi/anak. Wajib diisi.</span></div>
+    <div class="field-item"><span class="field-name">Tanggal Lahir <span class="field-required">*</span></span><span>Format: YYYY-MM-DD (otomatis dari date picker).</span></div>
+    <div class="field-item"><span class="field-name">Jenis Kelamin</span><span>Pilih: Laki-laki atau Perempuan.</span></div>
+    <div class="field-item"><span class="field-name">Nama Orang Tua</span><span>Nama ayah/ibu yang mendampingi.</span></div>
+    <div class="field-item"><span class="field-name">No. WhatsApp</span><span>Nomor HP aktif (format: 08xxxx atau 62xxxx). Sistem akan menggunakannya untuk kirim reminder.</span></div>
+    <div class="field-item"><span class="field-name">Terdaftar WA</span><span>Centang jika nomor tersebut aktif di WhatsApp.</span></div>
+    <div class="field-item"><span class="field-name">Alamat</span><span>Alamat lengkap tempat tinggal pasien.</span></div>
+    <div class="field-item"><span class="field-name">Cabang</span><span>Cabang klinik tempat pasien terdaftar.</span></div>
+    <div class="field-item"><span class="field-name">Kode Pasien</span><span>Kode unik otomatis dibuat sistem (contoh: P-001). Bisa dikosongkan.</span></div>
+  </div>
+
+  <h3 class="sub-title">Edit Data Pasien</h3>
+  <ol class="steps">
+    <li>Cari pasien di daftar, lalu klik ikon ✏️ <strong>Edit</strong> di kolom aksi.</li>
+    <li>Ubah data yang perlu diperbarui.</li>
+    <li>Klik <strong>Simpan</strong>.</li>
+  </ol>
+
+  <h3 class="sub-title">Export Data Pasien ke Excel</h3>
+  <ol class="steps">
+    <li>Di halaman daftar pasien, klik tombol <strong>Export Excel</strong>.</li>
+    <li>File Excel akan otomatis terunduh ke komputer Anda.</li>
+    <li>File berisi semua data pasien yang sedang ditampilkan (sesuai filter aktif).</li>
+  </ol>
+
+  <h3 class="sub-title">Import Pasien dari Excel</h3>
+  <ol class="steps">
+    <li>Klik tombol <strong>Import Excel</strong>.</li>
+    <li>Pilih file Excel (.xlsx) yang sudah disiapkan sesuai format template.</li>
+    <li>Klik <strong>Upload &amp; Import</strong>.</li>
+    <li>Sistem akan memvalidasi data dan menampilkan hasil import (berhasil/gagal).</li>
+  </ol>
+  <div class="info-box">
+    <strong>ℹ️ Format Import:</strong> File Excel harus memiliki kolom: nama_anak, tanggal_lahir, jenis_kelamin, nama_orang_tua, no_wa, alamat. Header kolom harus tepat.
+  </div>
+
+  <h3 class="sub-title">Tambah Pasien Cepat (dari Form Registrasi)</h3>
+  <p>Saat mengisi formulir Registrasi baru, jika pasien belum terdaftar, Anda dapat membuat data pasien baru langsung dari dropdown melalui tombol <strong>"+ Pasien Baru"</strong> tanpa harus keluar dari halaman registrasi.</p>
+</div>
+
+
+<!-- ============================================================
+     BAB 4 – REGISTRASI & APPOINTMENT
+     ============================================================ -->
+<div class="chapter" id="bab4">
+  <div class="chapter-badge">
+    <span class="chapter-num">4</span>
+    <span class="chapter-tag">Inti Sistem</span>
+  </div>
+  <h2 class="section-title">Registrasi &amp; Appointment</h2>
+
+  <p>Modul Registrasi adalah inti dari sistem ini. Digunakan untuk mencatat setiap kunjungan/appointment terapi pasien. Akses melalui menu <strong>Registrasi</strong>.</p>
+
+  <h3 class="sub-title">Status Registrasi</h3>
+  <table class="doc-table">
+    <thead><tr><th>Status</th><th>Arti</th><th>Kapan Digunakan</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="status status-booked">BOOKED</span></td>
+        <td>Terbooking</td>
+        <td>Appointment baru dibuat, belum konfirmasi</td>
+      </tr>
+      <tr>
+        <td><span class="status status-confirmed">CONFIRMED</span></td>
+        <td>Dikonfirmasi</td>
+        <td>Pasien sudah konfirmasi akan hadir</td>
+      </tr>
+      <tr>
+        <td><span class="status status-completed">COMPLETED</span></td>
+        <td>Selesai</td>
+        <td>Terapi sudah dilakukan dan selesai</td>
+      </tr>
+      <tr>
+        <td><span class="status status-cancelled">CANCELLED</span></td>
+        <td>Dibatalkan</td>
+        <td>Appointment dibatalkan</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-title">Melihat Daftar Registrasi</h3>
+  <p>Halaman daftar menampilkan semua registrasi. Tersedia filter:</p>
+  <ul class="bullet">
+    <li><strong>Filter Tanggal</strong> – filter berdasarkan rentang tanggal kunjungan.</li>
+    <li><strong>Filter Status</strong> – tampilkan berdasarkan status (BOOKED, CONFIRMED, dll).</li>
+    <li><strong>Filter Terapis</strong> – tampilkan registrasi berdasarkan terapis tertentu.</li>
+    <li><strong>Filter Cabang</strong> – untuk klinik multi-cabang.</li>
+    <li><strong>Pencarian</strong> – cari berdasarkan nama pasien atau kode registrasi.</li>
+  </ul>
+
+  <h3 class="sub-title">Tambah Registrasi Baru</h3>
+  <ol class="steps">
+    <li>Klik tombol <strong>+ Registrasi Baru</strong>.</li>
+    <li>Pilih <strong>Pasien</strong> dari dropdown (ketik untuk mencari). Jika pasien belum ada, klik "+" untuk buat pasien baru.</li>
+    <li>Pilih <strong>Terapis</strong> yang akan menangani (opsional – bisa dikosongkan).</li>
+    <li>Pilih <strong>Tanggal Kunjungan</strong> menggunakan date picker.</li>
+    <li>Isi <strong>Jam Kunjungan</strong> (format HH:MM, contoh: 09:30).</li>
+    <li>Pilih <strong>Jenis Terapi</strong>. Harga akan otomatis terisi dari master data.</li>
+    <li>Jika lebih dari satu jenis terapi (multi-terapi), klik <strong>+ Tambah Terapi</strong> dan ulangi pemilihan.</li>
+    <li>Atur <strong>Biaya Transport</strong> terapis (otomatis terisi dari default terapis, bisa diubah).</li>
+    <li>Centang/hapus centang <strong>Ada Transport</strong> sesuai kebutuhan.</li>
+    <li>Pilih <strong>Status</strong> awal (default: BOOKED).</li>
+    <li>Isi <strong>Catatan</strong> jika ada informasi tambahan.</li>
+    <li>Klik <strong>Simpan Registrasi</strong>.</li>
+  </ol>
+
+  <div class="success-box">
+    <strong>✅ Multi-Terapi:</strong> Satu registrasi bisa memiliki lebih dari satu jenis terapi. Total harga akan dijumlah otomatis dari semua jenis terapi yang dipilih.
+  </div>
+
+  <h3 class="sub-title">Edit Registrasi</h3>
+  <ol class="steps">
+    <li>Dari daftar registrasi, klik ikon ✏️ di kolom aksi registrasi yang ingin diubah.</li>
+    <li>Ubah data yang diperlukan (status, tanggal, terapis, dll).</li>
+    <li>Klik <strong>Simpan Perubahan</strong>.</li>
+  </ol>
+  <div class="info-box">
+    <strong>ℹ️ Mengubah Status:</strong> Untuk menandai terapi sudah selesai, ubah status dari BOOKED/CONFIRMED menjadi <strong>COMPLETED</strong>. Saat status COMPLETED, sistem otomatis mencatat data ke laporan keuangan (pemasukan).
+  </div>
+
+  <h3 class="sub-title">Export Registrasi ke Excel</h3>
+  <ol class="steps">
+    <li>Atur filter terlebih dahulu (tanggal, status, dsb) jika ingin data yang spesifik.</li>
+    <li>Klik tombol <strong>Export Excel</strong>.</li>
+    <li>File Excel berisi semua registrasi sesuai filter yang aktif.</li>
+  </ol>
+
+  <div class="field-list">
+    <div class="field-item"><span class="field-name">Kolom Export</span><span>Kode Registrasi, Nama Anak, Tanggal Kunjungan, Jam, Jenis Terapi, Nama Terapis, Harga, Biaya Transport, Total Bayar, Sudah Dibayar, Sisa Tagihan, Status, Cabang.</span></div>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     BAB 5 – KALENDER APPOINTMENT
+     ============================================================ -->
+<div class="chapter" id="bab5">
+  <div class="chapter-badge">
+    <span class="chapter-num">5</span>
+    <span class="chapter-tag">Jadwal Visual</span>
+  </div>
+  <h2 class="section-title">Kalender Appointment</h2>
+
+  <p>Kalender menampilkan semua appointment dalam tampilan visual kalender bulanan/mingguan. Akses melalui menu <strong>Kalender Appointment</strong>.</p>
+
+  <h3 class="sub-title">Tampilan Kalender</h3>
+  <ul class="bullet">
+    <li>Setiap appointment ditampilkan sebagai blok berwarna di tanggal yang sesuai.</li>
+    <li>Warna blok mewakili status: biru (BOOKED), kuning (CONFIRMED), hijau (COMPLETED), merah (CANCELLED).</li>
+    <li>Klik blok appointment untuk melihat detail (nama pasien, jenis terapi, terapis, jam).</li>
+  </ul>
+
+  <h3 class="sub-title">Reschedule via Drag &amp; Drop</h3>
+  <ol class="steps">
+    <li>Klik dan tahan blok appointment yang ingin dipindahkan.</li>
+    <li>Seret ke tanggal baru yang diinginkan.</li>
+    <li>Lepaskan – sistem akan meminta konfirmasi perubahan tanggal.</li>
+    <li>Klik <strong>Ya, Pindahkan</strong> untuk mengkonfirmasi.</li>
+  </ol>
+  <div class="warning-box">
+    <strong>⚠️ Fitur Reschedule</strong> hanya tersedia untuk pengguna dengan permission <strong>registrasi_reschedule</strong>.
+  </div>
+
+  <h3 class="sub-title">Navigasi Kalender</h3>
+  <ul class="bullet">
+    <li>Klik <strong>◀ Prev</strong> / <strong>Next ▶</strong> untuk berpindah bulan.</li>
+    <li>Klik <strong>Today</strong> untuk kembali ke hari ini.</li>
+    <li>Pilih tampilan <strong>Month / Week / Day</strong> di pojok kanan atas kalender.</li>
+  </ul>
+</div>
+
+
+<!-- ============================================================
+     BAB 6 – PROGRESS TRACKING
+     ============================================================ -->
+<div class="chapter" id="bab6">
+  <div class="chapter-badge">
+    <span class="chapter-num">6</span>
+    <span class="chapter-tag">Monitoring</span>
+  </div>
+  <h2 class="section-title">Progress Tracking Terapi</h2>
+
+  <p>Fitur Progress Tracking memungkinkan terapis mencatat perkembangan kondisi pasien untuk setiap registrasi, lengkap dengan foto sebelum dan sesudah.</p>
+
+  <h3 class="sub-title">Menambah Catatan Progress</h3>
+  <ol class="steps">
+    <li>Buka halaman daftar Registrasi.</li>
+    <li>Cari registrasi yang ingin dicatat progressnya.</li>
+    <li>Klik ikon <strong>📊 Progress</strong> atau tombol "Tambah Progress" di kolom aksi.</li>
+    <li>Isi form berikut:
+      <div class="field-list" style="margin-top:8px;">
+        <div class="field-item"><span class="field-name">Judul <span class="field-required">*</span></span><span>Judul singkat catatan, misal "Sesi 1 - Terapi Sensori".</span></div>
+        <div class="field-item"><span class="field-name">Catatan</span><span>Deskripsi lengkap perkembangan pasien.</span></div>
+        <div class="field-item"><span class="field-name">Foto Sebelum</span><span>Upload foto kondisi pasien sebelum terapi.</span></div>
+        <div class="field-item"><span class="field-name">Foto Sesudah</span><span>Upload foto kondisi pasien setelah terapi.</span></div>
+      </div>
+    </li>
+    <li>Klik <strong>Simpan Progress</strong>.</li>
+  </ol>
+
+  <div class="tip-box">
+    <strong>💡 Tips:</strong> Gunakan fitur ini secara konsisten setiap sesi untuk membantu orang tua pasien melihat perkembangan anak mereka dari waktu ke waktu.
+  </div>
+</div>
+
+
+<!-- ============================================================
+     BAB 7 – PEMASUKAN
+     ============================================================ -->
+<div class="chapter" id="bab7">
+  <div class="chapter-badge">
+    <span class="chapter-num">7</span>
+    <span class="chapter-tag">Keuangan</span>
+  </div>
+  <h2 class="section-title">Pemasukan (Pendapatan)</h2>
+
+  <p>Modul Pemasukan digunakan untuk mencatat semua pendapatan klinik. Akses melalui <strong>Laporan Keuangan → Pemasukan</strong>.</p>
+
+  <div class="info-box">
+    <strong>ℹ️ Otomatis dari Registrasi:</strong> Ketika status registrasi diubah ke COMPLETED, data pemasukan otomatis tercatat. Namun Anda juga bisa menambahkan pemasukan secara manual untuk pendapatan di luar terapi.
+  </div>
+
+  <h3 class="sub-title">Melihat Daftar Pemasukan</h3>
+  <ul class="bullet">
+    <li><strong>Filter Tanggal</strong> – tampilkan pemasukan di rentang tanggal tertentu.</li>
+    <li><strong>Filter Cabang</strong> – tampilkan pemasukan per cabang.</li>
+    <li>Total pemasukan yang difilter ditampilkan di bagian bawah tabel.</li>
+  </ul>
+
+  <h3 class="sub-title">Tambah Pemasukan Manual</h3>
+  <ol class="steps">
+    <li>Klik <strong>+ Tambah Pemasukan</strong>.</li>
+    <li>Isi form:
+      <div class="field-list" style="margin-top:8px;">
+        <div class="field-item"><span class="field-name">Tanggal <span class="field-required">*</span></span><span>Tanggal transaksi pemasukan.</span></div>
+        <div class="field-item"><span class="field-name">Jumlah <span class="field-required">*</span></span><span>Nominal pemasukan (gunakan titik sebagai pemisah ribuan, misal: 150.000).</span></div>
+        <div class="field-item"><span class="field-name">Jumlah Bayar</span><span>Jumlah yang sudah dibayarkan (jika berbeda, misal pembayaran cicilan).</span></div>
+        <div class="field-item"><span class="field-name">Metode Pembayaran</span><span>Tunai, Transfer Bank, QRIS, dsb.</span></div>
+        <div class="field-item"><span class="field-name">Keterangan</span><span>Catatan tambahan tentang transaksi ini.</span></div>
+        <div class="field-item"><span class="field-name">Registrasi</span><span>Opsional – tautkan ke nomor registrasi jika relevan.</span></div>
+        <div class="field-item"><span class="field-name">Cabang</span><span>Pilih cabang asal pemasukan.</span></div>
+      </div>
+    </li>
+    <li>Klik <strong>Simpan</strong>.</li>
+  </ol>
+
+  <h3 class="sub-title">Edit Pemasukan</h3>
+  <p>Klik ikon ✏️ di baris yang ingin diubah → ubah data → klik <strong>Simpan</strong>.</p>
+</div>
+
+
+<!-- ============================================================
+     BAB 8 – PENGELUARAN
+     ============================================================ -->
+<div class="chapter" id="bab8">
+  <div class="chapter-badge">
+    <span class="chapter-num">8</span>
+    <span class="chapter-tag">Keuangan</span>
+  </div>
+  <h2 class="section-title">Pengeluaran</h2>
+
+  <p>Modul Pengeluaran mencatat semua biaya operasional klinik. Akses melalui <strong>Laporan Keuangan → Pengeluaran</strong>.</p>
+
+  <h3 class="sub-title">Tambah Pengeluaran Baru</h3>
+  <ol class="steps">
+    <li>Klik <strong>+ Tambah Pengeluaran</strong>.</li>
+    <li>Isi form:
+      <div class="field-list" style="margin-top:8px;">
+        <div class="field-item"><span class="field-name">Tanggal <span class="field-required">*</span></span><span>Tanggal pengeluaran terjadi.</span></div>
+        <div class="field-item"><span class="field-name">Kategori</span><span>Jenis pengeluaran, misal: Operasional, Gaji, Perlengkapan, Transport Terapis, dll.</span></div>
+        <div class="field-item"><span class="field-name">Jumlah <span class="field-required">*</span></span><span>Nominal pengeluaran.</span></div>
+        <div class="field-item"><span class="field-name">Keterangan</span><span>Deskripsi singkat untuk apa pengeluaran ini.</span></div>
+        <div class="field-item"><span class="field-name">Cabang</span><span>Cabang yang melakukan pengeluaran.</span></div>
+      </div>
+    </li>
+    <li>Klik <strong>Simpan</strong>.</li>
+  </ol>
+
+  <div class="info-box">
+    <strong>ℹ️ Integrasi Inventory:</strong> Pengeluaran dari pemakaian barang inventory akan otomatis tercatat di modul pengeluaran dengan kategori "Pemakaian Barang".
+  </div>
+
+  <h3 class="sub-title">Edit Pengeluaran</h3>
+  <p>Klik ✏️ di baris pengeluaran → ubah data → klik <strong>Simpan</strong>.</p>
+</div>
+
+
+<!-- ============================================================
+     BAB 9 – REKAP TINDAKAN
+     ============================================================ -->
+<div class="chapter" id="bab9">
+  <div class="chapter-badge">
+    <span class="chapter-num">9</span>
+    <span class="chapter-tag">Statistik</span>
+  </div>
+  <h2 class="section-title">Rekap Tindakan</h2>
+
+  <p>Halaman Rekap Tindakan menampilkan statistik jumlah tindakan (registrasi) yang sudah diselesaikan. Akses melalui <strong>Rekap &amp; Statistik → Rekap Tindakan</strong>.</p>
+
+  <h3 class="sub-title">Cara Menggunakan</h3>
+  <ol class="steps">
+    <li>Pilih rentang tanggal yang ingin direkap.</li>
+    <li>Pilih filter Terapis atau Cabang jika diperlukan.</li>
+    <li>Klik <strong>Tampilkan</strong>.</li>
+    <li>Data akan menampilkan jumlah tindakan, jenis terapi yang dilakukan, dan terapis yang menangani.</li>
+  </ol>
+
+  <p>Data rekap berguna untuk evaluasi kinerja terapis dan mengetahui jenis terapi yang paling sering dilakukan.</p>
+</div>
+
+
+<!-- ============================================================
+     BAB 10 – PEMBUKUAN
+     ============================================================ -->
+<div class="chapter" id="bab10">
+  <div class="chapter-badge">
+    <span class="chapter-num">10</span>
+    <span class="chapter-tag">Akuntansi</span>
+  </div>
+  <h2 class="section-title">Pembukuan &amp; Saldo</h2>
+
+  <p>Grup menu Pembukuan berisi laporan keuangan komprehensif. Akses dari sidebar bagian <strong>Pembukuan</strong>.</p>
+
+  <h3 class="sub-title">Total Pendapatan</h3>
+  <p>Menampilkan ringkasan total pendapatan klinik. Dapat difilter per bulan, tahun, atau rentang tanggal. Menampilkan juga rincian per jenis terapi dan per terapis.</p>
+
+  <h3 class="sub-title">Total Pengeluaran</h3>
+  <p>Ringkasan semua pengeluaran klinik dikelompokkan per kategori. Membantu identifikasi pos biaya terbesar.</p>
+
+  <h3 class="sub-title">Rekap Pasien / Terapis</h3>
+  <p>Laporan yang menampilkan detail aktivitas per pasien dan per terapis, termasuk:</p>
+  <ul class="bullet">
+    <li>Jumlah kunjungan pasien dalam periode tertentu.</li>
+    <li>Total pendapatan dari masing-masing pasien.</li>
+    <li>Jumlah sesi yang ditangani per terapis.</li>
+    <li>Total bayar dan status pembayaran (LUNAS / BELUM LUNAS).</li>
+  </ul>
+
+  <h3 class="sub-title">Rekap Transport Terapis</h3>
+  <p>Laporan biaya transport yang dibayarkan kepada terapis. Berguna untuk menghitung total biaya transport bulanan dan memverifikasi pembayaran ke masing-masing terapis.</p>
+
+  <h3 class="sub-title">Saldo Akhir</h3>
+  <p>Halaman Saldo Akhir menampilkan ringkasan keuangan keseluruhan:</p>
+  <div class="field-list">
+    <div class="field-item"><span class="field-name">Total Pemasukan</span><span>Jumlah semua pendapatan dalam periode.</span></div>
+    <div class="field-item"><span class="field-name">Total Pengeluaran</span><span>Jumlah semua biaya dalam periode.</span></div>
+    <div class="field-item"><span class="field-name">Saldo Akhir</span><span>Selisih Pemasukan – Pengeluaran. Jika positif = Surplus, negatif = Defisit.</span></div>
+  </div>
+  <div class="tip-box">
+    <strong>💡 Tips:</strong> Gunakan halaman Saldo Akhir setiap akhir bulan untuk rekap keuangan bulanan. Sesuaikan filter bulan/tahun sebelum melihat data.
+  </div>
+</div>
+
+
+<!-- ============================================================
+     BAB 11 – INVENTORY
+     ============================================================ -->
+<div class="chapter" id="bab11">
+  <div class="chapter-badge">
+    <span class="chapter-num">11</span>
+    <span class="chapter-tag">Stok Barang</span>
+  </div>
+  <h2 class="section-title">Manajemen Inventory</h2>
+
+  <p>Modul Inventory digunakan untuk mengelola stok barang klinik (alat terapi, mainan, perlengkapan, dll). Akses dari sidebar bagian <strong>Inventory</strong>.</p>
+
+  <h3 class="sub-title">Status Stok</h3>
+  <table class="doc-table">
+    <thead><tr><th>Status</th><th>Kondisi</th></tr></thead>
+    <tbody>
+      <tr><td><span class="status status-aman">AMAN</span></td><td>Stok tersedia di atas batas minimum.</td></tr>
+      <tr><td><span class="status status-rendah">RENDAH</span></td><td>Stok tersedia di bawah atau sama dengan batas minimum. Perlu segera restock.</td></tr>
+      <tr><td><span class="status status-habis">HABIS</span></td><td>Stok = 0. Tidak ada barang tersedia.</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-title">A. Kategori Barang</h3>
+  <p>Sebelum menambah barang, siapkan kategorinya terlebih dahulu. Akses: <em>Inventory → Kategori Barang</em>.</p>
+  <ol class="steps">
+    <li>Klik <strong>+ Tambah Kategori</strong>.</li>
+    <li>Isi <strong>Nama Kategori</strong> (contoh: Alat Terapi, Mainan Edukatif, Supplies).</li>
+    <li>Isi <strong>Deskripsi</strong> (opsional).</li>
+    <li>Klik <strong>Simpan</strong>.</li>
+  </ol>
+
+  <h3 class="sub-title">B. Daftar Barang</h3>
+  <p>Master data semua barang inventory. Akses: <em>Inventory → Daftar Barang</em>.</p>
+
+  <h4 class="step-title">Tambah Barang Baru</h4>
+  <ol class="steps">
+    <li>Klik <strong>+ Tambah Barang</strong>.</li>
+    <li>Isi form:
+      <div class="field-list" style="margin-top:8px;">
+        <div class="field-item"><span class="field-name">Kode Barang</span><span>Kode unik barang (opsional, sistem bisa auto-generate).</span></div>
+        <div class="field-item"><span class="field-name">Nama Barang <span class="field-required">*</span></span><span>Nama lengkap barang.</span></div>
+        <div class="field-item"><span class="field-name">Kategori <span class="field-required">*</span></span><span>Pilih dari daftar kategori yang sudah dibuat.</span></div>
+        <div class="field-item"><span class="field-name">Satuan</span><span>Unit satuan barang (pcs, buah, botol, set, dll).</span></div>
+        <div class="field-item"><span class="field-name">Stok Minimum</span><span>Batas stok minimum sebelum alert RENDAH muncul.</span></div>
+        <div class="field-item"><span class="field-name">Stok Tersedia</span><span>Stok awal saat pertama kali didaftarkan.</span></div>
+        <div class="field-item"><span class="field-name">Harga Satuan</span><span>Harga per unit barang.</span></div>
+        <div class="field-item"><span class="field-name">Keterangan</span><span>Catatan tambahan tentang barang.</span></div>
+      </div>
+    </li>
+    <li>Klik <strong>Simpan</strong>.</li>
+  </ol>
+
+  <h3 class="sub-title">C. Stok Masuk</h3>
+  <p>Catat setiap penambahan stok barang (pembelian, penerimaan barang baru). Akses: <em>Inventory → Stok Masuk</em>.</p>
+  <ol class="steps">
+    <li>Klik <strong>+ Tambah Stok Masuk</strong>.</li>
+    <li>Pilih <strong>Barang</strong> dari dropdown.</li>
+    <li>Isi <strong>Jumlah</strong> barang yang masuk.</li>
+    <li>Isi <strong>Tanggal</strong> penerimaan barang.</li>
+    <li>Isi <strong>Harga Satuan</strong> pembelian.</li>
+    <li>Isi <strong>Keterangan</strong> (supplier, nomor invoice, dll).</li>
+    <li>Klik <strong>Simpan</strong>. Stok barang otomatis bertambah.</li>
+  </ol>
+
+  <h3 class="sub-title">D. Pemakaian Barang</h3>
+  <p>Catat setiap pemakaian barang untuk sesi terapi. Akses: <em>Inventory → Pemakaian Barang</em>.</p>
+  <ol class="steps">
+    <li>Klik <strong>+ Tambah Pemakaian</strong>.</li>
+    <li>Pilih <strong>Barang</strong> yang dipakai.</li>
+    <li>Isi <strong>Jumlah</strong> yang digunakan.</li>
+    <li>Pilih <strong>Tanggal</strong> pemakaian.</li>
+    <li>Tautkan ke <strong>Registrasi</strong> jika pemakaian terkait sesi terapi tertentu (opsional).</li>
+    <li>Isi <strong>Keterangan</strong>.</li>
+    <li>Klik <strong>Simpan</strong>. Stok barang otomatis berkurang. Biaya pemakaian otomatis tercatat sebagai pengeluaran.</li>
+  </ol>
+
+  <div class="warning-box">
+    <strong>⚠️ Perhatian:</strong> Pastikan jumlah pemakaian tidak melebihi stok tersedia. Sistem akan memperingatkan jika stok tidak mencukupi.
+  </div>
+
+  <h3 class="sub-title">E. Laporan Inventory</h3>
+  <p>Halaman laporan menampilkan ringkasan kondisi inventory saat ini, termasuk:</p>
+  <ul class="bullet">
+    <li>Daftar barang dengan status stok (AMAN/RENDAH/HABIS).</li>
+    <li>Riwayat keluar masuk barang dalam periode tertentu.</li>
+    <li>Total nilai inventory.</li>
+    <li>Barang yang perlu segera di-restock (stok rendah/habis).</li>
+  </ul>
+</div>
+
+
+<!-- ============================================================
+     BAB 12 – NOTIFIKASI
+     ============================================================ -->
+<div class="chapter" id="bab12">
+  <div class="chapter-badge">
+    <span class="chapter-num">12</span>
+    <span class="chapter-tag">Reminder</span>
+  </div>
+  <h2 class="section-title">Notifikasi Otomatis</h2>
+
+  <p>Sistem secara otomatis membuat notifikasi untuk membantu staff memantau kondisi pasien. Akses dari menu <strong>Notifikasi</strong> atau klik ikon 🔔 di header.</p>
+
+  <h3 class="sub-title">Jenis Notifikasi</h3>
+  <table class="doc-table">
+    <thead><tr><th>Jenis</th><th>Kapan Muncul</th><th>Tindakan</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>🎂 <strong>Ulang Tahun</strong></td>
+        <td>H-1 atau H-2 sebelum ulang tahun pasien (tergantung setting)</td>
+        <td>Kirim ucapan selamat kepada orang tua</td>
+      </tr>
+      <tr>
+        <td>😴 <strong>Pasien Tidak Aktif</strong></td>
+        <td>Pasien tidak kunjungan dalam X hari (default: 30 hari)</td>
+        <td>Follow-up via WhatsApp atau telepon</td>
+      </tr>
+      <tr>
+        <td>📞 <strong>Follow-Up Registrasi</strong></td>
+        <td>Registrasi yang belum di-follow-up setelah beberapa hari</td>
+        <td>Hubungi pasien untuk konfirmasi jadwal</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-title">Mengelola Notifikasi</h3>
+  <h4 class="step-title">Tandai Sudah Dibaca (Satu per Satu)</h4>
+  <ol class="steps">
+    <li>Buka halaman Notifikasi.</li>
+    <li>Klik tombol <strong>✓ Tandai Dibaca</strong> di samping notifikasi yang sudah ditindaklanjuti.</li>
+  </ol>
+
+  <h4 class="step-title">Tandai Semua Sudah Dibaca</h4>
+  <ol class="steps">
+    <li>Di halaman Notifikasi, klik tombol <strong>Tandai Semua Dibaca</strong>.</li>
+    <li>Semua notifikasi yang belum dibaca akan ditandai sekaligus.</li>
+  </ol>
+
+  <h4 class="step-title">Generate Notifikasi Manual</h4>
+  <p>Notifikasi biasanya di-generate otomatis setiap hari. Jika ingin memperbarui sekarang:</p>
+  <ol class="steps">
+    <li>Klik tombol <strong>🔄 Generate Notifikasi</strong> di halaman Notifikasi.</li>
+    <li>Sistem akan memeriksa kondisi semua pasien dan membuat notifikasi baru.</li>
+  </ol>
+</div>
+
+
+<!-- ============================================================
+     BAB 13 – TEMPLATE PESAN
+     ============================================================ -->
+<div class="chapter" id="bab13">
+  <div class="chapter-badge">
+    <span class="chapter-num">13</span>
+    <span class="chapter-tag">Komunikasi</span>
+  </div>
+  <h2 class="section-title">Template Pesan WhatsApp</h2>
+
+  <p>Fitur Template Pesan memungkinkan pembuatan format pesan standar yang dapat digunakan berulang kali untuk komunikasi dengan orang tua pasien. Akses dari menu <strong>Template Pesan</strong>.</p>
+
+  <h3 class="sub-title">Placeholder yang Tersedia</h3>
+  <p>Gunakan placeholder berikut dalam teks template. Saat pesan dikirim, placeholder akan otomatis diganti dengan data yang sebenarnya.</p>
+  <table class="doc-table">
+    <thead><tr><th>Placeholder</th><th>Diganti dengan</th></tr></thead>
+    <tbody>
+      <tr><td><code>{nama_anak}</code></td><td>Nama anak/pasien</td></tr>
+      <tr><td><code>{nama_orang_tua}</code></td><td>Nama orang tua</td></tr>
+      <tr><td><code>{tanggal}</code></td><td>Tanggal kunjungan</td></tr>
+      <tr><td><code>{jam}</code></td><td>Jam kunjungan</td></tr>
+      <tr><td><code>{jenis_terapi}</code></td><td>Jenis terapi yang dijadwalkan</td></tr>
+      <tr><td><code>{nama_terapis}</code></td><td>Nama terapis yang menangani</td></tr>
+      <tr><td><code>{nama_klinik}</code></td><td>Nama klinik/cabang</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-title">Membuat Template Baru</h3>
+  <ol class="steps">
+    <li>Klik <strong>+ Tambah Template</strong>.</li>
+    <li>Isi <strong>Nama Template</strong> (contoh: "Reminder Kunjungan H-1").</li>
+    <li>Isi <strong>Isi Pesan</strong> menggunakan placeholder di atas.<br>
+      <em>Contoh: "Halo Bapak/Ibu {nama_orang_tua}, kami mengingatkan bahwa {nama_anak} memiliki jadwal terapi besok, {tanggal} pukul {jam}. Terapis: {nama_terapis}. Mohon hadir tepat waktu."</em>
+    </li>
+    <li>Klik <strong>Simpan</strong>.</li>
+  </ol>
+
+  <h3 class="sub-title">Edit / Hapus Template</h3>
+  <ul class="bullet">
+    <li>Klik ✏️ untuk mengedit template yang sudah ada.</li>
+    <li>Klik 🗑️ untuk menghapus template (muncul konfirmasi sebelum dihapus).</li>
+  </ul>
+</div>
+
+
+<!-- ============================================================
+     BAB 14 – KIRIM REMINDER WHATSAPP
+     ============================================================ -->
+<div class="chapter" id="bab14">
+  <div class="chapter-badge">
+    <span class="chapter-num">14</span>
+    <span class="chapter-tag">Komunikasi</span>
+  </div>
+  <h2 class="section-title">Kirim Reminder WhatsApp</h2>
+
+  <p>Untuk mengirim pesan pengingat ke orang tua pasien melalui WhatsApp langsung dari sistem.</p>
+
+  <h3 class="sub-title">Cara Mengirim Reminder</h3>
+  <ol class="steps">
+    <li>Buka halaman daftar <strong>Registrasi</strong>.</li>
+    <li>Cari registrasi yang ingin dikirimkan reminder.</li>
+    <li>Klik ikon <strong>💬 WhatsApp</strong> di kolom aksi.</li>
+    <li>Pilih <strong>Template Pesan</strong> yang ingin digunakan (pesan sudah terisi otomatis dengan data pasien).</li>
+    <li>Periksa dan edit pesan jika perlu.</li>
+    <li>Klik <strong>Kirim via WhatsApp</strong>.</li>
+    <li>Browser akan membuka WhatsApp Web/App dengan pesan sudah terisi. Klik tombol kirim di WhatsApp.</li>
+  </ol>
+
+  <div class="info-box">
+    <strong>ℹ️ Syarat:</strong> Pasien harus memiliki nomor WhatsApp yang terisi dan opsi "Terdaftar WA" harus dicentang pada data pasien.
+  </div>
+</div>
+
+
+<!-- ============================================================
+     BAB 15 – CABANG
+     ============================================================ -->
+<div class="chapter" id="bab15">
+  <div class="chapter-badge">
+    <span class="chapter-num">15</span>
+    <span class="chapter-tag">Master Data</span>
+  </div>
+  <h2 class="section-title">Data Cabang</h2>
+
+  <p>Modul Cabang digunakan untuk mengelola data lokasi/cabang klinik. Akses melalui <strong>Master Data → Cabang</strong>.</p>
+
+  <h3 class="sub-title">Tambah Cabang Baru</h3>
+  <ol class="steps">
+    <li>Klik <strong>+ Tambah Cabang</strong>.</li>
+    <li>Isi <strong>Nama Cabang</strong> (wajib).</li>
+    <li>Isi <strong>Alamat</strong> lengkap cabang (opsional).</li>
+    <li>Klik <strong>Simpan</strong>.</li>
+  </ol>
+
+  <h3 class="sub-title">Edit / Hapus Cabang</h3>
+  <ul class="bullet">
+    <li>Klik ✏️ untuk mengedit nama atau alamat cabang.</li>
+    <li>Klik 🗑️ untuk menghapus cabang. <strong>Cabang yang masih memiliki data pasien/registrasi tidak dapat dihapus.</strong></li>
+  </ul>
+</div>
+
+
+<!-- ============================================================
+     BAB 16 – TERAPIS
+     ============================================================ -->
+<div class="chapter" id="bab16">
+  <div class="chapter-badge">
+    <span class="chapter-num">16</span>
+    <span class="chapter-tag">Master Data</span>
+  </div>
+  <h2 class="section-title">Data Terapis</h2>
+
+  <p>Modul Terapis menyimpan data semua terapis yang bekerja di klinik. Akses melalui <strong>Master Data → Terapis</strong>.</p>
+
+  <h3 class="sub-title">Tambah Terapis Baru</h3>
+  <ol class="steps">
+    <li>Klik <strong>+ Tambah Terapis</strong>.</li>
+    <li>Isi form:
+      <div class="field-list" style="margin-top:8px;">
+        <div class="field-item"><span class="field-name">Nama Terapis <span class="field-required">*</span></span><span>Nama lengkap terapis.</span></div>
+        <div class="field-item"><span class="field-name">No. HP</span><span>Nomor handphone terapis.</span></div>
+        <div class="field-item"><span class="field-name">Alamat</span><span>Alamat rumah terapis.</span></div>
+        <div class="field-item"><span class="field-name">Biaya Transport Default</span><span>Biaya transport standar yang biasanya diberikan kepada terapis ini. Otomatis terisi saat membuat registrasi dengan terapis ini.</span></div>
+        <div class="field-item"><span class="field-name">Cabang</span><span>Cabang tempat terapis bertugas.</span></div>
+        <div class="field-item"><span class="field-name">Status Aktif</span><span>Centang jika terapis masih aktif bekerja.</span></div>
+      </div>
+    </li>
+    <li>Klik <strong>Simpan</strong>.</li>
+  </ol>
+
+  <h3 class="sub-title">Nonaktifkan Terapis</h3>
+  <p>Terapis yang berhenti bekerja sebaiknya <strong>dinonaktifkan</strong> (bukan dihapus) agar riwayat datanya tetap tersimpan. Edit data terapis dan hilangkan centang pada <strong>Status Aktif</strong>.</p>
+
+  <div class="tip-box">
+    <strong>💡 Tambah Terapis Cepat:</strong> Saat mengisi form Registrasi, jika terapis belum terdaftar, klik tombol <strong>"+ Terapis Baru"</strong> di sebelah dropdown terapis untuk menambahkan langsung tanpa keluar dari halaman.
+  </div>
+</div>
+
+
+<!-- ============================================================
+     BAB 17 – JENIS TERAPI
+     ============================================================ -->
+<div class="chapter" id="bab17">
+  <div class="chapter-badge">
+    <span class="chapter-num">17</span>
+    <span class="chapter-tag">Master Data</span>
+  </div>
+  <h2 class="section-title">Jenis Terapi</h2>
+
+  <p>Modul ini menyimpan daftar semua jenis terapi yang tersedia beserta harganya. Akses melalui <strong>Master Data → Jenis Terapi</strong>.</p>
+
+  <h3 class="sub-title">Tambah Jenis Terapi Baru</h3>
+  <ol class="steps">
+    <li>Klik <strong>+ Tambah Jenis Terapi</strong>.</li>
+    <li>Isi form:
+      <div class="field-list" style="margin-top:8px;">
+        <div class="field-item"><span class="field-name">Nama Terapi <span class="field-required">*</span></span><span>Nama jenis terapi (contoh: Terapi Wicara, Terapi Sensori Integrasi, Terapi Okupasi).</span></div>
+        <div class="field-item"><span class="field-name">Harga <span class="field-required">*</span></span><span>Biaya untuk satu sesi terapi ini.</span></div>
+        <div class="field-item"><span class="field-name">Usia Minimum</span><span>Batas minimum usia pasien yang disarankan (dalam bulan).</span></div>
+        <div class="field-item"><span class="field-name">Usia Maksimum</span><span>Batas maksimum usia pasien yang disarankan (dalam bulan).</span></div>
+      </div>
+    </li>
+    <li>Klik <strong>Simpan</strong>.</li>
+  </ol>
+
+  <div class="info-box">
+    <strong>ℹ️ Harga Otomatis:</strong> Saat memilih jenis terapi di form Registrasi, harga akan otomatis terisi sesuai data master. Anda tetap bisa mengubah harga di form registrasi jika ada penyesuaian.
+  </div>
+
+  <h3 class="sub-title">Edit / Nonaktifkan Jenis Terapi</h3>
+  <ul class="bullet">
+    <li>Klik ✏️ untuk mengubah nama atau harga terapi.</li>
+    <li>Klik 🗑️ untuk menonaktifkan jenis terapi yang sudah tidak digunakan.</li>
+  </ul>
+</div>
+
+
+<!-- ============================================================
+     BAB 18 – MANAJEMEN USER
+     ============================================================ -->
+<div class="chapter" id="bab18">
+  <div class="chapter-badge">
+    <span class="chapter-num">18</span>
+    <span class="chapter-tag">Administrasi</span>
+  </div>
+  <h2 class="section-title">Manajemen User</h2>
+
+  <p>Hanya <strong>Superadmin / Owner</strong> yang dapat mengelola akun pengguna. Akses melalui menu <strong>Pengaturan → User</strong>.</p>
+
+  <h3 class="sub-title">Melihat Daftar User</h3>
+  <p>Tabel menampilkan semua akun pengguna beserta informasi: username, nama lengkap, cabang, role, dan status aktif.</p>
+
+  <h3 class="sub-title">Tambah User Baru</h3>
+  <ol class="steps">
+    <li>Klik <strong>+ Tambah User</strong>.</li>
+    <li>Isi form:
+      <div class="field-list" style="margin-top:8px;">
+        <div class="field-item"><span class="field-name">Username <span class="field-required">*</span></span><span>Nama login unik. Gunakan huruf kecil tanpa spasi (contoh: budi.staff).</span></div>
+        <div class="field-item"><span class="field-name">Nama Lengkap</span><span>Nama asli pengguna.</span></div>
+        <div class="field-item"><span class="field-name">Email</span><span>Alamat email pengguna (opsional).</span></div>
+        <div class="field-item"><span class="field-name">Password <span class="field-required">*</span></span><span>Password awal. Minta pengguna menggantinya setelah login pertama.</span></div>
+        <div class="field-item"><span class="field-name">Cabang</span><span>Cabang tempat pengguna bertugas.</span></div>
+        <div class="field-item"><span class="field-name">Role</span><span>Pilih satu atau lebih role untuk menentukan hak akses pengguna.</span></div>
+        <div class="field-item"><span class="field-name">Status Aktif</span><span>Centang agar pengguna bisa login.</span></div>
+      </div>
+    </li>
+    <li>Klik <strong>Simpan</strong>.</li>
+  </ol>
+
+  <h3 class="sub-title">Edit User</h3>
+  <p>Klik ✏️ di baris user yang ingin diubah. Dapat mengubah nama, email, cabang, role, dan mereset password.</p>
+
+  <h3 class="sub-title">Aktif / Nonaktifkan User</h3>
+  <p>Klik tombol <strong>toggle aktif</strong> (🟢/🔴) di kolom status untuk menonaktifkan atau mengaktifkan kembali akun pengguna tanpa menghapusnya.</p>
+
+  <div class="warning-box">
+    <strong>⚠️ Keamanan:</strong> Nonaktifkan akun user yang sudah tidak bekerja di klinik. Jangan memberikan password akun Anda kepada orang lain.
+  </div>
+</div>
+
+
+<!-- ============================================================
+     BAB 19 – ROLE & HAK AKSES
+     ============================================================ -->
+<div class="chapter" id="bab19">
+  <div class="chapter-badge">
+    <span class="chapter-num">19</span>
+    <span class="chapter-tag">Administrasi</span>
+  </div>
+  <h2 class="section-title">Role &amp; Hak Akses</h2>
+
+  <p>Sistem menggunakan Role-Based Access Control (RBAC) – setiap pengguna memiliki role yang menentukan menu dan aksi apa saja yang bisa mereka lakukan. Akses melalui <strong>Pengaturan → Roles</strong>.</p>
+
+  <h3 class="sub-title">Role Bawaan Sistem</h3>
+  <table class="doc-table">
+    <thead><tr><th>Role</th><th>Deskripsi</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Superadmin / Owner</strong></td><td>Akses penuh ke semua fitur tanpa batasan. Tidak dapat diedit permissionnya.</td></tr>
+      <tr><td><strong>Admin</strong></td><td>Akses ke sebagian besar fitur manajemen, termasuk keuangan dan laporan.</td></tr>
+      <tr><td><strong>Terapis</strong></td><td>Akses terbatas – hanya bisa melihat jadwal sendiri dan menambah progress tracking.</td></tr>
+      <tr><td><strong>Resepsionis</strong></td><td>Akses ke registrasi dan data pasien, tidak ke laporan keuangan.</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-title">Membuat Role Kustom</h3>
+  <ol class="steps">
+    <li>Klik <strong>+ Tambah Role</strong>.</li>
+    <li>Isi <strong>Nama Role</strong>.</li>
+    <li>Centang permission yang ingin diberikan kepada role ini dari daftar yang tersedia.</li>
+    <li>Klik <strong>Simpan</strong>.</li>
+  </ol>
+
+  <h3 class="sub-title">Grup Permission yang Tersedia</h3>
+  <table class="doc-table">
+    <thead><tr><th>Grup</th><th>Contoh Permission</th></tr></thead>
+    <tbody>
+      <tr><td>Dashboard</td><td>Lihat dashboard</td></tr>
+      <tr><td>Notifikasi</td><td>Lihat, generate, tandai dibaca, kelola template pesan</td></tr>
+      <tr><td>Registrasi</td><td>Lihat, tambah, ubah, export, reschedule, kirim WA, tambah progress</td></tr>
+      <tr><td>Kalender</td><td>Lihat kalender appointment</td></tr>
+      <tr><td>Pasien</td><td>Lihat, tambah, ubah, export</td></tr>
+      <tr><td>Terapis</td><td>Lihat, tambah, ubah, hapus</td></tr>
+      <tr><td>Jenis Terapi</td><td>Lihat, tambah, ubah, hapus</td></tr>
+      <tr><td>Cabang</td><td>Lihat, tambah, ubah, hapus</td></tr>
+      <tr><td>Keuangan</td><td>Lihat/tambah/ubah pemasukan dan pengeluaran</td></tr>
+      <tr><td>Inventory</td><td>Kelola kategori, barang, stok masuk, pemakaian</td></tr>
+      <tr><td>Laporan &amp; Pembukuan</td><td>Lihat rekap tindakan dan seluruh pembukuan</td></tr>
+      <tr><td>User Management</td><td>Lihat, tambah, ubah, aktif/nonaktif user</td></tr>
+      <tr><td>Role &amp; Privileges</td><td>Kelola role dan permission</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-title">Generate Role Default</h3>
+  <p>Jika ingin mereset role ke default bawaan sistem, klik tombol <strong>"Seed Default Roles"</strong>. Ini akan membuat ulang role Admin, Terapis, dan Resepsionis dengan permission standar.</p>
+</div>
+
+
+<!-- ============================================================
+     BAB 20 – PENGATURAN APLIKASI
+     ============================================================ -->
+<div class="chapter" id="bab20">
+  <div class="chapter-badge">
+    <span class="chapter-num">20</span>
+    <span class="chapter-tag">Konfigurasi</span>
+  </div>
+  <h2 class="section-title">Pengaturan Aplikasi</h2>
+
+  <p>Halaman Pengaturan memungkinkan Superadmin mengonfigurasi perilaku sistem secara global. Akses melalui <strong>Pengaturan → Pengaturan</strong>.</p>
+
+  <h3 class="sub-title">Pengaturan Tampilan</h3>
+  <div class="field-list">
+    <div class="field-item"><span class="field-name">Ukuran Font</span><span>Atur ukuran font yang digunakan di seluruh aplikasi (dalam px). Berguna untuk pengguna yang kurang nyaman dengan font kecil.</span></div>
+    <div class="field-item"><span class="field-name">Tema (Gelap/Terang)</span><span>Pilih mode tampilan: Light Mode (terang) atau Dark Mode (gelap). Bisa juga diubah langsung dari toggle di header.</span></div>
+  </div>
+
+  <h3 class="sub-title">Pengaturan Notifikasi Otomatis</h3>
+  <div class="field-list">
+    <div class="field-item"><span class="field-name">Aktifkan Notifikasi Ulang Tahun</span><span>Centang untuk mengaktifkan notifikasi ulang tahun pasien.</span></div>
+    <div class="field-item"><span class="field-name">H- Notifikasi Ulang Tahun</span><span>Berapa hari sebelum ulang tahun notifikasi muncul (1 = H-1, 2 = H-2).</span></div>
+    <div class="field-item"><span class="field-name">Aktifkan Notifikasi Pasien Tidak Aktif</span><span>Centang untuk mengaktifkan peringatan pasien yang lama tidak kunjungan.</span></div>
+    <div class="field-item"><span class="field-name">Hari Tidak Aktif</span><span>Jumlah hari tanpa kunjungan sebelum dianggap tidak aktif (default: 30 hari).</span></div>
+    <div class="field-item"><span class="field-name">Aktifkan Notifikasi Follow-Up</span><span>Centang untuk mengaktifkan notifikasi follow-up registrasi.</span></div>
+  </div>
+
+  <p>Setelah mengubah pengaturan, klik <strong>Simpan Pengaturan</strong>.</p>
+</div>
+
+
+<!-- ============================================================
+     BAB 21 – BACKUP DATABASE
+     ============================================================ -->
+<div class="chapter" id="bab21">
+  <div class="chapter-badge">
+    <span class="chapter-num">21</span>
+    <span class="chapter-tag">Keamanan Data</span>
+  </div>
+  <h2 class="section-title">Backup Database</h2>
+
+  <p>Fitur Backup Database memungkinkan administrator membuat salinan data untuk mencegah kehilangan data. Akses melalui <strong>Pengaturan → Backup</strong>.</p>
+
+  <h3 class="sub-title">Membuat Backup</h3>
+  <ol class="steps">
+    <li>Klik tombol <strong>🗄️ Buat Backup Sekarang</strong>.</li>
+    <li>Sistem akan memproses backup (progres ditampilkan secara real-time).</li>
+    <li>Setelah selesai, file backup tersedia untuk diunduh.</li>
+    <li>Klik <strong>Unduh</strong> untuk menyimpan file backup ke komputer Anda.</li>
+  </ol>
+
+  <h3 class="sub-title">Riwayat Backup</h3>
+  <p>Halaman Backup menampilkan daftar backup yang pernah dibuat, termasuk:</p>
+  <ul class="bullet">
+    <li>Nama file backup.</li>
+    <li>Status: PENDING, IN PROGRESS, COMPLETED.</li>
+    <li>Ukuran file.</li>
+    <li>Tanggal dan waktu backup dibuat.</li>
+    <li>Siapa yang membuat backup.</li>
+  </ul>
+
+  <div class="warning-box">
+    <strong>⚠️ Rekomendasi:</strong> Lakukan backup secara rutin minimal seminggu sekali, dan simpan file backup di lokasi yang aman (cloud storage, hard disk eksternal). Jangan simpan backup hanya di komputer yang sama dengan server.
+  </div>
+</div>
+
+
+<!-- ============================================================
+     BAB 22 – GANTI PASSWORD
+     ============================================================ -->
+<div class="chapter" id="bab22">
+  <div class="chapter-badge">
+    <span class="chapter-num">22</span>
+    <span class="chapter-tag">Keamanan</span>
+  </div>
+  <h2 class="section-title">Ganti Password</h2>
+
+  <p>Setiap pengguna dapat mengganti password-nya sendiri. Akses melalui menu di pojok kanan atas → <strong>Ganti Password</strong>, atau langsung ke <strong>Pengaturan Akun → Ganti Password</strong>.</p>
+
+  <h3 class="sub-title">Cara Ganti Password</h3>
+  <ol class="steps">
+    <li>Isi <strong>Password Lama</strong> (password yang sedang digunakan saat ini).</li>
+    <li>Isi <strong>Password Baru</strong> yang diinginkan.</li>
+    <li>Isi ulang Password Baru di kolom <strong>Konfirmasi Password Baru</strong>.</li>
+    <li>Klik <strong>Ganti Password</strong>.</li>
+    <li>Anda akan diminta login ulang dengan password baru.</li>
+  </ol>
+
+  <div class="tip-box">
+    <strong>💡 Tips Keamanan Password:</strong>
+    <ul style="margin-top:6px;padding-left:20px;">
+      <li>Gunakan minimal 8 karakter.</li>
+      <li>Kombinasikan huruf besar, huruf kecil, angka, dan simbol.</li>
+      <li>Jangan gunakan tanggal lahir atau nama sebagai password.</li>
+      <li>Ganti password secara berkala (minimal 3 bulan sekali).</li>
+    </ul>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     APPENDIX
+     ============================================================ -->
+<div class="chapter">
+  <h2 class="section-title">📌 Appendix – Panduan Cepat</h2>
+
+  <h3 class="sub-title">Alur Kerja Harian (Quick Reference)</h3>
+  <table class="doc-table">
+    <thead><tr><th>Tugas</th><th>Menu</th><th>Frekuensi</th></tr></thead>
+    <tbody>
+      <tr><td>Cek notifikasi masuk</td><td>Dashboard → Notifikasi</td><td>Setiap hari</td></tr>
+      <tr><td>Lihat jadwal hari ini</td><td>Kalender / Dashboard</td><td>Setiap pagi</td></tr>
+      <tr><td>Tambah registrasi pasien</td><td>Registrasi → + Registrasi Baru</td><td>Saat ada booking</td></tr>
+      <tr><td>Update status ke COMPLETED</td><td>Registrasi → Edit</td><td>Setelah sesi selesai</td></tr>
+      <tr><td>Catat pengeluaran harian</td><td>Laporan Keuangan → Pengeluaran</td><td>Setiap ada pengeluaran</td></tr>
+      <tr><td>Cek stok barang</td><td>Inventory → Laporan Inventory</td><td>Mingguan</td></tr>
+      <tr><td>Rekap keuangan bulanan</td><td>Pembukuan → Saldo Akhir</td><td>Setiap akhir bulan</td></tr>
+      <tr><td>Backup database</td><td>Pengaturan → Backup</td><td>Mingguan</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-title">Troubleshooting Umum</h3>
+  <table class="doc-table">
+    <thead><tr><th>Masalah</th><th>Kemungkinan Penyebab</th><th>Solusi</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Tidak bisa login</td>
+        <td>Password salah / akun tidak aktif</td>
+        <td>Pastikan caps lock mati. Hubungi admin jika akun dinonaktifkan.</td>
+      </tr>
+      <tr>
+        <td>Menu tidak muncul</td>
+        <td>Role tidak memiliki permission</td>
+        <td>Hubungi Superadmin untuk cek dan tambah permission di Roles.</td>
+      </tr>
+      <tr>
+        <td>Tidak bisa kirim WhatsApp</td>
+        <td>No WA pasien kosong / tidak aktif</td>
+        <td>Pastikan no WA diisi dan centang "Terdaftar WA" di data pasien.</td>
+      </tr>
+      <tr>
+        <td>Stok barang tidak berkurang</td>
+        <td>Pemakaian belum disimpan</td>
+        <td>Pastikan klik "Simpan" setelah mengisi form pemakaian barang.</td>
+      </tr>
+      <tr>
+        <td>Notifikasi tidak muncul</td>
+        <td>Generate notifikasi belum dijalankan</td>
+        <td>Klik tombol "Generate Notifikasi" secara manual di halaman Notifikasi.</td>
+      </tr>
+      <tr>
+        <td>Data tidak tersimpan</td>
+        <td>Validasi form gagal</td>
+        <td>Periksa pesan error (warna merah) di bawah masing-masing field dan perbaiki.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-title">Pintasan Keyboard</h3>
+  <table class="doc-table">
+    <thead><tr><th>Pintasan</th><th>Fungsi</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>P</kbd></td><td>Print halaman / Save sebagai PDF</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>F</kbd></td><td>Cari teks di halaman</td></tr>
+      <tr><td><kbd>F5</kbd></td><td>Refresh halaman</td></tr>
+      <tr><td><kbd>Alt</kbd> + <kbd>←</kbd></td><td>Kembali ke halaman sebelumnya</td></tr>
+    </tbody>
+  </table>
+
+  <hr class="divider">
+  <p style="text-align:center;color:#94a3b8;font-size:9pt;margin-top:20px;">
+    Babycare Management System &nbsp;|&nbsp; Panduan Pengguna v1.0 &nbsp;|&nbsp; Mei 2026<br>
+    Dokumen ini bersifat konfidensial dan hanya untuk penggunaan internal klinik.
+  </p>
+</div>
+
+<!-- Print Button (hanya di browser, tidak ikut print) -->
+<div style="text-align:center;margin:30px 0;print-color-adjust:exact;" class="no-print">
+  <button onclick="window.print()"
+    style="background:#1e3a8a;color:#fff;border:none;padding:14px 36px;font-size:13pt;font-weight:700;border-radius:8px;cursor:pointer;box-shadow:0 4px 12px rgba(30,58,138,0.3);">
+    🖨️ &nbsp; Print / Simpan sebagai PDF
+  </button>
+  <p style="color:#64748b;font-size:10pt;margin-top:10px;">Tekan tombol di atas, lalu pilih <strong>Save as PDF</strong> di dialog print browser Anda.</p>
+</div>
+
+<style>
+  @media print {
+    .no-print { display: none !important; }
+  }
+</style>
+
+</div><!-- /.page -->
+</body>
+</html>

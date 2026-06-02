@@ -301,17 +301,26 @@ $(document).ready(function() {
       $('#id_harga_satuan_beli').prop('required', true);
       // Make manual fields not required
       $('#id_kategori').prop('required', false);
-      $('#id_jumlah').prop('required', false);
+      $('#id_jumlah').prop('required', false).prop('readonly', true).val('');
+      // Clear manual fields
+      $('#id_kategori').val('').trigger('change');
     } else {
       $('#manual-section').show();
       $('#inventory-section').hide();
       // Make manual fields required
       $('#id_kategori').prop('required', true);
-      $('#id_jumlah').prop('required', true);
+      $('#id_jumlah').prop('required', true).prop('readonly', false);
       // Make inventory fields not required
       $('#id_barang').prop('required', false);
       $('#id_jumlah_barang').prop('required', false);
       $('#id_harga_satuan_beli').prop('required', false);
+      // Clear inventory fields
+      $('#id_barang').val('').trigger('change');
+      $('#id_jumlah_barang').val('');
+      $('#id_harga_satuan_beli').val('');
+      $('#id_supplier').val('');
+      $('#id_no_faktur').val('');
+      $('#total_display').val('Rp 0');
     }
   }
   

@@ -38,6 +38,7 @@ def render_notification_message(template_text, notification=None):
         '#pasien': getattr(pasien, 'nama_anak', '') or '',
         '#orang_tua': getattr(pasien, 'nama_orang_tua', '') or 'Bapak/Ibu',
         '#tanggal': registrasi.tanggal_kunjungan.strftime('%d %b %Y') if registrasi and registrasi.tanggal_kunjungan else '',
+        '#jam': registrasi.jam_kunjungan.strftime('%H:%M') if registrasi and registrasi.jam_kunjungan else '',
         '#kode_registrasi': getattr(registrasi, 'kode_registrasi', '') or '',
         '#jenis_notifikasi': getattr(notification, 'jenis_notifikasi', '') or '',
     }

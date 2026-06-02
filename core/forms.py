@@ -187,7 +187,7 @@ class PengeluaranForm(forms.ModelForm):
                   'barang', 'jumlah_barang', 'harga_satuan_beli', 'supplier', 'no_faktur']
         widgets = {
             'tanggal': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'jumlah': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0', 'readonly': 'readonly'}),
+            'jumlah': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Masukkan jumlah pengeluaran', 'id': 'id_jumlah'}),
             'keterangan': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Keterangan...'}),
             'cabang': forms.Select(attrs={'class': 'form-select'}),
             'barang': forms.Select(attrs={'class': 'form-select', 'id': 'id_barang'}),
@@ -351,7 +351,7 @@ class TemplatePesanForm(forms.ModelForm):
             'template_pesan': 'Template Pesan',
         }
         help_texts = {
-            'template_pesan': 'Placeholder yang bisa dipakai: #pasien, #orang_tua, #tanggal, #kode_registrasi, #jenis_notifikasi',
+            'template_pesan': 'Placeholder yang bisa dipakai: #pasien, #orang_tua, #tanggal, #jam, #kode_registrasi, #jenis_notifikasi',
         }
 
     def clean_tipe_pesan(self):

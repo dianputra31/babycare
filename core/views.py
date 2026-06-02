@@ -2163,7 +2163,8 @@ def build_whatsapp_url(phone_number, message_text):
     formatted_phone = whatsapp_service.format_phone_number(phone_number)
     if not formatted_phone:
         return None
-    encoded_message = quote(message_text or '')
+    # safe='' agar semua karakter (termasuk '/') di-encode dengan benar
+    encoded_message = quote(message_text or '', safe='')
     return f'https://wa.me/{formatted_phone}?text={encoded_message}'
 
 
@@ -2206,6 +2207,7 @@ class NotifikasiListView(PermissionRequiredViewMixin, ListView):
             notif.jenis_label = type_label_map.get(notif.jenis_notifikasi, notif.jenis_notifikasi or 'Info')
             notif.whatsapp_number = getattr(notif.pasien, 'no_wa', None)
             notif.rendered_message = TemplatePesan.build_message_for_notification(notif)
+            notif.whatsapp_formatted_phone = whatsapp_service.format_phone_number(notif.whatsapp_number) if notif.whatsapp_number else ''
             notif.whatsapp_url = None
             if notif.whatsapp_number and notif.rendered_message:
                 notif.whatsapp_url = build_whatsapp_url(notif.whatsapp_number, notif.rendered_message)

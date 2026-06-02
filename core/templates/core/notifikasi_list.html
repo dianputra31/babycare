@@ -172,9 +172,22 @@
 
                     {% if notif.whatsapp_url %}
                     <div class="mt-3 pt-2 border-top">
-                      <a href="{{ notif.whatsapp_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-sm notification-whatsapp-action">
-                        <i class="bi bi-whatsapp"></i> Kirim pesan di WhatsApp ({{ notif.whatsapp_number }})
-                      </a>
+                      <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <button type="button"
+                                class="btn btn-success btn-sm notification-whatsapp-action wa-open-btn"
+                                data-phone="{{ notif.whatsapp_formatted_phone }}"
+                                data-message="{{ notif.rendered_message }}"
+                                title="Buka WhatsApp Web di browser (emoji aman)">
+                          <i class="bi bi-whatsapp"></i> WA Web ({{ notif.whatsapp_number }})
+                        </button>
+                        <button type="button"
+                                class="btn btn-outline-success btn-sm notification-whatsapp-action wa-desktop-btn"
+                                data-phone="{{ notif.whatsapp_formatted_phone }}"
+                                data-message="{{ notif.rendered_message }}"
+                                title="Buka WhatsApp Desktop (emoji mungkin tidak tampil)">
+                          WA Desktop ({{ notif.whatsapp_number }})
+                        </button>
+                      </div>
                       <div class="small text-muted mt-2 notification-template-preview">
                         Template terisi otomatis: {{ notif.rendered_message }}
                       </div>
@@ -279,6 +292,26 @@ $(document).ready(function() {
         alert('Gagal menandai notifikasi sebagai dibaca');
       }
     });
+  });
+
+  // WA Web - buka web.whatsapp.com (emoji aman)
+  $(document).on('click', '.wa-open-btn', function(e) {
+    e.preventDefault();
+    const phone = $(this).data('phone');
+    const message = $(this).data('message');
+    if (!phone || !message) return;
+    const url = 'https://web.whatsapp.com/send?phone=' + phone + '&text=' + encodeURIComponent(message);
+    window.open(url, '_blank', 'noopener,noreferrer');
+  });
+
+  // WA Desktop - buka via wa.me (tanpa icon karena emoji mungkin tidak tampil)
+  $(document).on('click', '.wa-desktop-btn', function(e) {
+    e.preventDefault();
+    const phone = $(this).data('phone');
+    const message = $(this).data('message');
+    if (!phone || !message) return;
+    const url = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(message);
+    window.open(url, '_blank', 'noopener,noreferrer');
   });
 });
 </script>

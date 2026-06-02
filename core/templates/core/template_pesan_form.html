@@ -38,6 +38,49 @@
 
                   <div class="mb-3">
                     <label for="{{ form.template_pesan.id_for_label }}" class="form-label fw-bold">{{ form.template_pesan.label }}</label>
+
+                    {# Placeholder quickinsert #}
+                    <div class="mb-2 d-flex flex-wrap gap-1 align-items-center">
+                      <span class="text-muted small me-1">Placeholder:</span>
+                      <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 insert-btn" data-value="#pasien">#pasien</button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 insert-btn" data-value="#orang_tua">#orang_tua</button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 insert-btn" data-value="#tanggal">#tanggal</button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 insert-btn" data-value="#jam">#jam</button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 insert-btn" data-value="#kode_registrasi">#kode_registrasi</button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 insert-btn" data-value="#jenis_notifikasi">#jenis_notifikasi</button>
+                    </div>
+
+                    {# Emoji quickinsert #}
+                    <div class="mb-2 p-2 border rounded bg-light">
+                      <div class="text-muted small mb-1">Emoji (klik untuk menyisipkan):</div>
+                      <div class="d-flex flex-wrap gap-1">
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="👋" title="Halo" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">👋</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="😊" title="Senyum" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">😊</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="🤗" title="Peluk" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">🤗</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="🙏" title="Terima kasih" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">🙏</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="👍" title="OK" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">👍</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="🎉" title="Perayaan" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">🎉</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="🎂" title="Ulang tahun" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">🎂</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="⭐" title="Bintang" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">⭐</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="🌟" title="Bintang bersinar" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">🌟</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="✅" title="Centang" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">✅</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="📅" title="Kalender/tanggal" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">📅</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="🕐" title="Jam" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">🕐</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="⏰" title="Alarm/reminder" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">⏰</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="📋" title="Catatan" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">📋</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="💬" title="Chat" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">💬</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="📞" title="Telepon" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">📞</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="🏥" title="Klinik/RS" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">🏥</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="👶" title="Bayi" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">👶</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="💪" title="Semangat" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">💪</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="💚" title="Hati hijau" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">💚</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="❤️" title="Hati merah" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">❤️</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="🌈" title="Pelangi" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">🌈</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="🎯" title="Target" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">🎯</button>
+                        <button type="button" class="btn btn-light btn-sm p-1 insert-btn" data-value="💡" title="Ide/Info" style="font-size:1.3rem;line-height:1;min-width:2.2rem;">💡</button>
+                      </div>
+                    </div>
+
                     {{ form.template_pesan }}
                     <div class="form-text">{{ form.template_pesan.help_text }}</div>
                     {% if form.template_pesan.errors %}
@@ -66,11 +109,12 @@
                 </h6>
               </div>
               <div class="card-body">
-                <p class="small mb-2"><strong>#pasien</strong> akan diganti dengan nama anak.</p>
-                <p class="small mb-2"><strong>#orang_tua</strong> akan diganti dengan nama orang tua, jika tersedia.</p>
-                <p class="small mb-2"><strong>#tanggal</strong> akan diisi tanggal kunjungan saat ada registrasi terkait.</p>
-                <p class="small mb-2"><strong>#kode_registrasi</strong> akan diisi kode registrasi yang terkait.</p>
-                <p class="small mb-0"><strong>#jenis_notifikasi</strong> akan diisi kode tipe notifikasi aktif.</p>
+                <p class="small mb-2"><code>#pasien</code> → nama anak.</p>
+                <p class="small mb-2"><code>#orang_tua</code> → nama orang tua.</p>
+                <p class="small mb-2"><code>#tanggal</code> → tanggal kunjungan.</p>
+                <p class="small mb-2"><code>#jam</code> → jam kunjungan (HH:MM).</p>
+                <p class="small mb-2"><code>#kode_registrasi</code> → kode registrasi.</p>
+                <p class="small mb-0"><code>#jenis_notifikasi</code> → tipe notifikasi.</p>
               </div>
             </div>
           </div>
@@ -79,4 +123,30 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const textarea = document.getElementById('{{ form.template_pesan.id_for_label }}');
+  if (!textarea) return;
+
+  function insertAtCursor(text) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const before = textarea.value.substring(0, start);
+    const after = textarea.value.substring(end);
+    textarea.value = before + text + after;
+    const pos = start + text.length;
+    textarea.setSelectionRange(pos, pos);
+    textarea.focus();
+  }
+
+  document.querySelectorAll('.insert-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      insertAtCursor(this.dataset.value);
+    });
+  });
+})();
+</script>
 {% endblock %}

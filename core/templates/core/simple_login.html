@@ -1,145 +1,380 @@
-{% extends 'base.html' %}
-{% load static %}
+﻿{% load static %}
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login - Rumah Panda Babycare</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-{% block title %}Login - Babycare{% endblock %}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-{% block content %}
-<div class="login-container">
-  <!-- Left Side - Decorative -->
-  <div class="login-left">
-    <div class="login-branding">
-      <div class="login-logo-wrapper">
-        <i class="bi bi-heart-pulse login-logo-icon"></i>
+    body {
+      min-height: 100vh;
+      font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+      display: flex;
+      background: #f0f4f8;
+    }
+
+    /* ── LEFT PANEL ── */
+    .panel-left {
+      display: none;
+      flex: 0 0 48%;
+      background: linear-gradient(160deg, #2e7d32 0%, #388e3c 40%, #1b5e20 100%);
+      position: relative;
+      overflow: hidden;
+      padding: 56px 52px;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    @media (min-width: 900px) { .panel-left { display: flex; } }
+
+    /* bubbles decoratif */
+    .panel-left::before {
+      content: '';
+      position: absolute;
+      width: 420px; height: 420px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+      top: -100px; right: -120px;
+    }
+    .panel-left::after {
+      content: '';
+      position: absolute;
+      width: 260px; height: 260px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      bottom: -60px; left: -80px;
+    }
+
+    .panel-left .bubble-sm {
+      position: absolute;
+      width: 140px; height: 140px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.07);
+      bottom: 120px; right: 40px;
+    }
+
+    .brand-area { position: relative; z-index: 1; }
+
+    .brand-area .brand-panda {
+      font-size: 64px;
+      line-height: 1;
+      margin-bottom: 20px;
+      display: block;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
+      animation: float 3.5s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-10px); }
+    }
+
+    .brand-area h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+
+    .brand-area p {
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.75);
+      line-height: 1.6;
+    }
+
+    .features-list { position: relative; z-index: 1; }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(255,255,255,0.88);
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 14px;
+    }
+
+    .feature-item .feat-icon {
+      width: 34px; height: 34px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+
+    .panel-left .copyright {
+      position: relative; z-index: 1;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.45);
+    }
+
+    /* ── RIGHT PANEL ── */
+    .panel-right {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 20px;
+      background: #f0f4f8;
+    }
+
+    .form-box {
+      width: 100%;
+      max-width: 420px;
+      animation: slideUp 0.45s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Mobile brand */
+    .mobile-brand {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .mobile-brand .panda { font-size: 48px; line-height: 1; }
+    .mobile-brand h1 { font-size: 1.35rem; font-weight: 800; color: #1b5e20; margin-top: 8px; }
+    .mobile-brand p  { font-size: 0.82rem; color: #888; }
+    @media (min-width: 900px) { .mobile-brand { display: none; } }
+
+    .form-box .greeting {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #1a1a2e;
+      margin-bottom: 6px;
+    }
+
+    .form-box .sub {
+      font-size: 0.88rem;
+      color: #8a92a6;
+      margin-bottom: 32px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #444;
+      margin-bottom: 8px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .input-wrap {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .input-wrap .icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #b0b8c8;
+      font-size: 17px;
+      pointer-events: none;
+      transition: color 0.2s;
+    }
+
+    .input-wrap input {
+      width: 100%;
+      padding: 14px 16px 14px 46px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      background: #fff;
+      color: #222;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .input-wrap input::placeholder { color: #c0c8d8; }
+
+    .input-wrap input:focus {
+      border-color: #43a047;
+      box-shadow: 0 0 0 4px rgba(67,160,71,0.12);
+    }
+
+    .input-wrap input:focus ~ .icon,
+    .input-wrap:focus-within .icon { color: #43a047; }
+
+    .input-wrap.has-error input { border-color: #e53935; }
+    .error-msg { font-size: 0.78rem; color: #e53935; margin-top: 5px; }
+
+    .alert-login {
+      background: #fff3f3;
+      border: 1px solid #ffcdd2;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      color: #c62828;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 16px rgba(46,125,50,0.30);
+    }
+
+    .btn-submit:hover {
+      opacity: 0.93;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(46,125,50,0.35);
+    }
+
+    .btn-submit:active { transform: translateY(0); box-shadow: none; }
+    .btn-submit:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+
+    .form-footer {
+      text-align: center;
+      margin-top: 28px;
+      font-size: 0.78rem;
+      color: #b0b8c8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LEFT decorative panel -->
+  <div class="panel-left">
+    <div class="brand-area">
+      <span class="brand-panda">🐼</span>
+      <h1>Rumah Panda<br>Babycare</h1>
+      <p>Sistem manajemen klinik terapi<br>bayi & anak yang modern.</p>
+    </div>
+
+    <div class="features-list">
+      <div class="feature-item">
+        <span class="feat-icon"><i class="bi bi-people-fill"></i></span>
+        Manajemen Pasien & Registrasi
       </div>
-      <h1 class="login-brand-name">Babycare</h1>
-      <p class="login-brand-tagline">Sistem Manajemen Terapi Bayi & Anak</p>
-      
-      <div class="login-features">
-        <div class="login-feature-item">
-          <i class="bi bi-check-circle-fill"></i>
-          <span>Manajemen Pasien & Registrasi</span>
-        </div>
-        <div class="login-feature-item">
-          <i class="bi bi-check-circle-fill"></i>
-          <span>Jadwal Terapi & Kalender</span>
-        </div>
-        <div class="login-feature-item">
-          <i class="bi bi-check-circle-fill"></i>
-          <span>Laporan Keuangan & Inventory</span>
-        </div>
-        <div class="login-feature-item">
-          <i class="bi bi-check-circle-fill"></i>
-          <span>Notifikasi & Reminder WhatsApp</span>
-        </div>
+      <div class="feature-item">
+        <span class="feat-icon"><i class="bi bi-calendar-check-fill"></i></span>
+        Jadwal Terapi & Kalender
       </div>
-      
-      <div class="login-decorative-circles">
-        <div class="circle circle-1"></div>
-        <div class="circle circle-2"></div>
-        <div class="circle circle-3"></div>
+      <div class="feature-item">
+        <span class="feat-icon"><i class="bi bi-graph-up-arrow"></i></span>
+        Laporan Keuangan & Inventory
+      </div>
+      <div class="feature-item">
+        <span class="feat-icon"><i class="bi bi-whatsapp"></i></span>
+        Notifikasi & Reminder WhatsApp
+      </div>
+    </div>
+
+    <p class="copyright">&copy; <span class="yr"></span> Rumah Panda Babycare</p>
+    <div class="bubble-sm"></div>
+  </div>
+
+  <!-- RIGHT form panel -->
+  <div class="panel-right">
+    <div class="form-box">
+
+      <!-- Mobile brand (only shows on small screens) -->
+      <div class="mobile-brand">
+        <div class="panda">🐼</div>
+        <h1>Rumah Panda Babycare</h1>
+        <p>Sistem Manajemen Klinik</p>
+      </div>
+
+      <p class="greeting">Selamat datang 👋</p>
+      <p class="sub">Masuk untuk melanjutkan ke sistem</p>
+
+      {% if form.non_field_errors %}
+      <div class="alert-login">
+        <i class="bi bi-exclamation-circle-fill"></i>
+        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+      </div>
+      {% endif %}
+
+      {% if messages %}
+      {% for message in messages %}
+      <div class="alert-login">{{ message }}</div>
+      {% endfor %}
+      {% endif %}
+
+      <form method="post" novalidate id="loginForm">
+        {% csrf_token %}
+
+        <div>
+          <label class="field-label" for="id_username">Username</label>
+          <div class="input-wrap {% if form.username.errors %}has-error{% endif %}">
+            <input type="text"
+                   name="username"
+                   id="id_username"
+                   placeholder="Masukkan username Anda"
+                   autocomplete="username"
+                   autofocus
+                   required>
+            <i class="bi bi-person icon"></i>
+          </div>
+          {% if form.username.errors %}
+          <div class="error-msg"><i class="bi bi-exclamation-circle me-1"></i>{{ form.username.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div>
+          <label class="field-label" for="id_password">Password</label>
+          <div class="input-wrap {% if form.password.errors %}has-error{% endif %}">
+            <input type="password"
+                   name="password"
+                   id="id_password"
+                   placeholder="Masukkan password Anda"
+                   autocomplete="current-password"
+                   required>
+            <i class="bi bi-lock icon"></i>
+          </div>
+          {% if form.password.errors %}
+          <div class="error-msg"><i class="bi bi-exclamation-circle me-1"></i>{{ form.password.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <button type="submit" class="btn-submit" id="btnLogin">
+          Masuk ke Sistem
+        </button>
+      </form>
+
+      <div class="form-footer">
+        <i class="bi bi-shield-lock me-1"></i> Koneksi aman &amp; terenkripsi
       </div>
     </div>
   </div>
 
-  <!-- Right Side - Login Form -->
-  <div class="login-right">
-    <div class="login-card">
-      <div class="login-card-header">
-        <h2>Selamat Datang! 👋</h2>
-        <p>Silakan login untuk melanjutkan</p>
-      </div>
+  <script>
+    // Isi tahun
+    document.querySelectorAll('.yr').forEach(el => el.textContent = new Date().getFullYear());
 
-      <div class="login-card-body">
-        {% if form.non_field_errors %}
-          <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="bi bi-exclamation-circle me-2"></i>
-            {% for error in form.non_field_errors %}
-              <span>{{ error }}</span>
-            {% endfor %}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        {% endif %}
-
-        <form method="post" novalidate>
-          {% csrf_token %}
-
-          <div class="form-floating mb-3">
-            <input 
-              type="text" 
-              name="username" 
-              class="form-control custom-input {% if form.username.errors %}is-invalid{% endif %}" 
-              id="id_username" 
-              placeholder="Username"
-              required
-              autofocus
-            >
-            <label for="id_username">
-              <i class="bi bi-person me-2"></i>Username
-            </label>
-            {% if form.username.errors %}
-              <div class="invalid-feedback">
-                {{ form.username.errors.0 }}
-              </div>
-            {% endif %}
-          </div>
-
-          <div class="form-floating mb-4">
-            <input 
-              type="password" 
-              name="password" 
-              class="form-control custom-input {% if form.password.errors %}is-invalid{% endif %}" 
-              id="id_password"
-              placeholder="Password"
-              required
-            >
-            <label for="id_password">
-              <i class="bi bi-lock me-2"></i>Password
-            </label>
-            {% if form.password.errors %}
-              <div class="invalid-feedback">
-                {{ form.password.errors.0 }}
-              </div>
-            {% endif %}
-          </div>
-
-          <button type="submit" class="btn-login w-100">
-            <span class="btn-login-text">
-              <i class="bi bi-box-arrow-in-right me-2"></i>Masuk ke Sistem
-            </span>
-            <div class="btn-login-loader">
-              <div class="spinner-border spinner-border-sm" role="status">
-                <span class="visually-hidden">Loading...</span>
-              </div>
-            </div>
-          </button>
-        </form>
-
-        <div class="login-divider">
-          <span>atau</span>
-        </div>
-
-        <div class="login-demo-info">
-          <i class="bi bi-info-circle me-2"></i>
-          <span><strong>Demo:</strong> username: <code>admin</code> / password: <code>admin123</code></span>
-        </div>
-      </div>
-
-      <div class="login-card-footer">
-        <p class="mb-0">
-          <i class="bi bi-shield-check me-1"></i>
-          Sistem dilindungi dengan enkripsi end-to-end
-        </p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-  // Add loading animation on form submit
-  document.querySelector('form').addEventListener('submit', function(e) {
-    const btn = document.querySelector('.btn-login');
-    btn.classList.add('loading');
-    btn.disabled = true;
-  });
-</script>
-{% endblock %}
+    // Loading state on submit
+    document.getElementById('loginForm').addEventListener('submit', function() {
+      const btn = document.getElementById('btnLogin');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Masuk...';
+    });
+  </script>
+</body>
+</html>

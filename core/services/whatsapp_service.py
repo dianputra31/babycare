@@ -107,19 +107,21 @@ _BabyCare Team_"""
         # Send via Fonnte API
         try:
             headers = {
-                'Authorization': self.api_key
+                'Authorization': self.api_key,
             }
             
-            data = {
-                'target': phone,
-                'message': message,
-                'countryCode': '62'
+            # Use multipart/form-data (files=) so emoji bytes are sent as-is
+            # without percent-encoding ambiguity that can corrupt 4-byte emoji
+            files = {
+                'target': (None, phone),
+                'message': (None, message.encode('utf-8'), 'text/plain; charset=utf-8'),
+                'countryCode': (None, '62'),
             }
             
             response = requests.post(
                 self.api_url,
                 headers=headers,
-                data=data,
+                files=files,
                 timeout=30
             )
             
