@@ -330,6 +330,9 @@
         if (data.success) {
           let html = '<div class="alert alert-success mb-0"><strong><i class="bi bi-check-circle"></i> Berhasil!</strong><br>' +
             data.saved + ' data pasien berhasil diimpor.';
+          if (data.skipped && data.skipped > 0) {
+            html += '<br><span class="text-muted"><i class="bi bi-skip-forward"></i> ' + data.skipped + ' data dilewati karena sudah ada di database.</span>';
+          }
           if (data.errors && data.errors.length) {
             html += '<hr><strong>Baris yang dilewati (' + data.errors.length + '):</strong><ul class="mb-0 mt-1">';
             data.errors.forEach(function (e) { html += '<li>' + e + '</li>'; });

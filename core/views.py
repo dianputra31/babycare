@@ -1693,7 +1693,15 @@ class ImportPasienView(PermissionRequiredViewMixin, View):
                 })
 
             saved = 0
+            skipped = 0
             errors = []
+
+            # Pre-load existing (nama_anak_lower, tanggal_lahir) pairs for O(1) duplicate check.
+            # Include soft-deleted records so they don't get re-created silently.
+            existing_keys = set(
+                Pasien.objects.values_list('nama_anak', 'tanggal_lahir')
+            )
+            existing_keys = {(n.strip().lower(), d) for n, d in existing_keys}
 
             for row_num, row in enumerate(
                 ws.iter_rows(min_row=header_row_idx + 1, values_only=True),
@@ -1719,6 +1727,11 @@ class ImportPasienView(PermissionRequiredViewMixin, View):
                     errors.append(f'Baris {row_num} ("{nama_anak}"): format tanggal lahir tidak dikenali.')
                     continue
 
+                dedup_key = (nama_anak.strip().lower(), tanggal_lahir_val)
+                if dedup_key in existing_keys:
+                    skipped += 1
+                    continue
+
                 try:
                     pasien = Pasien.objects.create(
                         nama_anak=nama_anak,
@@ -1731,6 +1744,7 @@ class ImportPasienView(PermissionRequiredViewMixin, View):
                     )
                     pasien.kode_pasien = f'P{pasien.id:04d}'
                     pasien.save(update_fields=['kode_pasien'])
+                    existing_keys.add(dedup_key)
                     saved += 1
                 except Exception as e:
                     errors.append(f'Baris {row_num} ("{nama_anak}"): {str(e)}')
@@ -1738,6 +1752,7 @@ class ImportPasienView(PermissionRequiredViewMixin, View):
             return JsonResponse({
                 'success': True,
                 'saved': saved,
+                'skipped': skipped,
                 'errors': errors,
             })
 
